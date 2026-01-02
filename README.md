@@ -34,10 +34,12 @@ Unlike simple chatbots, HexAgentGUI **thinks, plans, and executes complex multi-
 - 🌐 **Web Search Integration**: Optional real-time web search to enhance AI knowledge
 - 🇧🇷 **Portuguese & English**: Bilingual support with automatic detection
 - ⚡ **Real-time Streaming**: See AI thinking and command execution in real-time
+- 🛑 **Stop Generation**: Instantly abort AI responses with a click
+- 📜 **Autoscroll Control**: Toggle auto-scrolling behavior
 - 🔧 **Visual Differentiation**: 
   - Cyan: AI explanations
   - Yellow: Command execution
-  - Green: Terminal output
+  - **Terminal**: Realistic shell styling (Green on Black)
 
 ### 🧬 Project Origin
 
@@ -159,10 +161,12 @@ Diferente de chatbots simples, o HexAgentGUI **pensa, planeja e executa tarefas 
 - 🌐 **Integração com Busca Web**: Busca web opcional em tempo real para enriquecer conhecimento da IA
 - 🇧🇷 **Português e Inglês**: Suporte bilíngue com detecção automática
 - ⚡ **Streaming em Tempo Real**: Veja o pensamento da IA e execução de comandos em tempo real
+- 🛑 **Parar Geração**: Aborte respostas da IA instantaneamente com um clique
+- 📜 **Controle de Autoscroll**: Alterne o comportamento de rolagem automática
 - 🔧 **Diferenciação Visual**:
   - Ciano: Explicações da IA
   - Amarelo: Execução de comandos
-  - Verde: Saída do terminal
+  - **Terminal**: Estilo shell realista (Verde sobre Preto)
 
 ### 🧬 Origem do Projeto
 

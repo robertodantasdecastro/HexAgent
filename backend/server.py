@@ -100,8 +100,108 @@ except ImportError as e:
 app = Flask(__name__)
 CORS(app) # Enable CORS for Electron
 
-# Global Agent Core
+# Global Agent Core / Núcleo Global do Agente
 core = AgentCore()
+
+# Configuration Management / Gerenciamento de Configuração
+def load_config():
+    """
+    Load configuration from config.json
+    Carrega configuração do config.json
+    """
+    config_path = os.path.join(base_dir, 'config.json')
+    try:
+        with open(config_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"[Config] Failed to load config.json: {e}")
+        # Return default config / Retorna config padrão
+        return {
+            "ai": {"language": "auto", "model": "openai/gpt-4-turbo", "temperature": 0.7, "max_iterations": 10},
+            "services": {"flask_port": 5000, "hexstrike_port": 8888}
+        }
+
+def save_config(config):
+    """
+    Save configuration to config.json
+    Salva configuração no config.json
+    """
+    config_path = os.path.join(base_dir, 'config.json')
+    try:
+        with open(config_path, 'w', encoding='utf-8') as f:
+            json.dump(config, f, indent=2, ensure_ascii=False)
+        return True
+    except Exception as e:
+        print(f"[Config] Failed to save config.json: {e}")
+        return False
+
+def detect_language(text):
+    """
+    Auto-detect language from user input (Portuguese or English)
+    Auto-detecta idioma da entrada do usuário (Português ou Inglês)
+    """
+    text_lower = text.lower()
+    
+    # Portuguese keywords / Palavras-chave em português
+    pt_keywords = [
+        'o que', 'como', 'por favor', 'obrigado', 'obrigada',
+        'sim', 'não', 'porque', 'quando', 'onde', 'quem',
+        'faça', 'faça', 'mostre', 'liste', 'abra', 'feche',
+        'instale', 'configure', 'para', 'pela', 'pelo', 'está'
+    ]
+    
+    # Count Portuguese keyword matches / Conta matches de palavras PT
+    pt_count = sum(1 for keyword in pt_keywords if keyword in text_lower)
+    
+    # If 2+ Portuguese keywords found, assume Portuguese
+    # Se 2+ palavras PT encontradas, assume Português
+    return 'pt' if pt_count >= 2 else 'en'
+
+# Load configuration on startup / Carrega configuração na inicialização
+config = load_config()
+print(f"[Config] Loaded: {config}")
+
+@app.route('/init_status', methods=['GET'])
+def init_status():
+    """
+    Returns detailed initialization status for loading screen
+    Retorna status detalhado de inicialização para tela de carregamento
+    """
+    try:
+        # Check HexStrike connection / Verifica conexão HexStrike
+        hexstrike_ready = False
+        if core.body:
+            try:
+                health = core.get_hexstrike_health()
+                hexstrike_ready = health.get('alive', False) or health.get('status') == 'ok'
+            except:
+                pass
+        
+        return jsonify({
+            'backend': {
+                'ready': True,
+                'status': 'success',
+                'port': config.get('services', {}).get('flask_port', 5000)
+            },
+            'brain': {
+                'ready': core.brain is not None,
+                'status': 'success' if core.brain is not None else 'error',
+                'message': 'HexSecGPT initialized' if core.brain else 'Brain not initialized'
+            },
+            'hexstrike': {
+                'ready': hexstrike_ready,
+                'status': 'success' if hexstrike_ready else 'pending',
+                'port': config.get('services', {}).get('hexstrike_port', 8888),
+                'message': 'Connected' if hexstrike_ready else 'Offline (click Power button to start)'
+            },
+            'config': {
+                'ready': config is not None,
+                'status': 'success' if config else 'error',
+                'message': 'Configuration loaded' if config else 'Config not loaded'
+            }
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/health', methods=['GET'])
 def health():
@@ -158,21 +258,54 @@ def init_agent():
     else:
         return jsonify({"success": False, "error": "Failed to initialize Agent Core"}), 500
 
+@app.route('/config', methods=['GET', 'POST'])
+def config_endpoint():
+    """
+    Get or update configuration / Obter ou atualizar configuração
+    GET: Returns current config
+    POST: Updates config with request body
+    """
+    global config
+    
+    if request.method == 'GET':
+        return jsonify(config)
+    
+    elif request.method == 'POST':
+        try:
+            new_config = request.json
+            # Merge with existing config / Mescla com config existente
+            config.update(new_config)
+            
+            # Save to file / Salva no arquivo
+            if save_config(config):
+                return jsonify({"success": True, "config": config})
+            else:
+                return jsonify({"success": False, "error": "Failed to save config"}), 500
+        except Exception as e:
+            return jsonify({"success": False, "error": str(e)}), 400
+
 @app.route('/chat', methods=['POST'])
 def chat():
     """
-    Agentic chat with automatic command execution and optional web search.
-    Expects json: { "message": "user input", "language": "pt" (optional), "web_search": false (optional) }
+    Agentic chat with automatic command execution, language auto-detection,  and optional web search.
+    Chat agêntico com execução automática, auto-detecção de idioma e busca web opcional.
+    
+    Expects json: { "message": "user input", "language": "auto" (optional), "web_search": false (optional) }
     """
     data = request.json
     user_input = data.get('message', '')
-    language = data.get('language', 'en')
-    web_search_enabled = data.get('web_search', False)
+    language = data.get('language', config['ai'].get('language', 'auto'))
+    web_search_enabled = data.get('web_search', config['ai'].get('web_search_enabled', False))
     
     if not user_input:
         return jsonify({"error": "Empty message"}), 400
 
-    # Prepend language instruction
+    # Auto-detect language if set to 'auto' / Auto-detecta idioma se 'auto'
+    if language == 'auto':
+        language = detect_language(user_input)
+        print(f"[Chat] Auto-detected language: {language}")
+
+    # Prepend language instruction / Prepara instrução de idioma
     if language and language != 'en':
         language_map = {'pt': 'português', 'es': 'español', 'fr': 'français', 'de': 'deutsch'}
         lang_name = language_map.get(language, language)
@@ -207,8 +340,8 @@ def chat():
     def generate():
         import re
         
-        # Autonomous Agentic Loop with iterative feedback
-        max_iterations = 10
+        # Autonomous Agentic Loop with iterative feedback / Loop autônomo com feedback iterativo
+        max_iterations = config['ai'].get('max_iterations', 10)
         iteration = 0
         conversation_history = user_input
         

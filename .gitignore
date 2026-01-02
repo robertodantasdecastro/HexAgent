@@ -12,6 +12,9 @@ out/
 *.deb
 *.dmg
 *.exe
+*.tar.xz
+squashfs-root/
+opt/
 
 # Python
 __pycache__/

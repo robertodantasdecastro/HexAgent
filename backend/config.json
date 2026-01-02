@@ -1,0 +1,17 @@
+{
+  "ai": {
+    "language": "auto",
+    "model": "openai/gpt-4-turbo",
+    "temperature": 0.7,
+    "max_iterations": 10,
+    "web_search_enabled": false
+  },
+  "services": {
+    "flask_port": 5000,
+    "hexstrike_port": 8888
+  },
+  "ui": {
+    "theme": "dark",
+    "show_iteration_markers": true
+  }
+}

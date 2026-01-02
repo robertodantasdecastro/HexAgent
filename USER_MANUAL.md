@@ -129,6 +129,17 @@ AI: Based on recent information, the latest Kali Linux...
 - **Enter**: Send message
 - **Shift + Enter**: New line
 - Input auto-expands to 2 lines
+- **Shift + Enter**: New line
+
+#### 🛑 Stop Generation
+- **Stop Button**: Appears during response generation (pulsing red square).
+- **Function**: Click to immediately cancel the current AI response.
+- **Use case**: If the AI is misunderstanding the task or generating a long undesired output.
+
+#### 📜 Autoscroll Control
+- **Toggle**: Button above input area ("AutoScroll: ON/OFF").
+- **ON**: Viewport follows new messages automatically.
+- **OFF**: Manual scrolling (useful for reading past messages while generation continues).
 
 ### Autonomous Agent Behavior
 
@@ -308,6 +319,17 @@ Habilite busca web para perguntas que requerem informação atual:
 - **Enter**: Enviar mensagem
 - **Shift + Enter**: Nova linha
 - Entrada expande automaticamente para 2 linhas
+- **Shift + Enter**: Nova linha
+
+#### 🛑 Parar Geração (Stop Generation)
+- **Botão Stop**: Aparece durante a geração da resposta (quadrado vermelho pulsante).
+- **Função**: Clique para cancelar imediatamente a resposta atual da IA.
+- **Caso de uso**: Se a IA estiver entendendo mal a tarefa ou gerando uma saída longa indesejada.
+
+#### 📜 Controle de Autoscroll
+- **Toggle**: Botão acima da área de entrada ("AutoScroll: ON/OFF").
+- **ON**: A visualização segue novas mensagens automaticamente.
+- **OFF**: Rolagem manual (útil para ler mensagens passadas enquanto a geração continua).
 
 ### Comportamento Autônomo
 
