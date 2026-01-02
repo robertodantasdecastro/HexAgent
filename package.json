@@ -1,0 +1,82 @@
+{
+  "name": "hexagent-gui",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "electron:dev": "concurrently \"npm run dev\" \"wait-on tcp:5173 && electron .\"",
+    "electron:build": "vite build && electron-builder"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^2.5.2",
+    "lucide-react": "^0.436.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "autoprefixer": "^10.4.19",
+    "concurrently": "^8.2.2",
+    "electron": "^31.0.2",
+    "electron-builder": "^24.13.3",
+    "eslint": "^8.57.0",
+    "eslint-plugin-react": "^7.34.2",
+    "eslint-plugin-react-hooks": "^4.6.2",
+    "eslint-plugin-react-refresh": "^0.4.7",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.4",
+    "vite": "^5.3.1",
+    "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "com.hexagent.gui",
+    "productName": "HexAgentGUI",
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "extraResources": [
+      {
+        "from": "backend",
+        "to": "backend"
+      },
+      {
+        "from": "venv",
+        "to": "venv"
+      },
+      {
+        "from": "../HexAgent",
+        "to": "HexAgent",
+        "filter": ["!venv", "!__pycache__", "!.git"]
+      },
+      {
+        "from": "../HexSecGPT-main",
+        "to": "HexSecGPT-main",
+        "filter": ["!venv", "!__pycache__", "!.git"]
+      },
+      {
+        "from": "../hexstrike-ai",
+        "to": "hexstrike-ai",
+        "filter": ["!venv", "!__pycache__", "!.git"]
+      },
+      {
+        "from": ".HexSec",
+        "to": ".HexSec"
+      }
+    ],
+    "linux": {
+      "target": "AppImage",
+      "category": "Development"
+    }
+  }
+}

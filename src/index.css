@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --hex-primary: #00ff00;
+  --hex-bg: #0a0a0a;
+}
+
+body {
+  background-color: var(--hex-bg);
+  color: white;
+  font-family: 'Courier New', Courier, monospace;
+}
+
+.drag-region {
+  -webkit-app-region: drag;
+}
+
+button, input {
+  -webkit-app-region: no-drag;
+}
