@@ -117,8 +117,23 @@ def load_config():
         print(f"[Config] Failed to load config.json: {e}")
         # Return default config / Retorna config padrão
         return {
-            "ai": {"language": "auto", "model": "openai/gpt-4-turbo", "temperature": 0.7, "max_iterations": 10},
-            "services": {"flask_port": 5000, "hexstrike_port": 8888}
+            "ai": {
+                "language": "auto", 
+                "model": "openai/gpt-4-turbo", 
+                "temperature": 0.7, 
+                "max_iterations": 10, 
+                "unlimited_iterations": False,
+                "web_search_enabled": False,
+                "api_key": ""
+            },
+            "services": {
+                "flask_port": 5000, 
+                "hexstrike_port": 8888,
+                "backend_host": "127.0.0.1"
+            },
+            "system": {
+                "theme": "dark"
+            }
         }
 
 def save_config(config):
@@ -213,19 +228,25 @@ def init_agent():
     # We look for .HexSec in HexSecGPT-main or env
     
     # Try to find key
-    api_key = None
-    env_path = Config.ENV_FILE
-    if not os.path.exists(env_path):
-        # Fallback to HexSecGPT-main/.HexSec
-        potential_path = os.path.join(parent_dir, "HexSecGPT-main", ".HexSec")
-        if os.path.exists(potential_path):
-            env_path = potential_path
-            
-    load_dotenv(dotenv_path=env_path)
-    api_key = os.getenv(Config.API_KEY_NAME)
+    # Try to find key from Config FIRST (User override)
+    config_key = config.get('ai', {}).get('api_key')
+    if config_key and config_key.strip():
+        api_key = config_key.strip()
+        print("[Auth] Using API Key from configuration")
+    else:
+        # Fallback to env file
+        env_path = Config.ENV_FILE
+        if not os.path.exists(env_path):
+            # Fallback to HexSecGPT-main/.HexSec
+            potential_path = os.path.join(parent_dir, "HexSecGPT-main", ".HexSec")
+            if os.path.exists(potential_path):
+                env_path = potential_path
+                
+        load_dotenv(dotenv_path=env_path)
+        api_key = os.getenv(Config.API_KEY_NAME)
     
     if not api_key:
-        return jsonify({"success": False, "error": "API Key not found"}), 400
+        return jsonify({"success": False, "error": "API Key not found. Please configure it in Settings."}), 400
         
     if core.initialize(api_key):
         # Auto-start HexStrike logic / Lógica de auto-início HexStrike
@@ -296,6 +317,7 @@ def chat():
     user_input = data.get('message', '')
     language = data.get('language', config['ai'].get('language', 'auto'))
     web_search_enabled = data.get('web_search', config['ai'].get('web_search_enabled', False))
+    auto_execute = data.get('auto_execute', True) # Default to True if not specified
     
     if not user_input:
         return jsonify({"error": "Empty message"}), 400
@@ -341,16 +363,22 @@ def chat():
         import re
         
         # Autonomous Agentic Loop with iterative feedback / Loop autônomo com feedback iterativo
-        max_iterations = config['ai'].get('max_iterations', 10)
+        max_limit = config['ai'].get('max_iterations', 10)
+        unlimited = config['ai'].get('unlimited_iterations', False)
+        
+        # If unlimited, set a safe high limit or just use logic
+        actual_limit = 1000 if unlimited else max_limit
+        
         iteration = 0
         conversation_history = user_input
         
-        while iteration < max_iterations:
+        while iteration < actual_limit:
             iteration += 1
             
             # Yield iteration marker
             if iteration > 1:
-                yield json.dumps({"chunk": f"\n\n{'='*60}\n🔄 Iteração {iteration}/{max_iterations}\n{'='*60}\n\n"}) + "\n"
+                display_limit = "∞" if unlimited else max_limit
+                yield json.dumps({"chunk": f"\n\n{'='*60}\n🔄 Iteração {iteration}/{display_limit}\n{'='*60}\n\n"}) + "\n"
             
             # Step 1: Get AI response for current state
             full_response = ""
@@ -368,6 +396,14 @@ def chat():
                     yield json.dumps({"chunk": "\n✅ Tarefa completada pelo agente!\n"}) + "\n"
                 break
             
+            # CHECK AUTO-EXECUTE: If False, yield proposal and stop
+            if not auto_execute:
+                 for cmd_block in code_blocks:
+                     # Send proposal to frontend
+                     yield json.dumps({"proposal": cmd_block}) + "\n"
+                 # Stop the loop here, waiting for user action on frontend
+                 break
+
             # Step 3: Execute commands and collect results
             execution_summary = ""
             
@@ -398,8 +434,8 @@ def chat():
 Analise os resultados acima. Se a tarefa original ainda não está completa, sugira o PRÓXIMO comando necessário. Se a tarefa está completa, responda 'Tarefa concluída' e resuma o que foi feito."""
         
         # Loop ended
-        if iteration >= max_iterations:
-            yield json.dumps({"chunk": f"\n⚠️ Limite de {max_iterations} iterações atingido.\n"}) + "\n"
+        if iteration >= actual_limit:
+            yield json.dumps({"chunk": f"\n⚠️ Limite de {actual_limit} iterações atingido.\n"}) + "\n"
     
     return Response(generate(), mimetype='application/json')
 

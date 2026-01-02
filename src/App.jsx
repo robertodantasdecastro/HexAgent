@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Terminal, Send, Cpu, Shield, AlertTriangle, Power, Code, Settings, X, Square, ArrowDown, Ban } from 'lucide-react';
+import { Terminal, Send, Cpu, Shield, AlertTriangle, Power, Code, Settings, X, Square, ArrowDown, Ban, Play, Pause, ChevronRight, CheckCircle } from 'lucide-react';
 import LoadingScreen from './components/LoadingScreen';
+import SettingsModal from './components/SettingsModal';
 
 // Parse agent content into formatted sections
 const parseAgentContent = (content) => {
@@ -37,105 +38,49 @@ const parseAgentContent = (content) => {
   return sections;
 };
 
-// Settings Modal Component / Componente de Modal de Configurações
-const SettingsModal = ({ isOpen, onClose, config, onSave }) => {
-  const [localConfig, setLocalConfig] = useState(config || {
-    ai: { language: 'auto', max_iterations: 10, temperature: 0.7 }
-  });
-
-  useEffect(() => {
-    if (config) setLocalConfig(config);
-  }, [config]);
-
-  const handleSave = () => {
-    onSave(localConfig);
-    onClose();
-  };
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50" onClick={onClose}>
-      <div className="bg-[#0a0a0a] border border-[#333] rounded-lg p-6 w-96 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-[#00ff00] flex items-center gap-2">
-            <Settings size={20} /> Settings / Configurações
-          </h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white transition">
-            <X size={20} />
-          </button>
-        </div>
-
-        <div className="space-y-4">
-          {/* Language Setting */}
-          <div>
-            <label className="block text-sm text-gray-400 mb-2">Language / Idioma</label>
-            <select
-              value={localConfig.ai?.language || 'auto'}
-              onChange={(e) => setLocalConfig({ ...localConfig, ai: { ...localConfig.ai, language: e.target.value }})}
-              className="w-full bg-[#111] border border-[#333] rounded px-3 py-2 text-white focus:outline-none focus:border-[#00ff00]"
-            >
-              <option value="auto">Auto-detect / Auto-detectar</option>
-              <option value="pt">Português</option>
-              <option value="en">English</option>
-            </select>
-          </div>
-
-          {/* Max Iterations */}
-          <div>
-            <label className="block text-sm text-gray-400 mb-2">
-              Max Iterations / Iterações Máximas: {localConfig.ai?.max_iterations || 10}
-            </label>
-            <input
-              type="range"
-              min="1"
-              max="20"
-              value={localConfig.ai?.max_iterations || 10}
-              onChange={(e) => setLocalConfig({ ...localConfig, ai: { ...localConfig.ai, max_iterations: parseInt(e.target.value) }})}
-              className="w-full"
-            />
-          </div>
-
-          {/* Temperature */}
-          <div>
-            <label className="block text-sm text-gray-400 mb-2">
-              Temperature / Temperatura: {(localConfig.ai?.temperature || 0.7).toFixed(1)}
-            </label>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.1"
-              value={localConfig.ai?.temperature || 0.7}
-              onChange={(e) => setLocalConfig({ ...localConfig, ai: { ...localConfig.ai, temperature: parseFloat(e.target.value) }})}
-              className="w-full"
-            />
-          </div>
-        </div>
-
-        <div className="flex gap-2 mt-6">
-          <button
-            onClick={handleSave}
-            className="flex-1 bg-[#00ff00]/10 text-[#00ff00] border border-[#00ff00]/30 rounded py-2 hover:bg-[#00ff00]/20 transition"
-          >
-            Save / Salvar
-          </button>
-          <button
-            onClick={onClose}
-            className="flex-1 bg-gray-500/10 text-gray-400 border border-gray-500/30 rounded py-2 hover:bg-gray-500/20 transition"
-          >
-            Cancel / Cancelar
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 // Block Component with enhanced formatting
-const Block = ({ type, content, result, timestamp }) => {
+const Block = ({ type, content, result, timestamp, onExecute, executed }) => {
   // Parse content for agent responses
   const sections = type === 'agent' ? parseAgentContent(content) : [];
+  const [editedCmd, setEditedCmd] = useState(content);
+
+  if (type === 'proposal') {
+      return (
+        <div className="mb-4 rounded-lg bg-[#0a0a0a] border border-[#333] overflow-hidden shadow-lg animate-in fade-in slide-in-from-bottom-2">
+            <div className="flex items-center justify-between px-4 py-2 bg-yellow-500/10 border-b border-[#333]">
+                <div className="flex items-center gap-2">
+                    <AlertTriangle size={14} className="text-yellow-500" />
+                    <span className="text-xs text-yellow-500 font-mono font-bold">COMMAND PROPOSAL / PROPOSTA DE COMANDO</span>
+                </div>
+                <span className="text-xs text-gray-500 font-mono">{timestamp}</span>
+            </div>
+            <div className="p-4 space-y-3">
+                 <p className="text-xs text-gray-400">The agent wants to execute the following command. You can edit it before running.</p>
+                 <textarea 
+                    value={editedCmd}
+                    onChange={(e) => setEditedCmd(e.target.value)}
+                    className="w-full bg-black border border-gray-700 rounded p-3 text-sm font-mono text-yellow-300 focus:outline-none focus:border-yellow-500 transition-colors"
+                    rows={editedCmd.split('\n').length + 1}
+                 />
+                 <div className="flex justify-end gap-2">
+                     {!executed ? (
+                         <button 
+                            onClick={() => onExecute(editedCmd)}
+                            className="flex items-center gap-2 px-4 py-2 bg-yellow-500/10 text-yellow-500 border border-yellow-500/30 rounded hover:bg-yellow-500/20 transition-all font-mono text-xs"
+                         >
+                            <Play size={12} /> EXECUTE / EXECUTAR
+                         </button>
+                     ) : (
+                         <span className="text-xs text-green-500 flex items-center gap-1">
+                             <CheckCircle size={12} /> Executed / Executado
+                         </span>
+                     )}
+                 </div>
+            </div>
+        </div>
+      );
+  }
   
   return (
     <div className="mb-4 rounded-lg bg-[#0a0a0a] border border-[#333] overflow-hidden shadow-lg transition-all hover:border-[#00ff00]/30 animate-in fade-in slide-in-from-bottom-2">
@@ -205,7 +150,10 @@ const App = () => {
   const [toggleLoading, setToggleLoading] = useState(false);
   
   // UI Enhancements State / Estados de Melhorias de UI
+  // UI Enhancements State / Estados de Melhorias de UI
   const [autoScroll, setAutoScroll] = useState(true);
+  const [autoExecute, setAutoExecute] = useState(false); // Default false for safety
+  const [inputMode, setInputMode] = useState('chat'); // 'chat' or 'prompt'
   const abortControllerRef = useRef(null);
   const bottomRef = useRef(null);
   
@@ -440,6 +388,43 @@ const App = () => {
     setInput('');
     setLoading(true);
 
+    // PROMPT MODE LOGIC
+    if (inputMode === 'prompt') {
+        const isAgentRequest = cmd.startsWith('@') || cmd.startsWith('#') || cmd.startsWith('/');
+        
+        if (!isAgentRequest) {
+            // Direct execution
+            try {
+                const response = await fetch('http://localhost:5000/execute', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ command: cmd })
+                });
+                const data = await response.json();
+                
+                // Show result simulation terminal block
+                setBlocks(prev => {
+                    const last = prev[prev.length - 1]; // user block
+                    // We want to append a terminal result
+                     return [...prev, {
+                        id: Date.now() + 1,
+                        type: 'agent', // Reuse agent block structure but mostly terminal
+                        content: `Command Executed:\n${cmd}\n${data.result || ''}`,
+                        timestamp: new Date().toLocaleTimeString()
+                     }];
+                });
+            } catch(e) {
+                console.error("Exec failed", e);
+            } finally {
+                setLoading(false);
+                abortControllerRef.current = null;
+            }
+            return;
+        }
+        // If starts with special char, fall through to Chat logic
+    }
+
+    // CHAT MODE LOGIC
     try {
         // Chat with language support and optional web search / Chat com suporte a idioma e busca web
         const response = await fetch('http://localhost:5000/chat', {
@@ -448,7 +433,8 @@ const App = () => {
             body: JSON.stringify({ 
                 message: cmd, 
                 language: 'pt',
-                web_search: webSearchEnabled 
+                web_search: webSearchEnabled,
+                auto_execute: autoExecute 
             }),
             signal: abortControllerRef.current.signal
         });
@@ -484,6 +470,15 @@ const App = () => {
                             newBlocks[newBlocks.length - 1].content = agentText;
                             return newBlocks;
                         });
+                    } else if (json.proposal) {
+                        // Handle Command Proposal
+                         setBlocks(prev => [...prev, {
+                            id: Date.now() + 2,
+                            type: 'proposal',
+                            content: json.proposal.trim(),
+                            timestamp: new Date().toLocaleTimeString(),
+                            executed: false
+                        }]);
                     }
                 } catch (e) {}
             }
@@ -503,6 +498,35 @@ const App = () => {
         setLoading(false);
         abortControllerRef.current = null;
     }
+  };
+
+  const handleExecuteProposal = async (cmd, blockId) => {
+      // Mark as executed locally
+      setBlocks(prev => prev.map(b => b.id === blockId ? { ...b, executed: true } : b));
+      setLoading(true);
+      
+      try {
+          // Execute
+          const response = await fetch('http://localhost:5000/execute', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ command: cmd })
+          });
+          const data = await response.json();
+          
+          // Show result
+          const resultText = data.result || "(No output)";
+          setBlocks(prev => [...prev, {
+                id: Date.now(),
+                type: 'agent',
+                content: `Command Executed / Comando Executado:\n\`\`\`bash\n${cmd}\n\`\`\`\n\n[Output]:\n${resultText}`,
+                timestamp: new Date().toLocaleTimeString()
+          }]);
+      } catch (e) {
+          console.error("Manual execution failed", e);
+      } finally {
+          setLoading(false);
+      }
   };
 
   // Show LoadingScreen during initialization / Mostrar tela de carregamento durante inicialização
@@ -562,7 +586,7 @@ const App = () => {
               </div>
           )}
           {blocks.map(block => (
-              <Block key={block.id} {...block} />
+              <Block key={block.id} {...block} onExecute={(cmd) => handleExecuteProposal(cmd, block.id)} />
           ))}
           <div ref={bottomRef} />
       </main>
@@ -580,6 +604,24 @@ const App = () => {
                 >
                     <ArrowDown size={10} />
                     <span>AutoScroll: {autoScroll ? 'ON' : 'OFF'}</span>
+                </button>
+                
+                <button
+                    onClick={() => setAutoExecute(!autoExecute)}
+                    className={`flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-mono border transition-all ${autoExecute ? 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30' : 'text-gray-500 bg-gray-500/10 border-gray-500/20'}`}
+                    title="Toggle Auto-Execute Commands"
+                >
+                    {autoExecute ? <Play size={10} /> : <Pause size={10} />}
+                    <span>Auto-Exec: {autoExecute ? 'ON' : 'OFF'}</span>
+                </button>
+
+                <button
+                    onClick={() => setInputMode(inputMode === 'chat' ? 'prompt' : 'chat')}
+                    className={`flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-mono border transition-all ${inputMode === 'prompt' ? 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30' : 'text-gray-500 bg-gray-500/10 border-gray-500/20'}`}
+                    title="Toggle Input Mode (Chat vs specific Prompt)"
+                >
+                    <ChevronRight size={10} />
+                    <span>Mode: {inputMode === 'chat' ? 'CHAT' : 'PROMPT'}</span>
                 </button>
              </div>
              <div>
@@ -605,8 +647,8 @@ const App = () => {
                       handleSubmit(e);
                     }
                   }}
-                  placeholder="Ask HexAgent or execute command... (Enter to send, Shift+Enter for new line)"
-                  className="w-full bg-[#111] border border-[#333] rounded-md py-3 px-4 pl-10 pr-20 focus:outline-none focus:border-[#00ff00] transition-colors font-mono text-sm resize-none"
+                  placeholder={inputMode === 'chat' ? "Ask HexAgent... (Enter to send)" : "root@hexagent:~# (Execute bash command)"}
+                  className={`w-full bg-[#111] border rounded-md py-3 px-4 pl-10 pr-20 focus:outline-none transition-colors font-mono text-sm resize-none ${inputMode === 'prompt' ? 'border-cyan-500/30 text-cyan-300 focus:border-cyan-500' : 'border-[#333] focus:border-[#00ff00]'}`}
                   rows={2}
                   autoFocus
               />

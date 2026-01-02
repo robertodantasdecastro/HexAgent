@@ -141,6 +141,18 @@ AI: Based on recent information, the latest Kali Linux...
 - **ON**: Viewport follows new messages automatically.
 - **OFF**: Manual scrolling (useful for reading past messages while generation continues).
 
+#### ⚙️ Auto-Execute Control
+- **Icon**: `Play` (Auto) / `Pause` (Manual) via "Auto-Exec: ON/OFF" button.
+- **ON**: The agent automatically executes generated commands (default autonomous behavior).
+- **OFF**: The agent proposes commands but waits for your confirmation. A "Command Proposal" block will appear with an "Execute" button, allowing you to edit the command before running.
+
+#### ⌨️ Input Mode
+- **Icon**: `ChevronRight` ("Mode: CHAT/PROMPT").
+- **CHAT**: Standard AI interaction mode. Natural language queries.
+- **PROMPT**: Direct system shell mode.
+    - Type a command (e.g., `ls -la`) to execute it immediately.
+    - Start with `@`, `#` or `/` to send a request to the AI (e.g., `# list files`).
+
 ### Autonomous Agent Behavior
 
 HexAgentGUI is a **true autonomous agent**, not just a chatbot. It can execute complex multi-step tasks independently.
@@ -330,6 +342,18 @@ Habilite busca web para perguntas que requerem informação atual:
 - **Toggle**: Botão acima da área de entrada ("AutoScroll: ON/OFF").
 - **ON**: A visualização segue novas mensagens automaticamente.
 - **OFF**: Rolagem manual (útil para ler mensagens passadas enquanto a geração continua).
+
+#### ⚙️ Controle de Auto-Execução
+- **Ícone**: `Play`/`Pause` via botão "Auto-Exec".
+- **ON**: O agente executa comandos automaticamente (comportamento autônomo padrão).
+- **OFF**: O agente propõe comandos e aguarda sua confirmação. Um bloco de "Proposta de Comando" aparecerá com um botão "Executar", permitindo edição antes da execução.
+
+#### ⌨️ Modo de Entrada
+- **Ícone**: `ChevronRight` ("Mode: CHAT/PROMPT").
+- **CHAT**: Modo padrão de interação com IA (Linguagem natural).
+- **PROMPT**: Modo de shell direto do sistema.
+    - Digite um comando (ex: `ls -la`) para execução imediata.
+    - Comece com `@`, `#` ou `/` para enviar uma requisição à IA (ex: `# listar arquivos`).
 
 ### Comportamento Autônomo
 
