@@ -152,6 +152,8 @@ To support continuous development:
 
 **Bitcoin Address**: `bc1qekh060wjfgspgt32vclmu3fcfx9fr7jh0akuwu`
 
+**Brazilian PIX**: `robertodantasdecastro@gmail.com`
+
 <div align="center">
   <img src="public/qrcode.png" width="150" alt="Bitcoin QR Code" />
 </div>
@@ -342,6 +344,18 @@ Para instruções detalhadas de instalação, veja [INSTALL.md](INSTALL.md).
 - GitHub: [@robertodantasdecastro](https://github.com/robertodantasdecastro)
 - Email: robertodantasdecastro@gmail.com
 - Projeto: [HexAgent](https://github.com/robertodantasdecastro/HexAgent)
+
+### 💰 Suporte & Doação
+
+Para apoiar o desenvolvimento contínuo:
+
+**Bitcoin Address**: `bc1qekh060wjfgspgt32vclmu3fcfx9fr7jh0akuwu`
+
+**PIX Brasileiro**: `robertodantasdecastro@gmail.com`
+
+<div align="center">
+  <img src="public/qrcode.png" width="150" alt="Bitcoin QR Code" />
+</div>
 
 ### 📄 Licença
 

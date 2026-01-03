@@ -258,13 +258,12 @@ const SettingsModal = ({ isOpen, onClose, config, onSave }) => {
                         <div className="bg-[#111] p-4 rounded border border-[#333] flex flex-col items-center max-w-sm mx-auto mb-6">
                             <h4 className="text-xs font-bold text-yellow-500 mb-3 uppercase tracking-wider">Support the Project / Apoie o Projeto</h4>
                             <img src="qrcode.png" className="w-32 h-32 object-contain bg-white p-1 rounded mb-3" alt="Bitcoin QR" />
-                            <div className="w-full bg-black p-2 rounded border border-[#333] flex items-center justify-between gap-2 overflow-hidden">
-                                 <code className="text-[10px] text-gray-400 font-mono truncate select-all">bc1qekh060wjfgspgt32vclmu3fcfx9fr7jh0akuwu</code>
-                                 <button className="text-gray-500 hover:text-white shrink-0" title="Copy" onClick={() => navigator.clipboard.writeText('bc1qekh060wjfgspgt32vclmu3fcfx9fr7jh0akuwu')}>
-                                     <Copy size={12} />
-                                 </button>
+                            <div className="text-[10px] text-gray-400 font-mono break-all text-center">
+                                BTC: bc1qekh060wjfgspgt32vclmu3fcfx9fr7jh0akuwu
                             </div>
-                            <p className="text-[10px] text-gray-600 mt-2">Bitcoin Donation Address</p>
+                            <div className="text-[10px] text-gray-400 font-mono break-all text-center mt-2">
+                                PIX: robertodantasdecastro@gmail.com
+                            </div>
                         </div>
 
                         <div className="p-4 bg-[#111] rounded border border-[#333] text-left text-xs font-mono text-gray-400 space-y-2">

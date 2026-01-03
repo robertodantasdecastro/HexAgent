@@ -110,4 +110,8 @@ Contact Roberto Dantas de Castro:
 - Email: robertodantasdecastro@gmail.com
 - GitHub: [@robertodantasdecastro](https://github.com/robertodantasdecastro)
 
+### Support
+
+To support development (Bitcoin/PIX), please refer to the `README.md` or `USER_MANUAL.md`.
+
 Thank you for contributing! 🛡️

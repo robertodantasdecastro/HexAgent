@@ -508,6 +508,8 @@ Para apoiar o desenvolvimento, você pode doar via Bitcoin:
 
 **Bitcoin Address**: `bc1qekh060wjfgspgt32vclmu3fcfx9fr7jh0akuwu`
 
+**Brazilian PIX**: `robertodantasdecastro@gmail.com`
+
 <p align="center">
   <img src="public/qrcode.png" width="150" alt="Bitcoin QR Code" />
 </p>
