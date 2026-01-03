@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowDown, CheckCircle, Code, Copy, Cpu, FileText, Hash, HelpCircle, History, Infinity, Pause, Play, Power, RefreshCw, Send, Settings, Square, Terminal } from 'lucide-react';
+import { AlertTriangle, ArrowDown, CheckCircle, Code, Copy, Cpu, FileText, Hash, HelpCircle, History, Infinity, Pause, Play, Power, Send, Settings, Square, Terminal } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import HelpModal from './components/HelpModal';
 import LoadingScreen from './components/LoadingScreen';
@@ -100,8 +100,7 @@ const Block = ({ type, content, result, timestamp, onExecute, executed, onContin
                  <p className="text-sm text-gray-300">{t('block.limit_desc')}</p>
                  <div className="flex gap-2">
                      <button onClick={() => onContinue(0)} className="px-4 py-2 bg-red-900/20 border border-red-500/30 text-red-500 rounded hover:bg-red-900/40 text-xs font-mono">{t('block.stop')}</button>
-                     <button onClick={() => onContinue(5)} className="px-4 py-2 bg-green-900/20 border border-green-500/30 text-green-500 rounded hover:bg-green-900/40 text-xs font-mono flex items-center gap-2"><Play size={12} /> {t('block.continue_5')}</button>
-                     <button onClick={() => onContinue(10)} className="px-4 py-2 bg-blue-900/20 border border-blue-500/30 text-blue-500 rounded hover:bg-blue-900/40 text-xs font-mono flex items-center gap-2"><RefreshCw size={12} /> {t('block.continue_10')}</button>
+                     <button onClick={() => onContinue(config?.ai?.max_iterations || 15)} className="px-4 py-2 bg-green-900/20 border border-green-500/30 text-green-500 rounded hover:bg-green-900/40 text-xs font-mono flex items-center gap-2"><Play size={12} /> {t('block.continue_n').replace('{n}', config?.ai?.max_iterations || 15)}</button>
                      <button onClick={() => onContinue('MAKE_SCRIPT')} className="px-4 py-2 bg-purple-900/20 border border-purple-500/30 text-purple-400 rounded hover:bg-purple-900/40 text-xs font-mono flex items-center gap-2 transition-all hover:scale-105"><FileText size={12} /> Make Script</button>
                  </div>
              </div>
@@ -299,15 +298,7 @@ const App = () => {
           console.log('[Config] Loaded:', data);
         }
         
-        // Load Session if enabled
-        const sessionRes = await fetch('http://localhost:5000/load_session?name=autosave');
-        if (sessionRes.ok) {
-            const sessData = await sessionRes.json();
-            if (sessData.success && sessData.blocks && sessData.blocks.length > 0) {
-                setBlocks(sessData.blocks);
-                // Also restore history if possible, but history is transient usually
-            }
-        }
+        /* Auto-load removed for clean session start */
       } catch (e) {
         console.error('[Config] Failed to load:', e);
       }
@@ -1003,15 +994,31 @@ const App = () => {
               </button>
               
               {/* Existing Header Items */}
-              <div className="flex items-center gap-2">
-                  <Cpu size={14} className={initStatus.brain.status === 'success' ? "text-[#00ff00]" : "text-gray-600"} />
-                  <span className={initStatus.brain.status === 'success' ? "text-[#00ff00]" : "text-gray-600"}>
-                      {initStatus.brain.status === 'success' ? "ONLINE" : "OFFLINE"}
-                  </span>
+              {/* Header Status Removed as per user request */}
+              {/* Detailed Compact Status Bar */}
+              <div className="flex items-center gap-3 text-[10px] font-mono border-l border-[#333] pl-3 h-5">
+                   {/* Flask Status */}
+                   <div className="flex items-center gap-1.5" title="Backend API">
+                        <div className={`w-1.5 h-1.5 rounded-full ${initStatus.backend.status === 'success' ? 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]' : 'bg-red-500'}`}></div>
+                        <span className={initStatus.backend.status === 'success' ? 'text-green-500' : 'text-red-500'}>Flask:{initStatus.backend.port || 5000}</span>
+                   </div>
+
+                   {/* HexStrike Status */}
+                   <div className="flex items-center gap-1.5 border-l border-[#333] pl-3" title="Command Engine">
+                        <div className={`w-1.5 h-1.5 rounded-full ${initStatus.hexstrike.ready ? 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]' : 'bg-red-500'}`}></div>
+                        <span className={initStatus.hexstrike.ready ? 'text-green-500' : 'text-red-500'}>HexStrike:{initStatus.hexstrike.port || 8888}</span>
+                   </div>
+
+                   {/* Brain Status */}
+                   <div className="flex items-center gap-1.5 border-l border-[#333] pl-3" title="AI Core">
+                        <div className={`w-1.5 h-1.5 rounded-full ${initStatus.brain.status === 'success' ? 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]' : 'bg-red-500'}`}></div>
+                        <span className={initStatus.brain.status === 'success' ? 'text-green-500' : 'text-red-500'}>Brain</span>
+                   </div>
               </div>
-              <div className="flex items-center gap-2">
+
+              <div className="flex items-center gap-2 border-l border-[#333] pl-3 ml-2">
                    <Settings size={14} className="text-gray-400 hover:text-white cursor-pointer" onClick={() => setShowSettings(true)} />
-                   <Power size={14} className="text-red-500 hover:text-red-400 cursor-pointer" onClick={() => setShowShutdown(true)} />
+                   <Power size={14} className="text-red-500 hover:text-red-400 cursor-pointer" onClick={() => setShowShutdown(true)} title="Shutdown and Kill All Services" />
               </div>
           </div>
       </header>
@@ -1049,14 +1056,6 @@ const App = () => {
                 </button>
 
                 <button
-                    onClick={toggleUnlimited}
-                    className={`flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-mono border transition-all ${config?.ai?.unlimited_iterations ? 'text-purple-400 bg-purple-500/10 border-purple-500/30' : 'text-gray-500 bg-gray-500/10 border-gray-500/20'}`}
-                >
-                    {config?.ai?.unlimited_iterations ? <Infinity size={10} /> : <Hash size={10} />}
-                    <span>{config?.ai?.unlimited_iterations ? 'Unlimited' : `Limit: ${config?.ai?.max_iterations || 15}`}</span>
-                </button>
-
-                <button
                     onClick={() => setShowHelp(true)}
                     className="flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-mono border text-blue-400 bg-blue-500/10 border-blue-500/30 hover:bg-blue-500/20 transition-all"
                 >
@@ -1079,6 +1078,14 @@ const App = () => {
                 >
                     <Terminal size={10} />
                     <span>{inputMode === 'prompt' ? 'MODE: PROMPT (CHAT)' : 'MODE: COMMAND'}</span>
+                </button>
+
+                <button
+                    onClick={toggleUnlimited}
+                    className={`flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-mono border transition-all ${config?.ai?.unlimited_iterations ? 'text-purple-400 bg-purple-500/10 border-purple-500/30' : 'text-gray-500 bg-gray-500/10 border-gray-500/20'}`}
+                >
+                    {config?.ai?.unlimited_iterations ? <Infinity size={10} /> : <Hash size={10} />}
+                    <span>{config?.ai?.unlimited_iterations ? 'Unlimited' : `Limit: ${config?.ai?.max_iterations || 15}`}</span>
                 </button>
              </div>
              <div>
@@ -1111,7 +1118,7 @@ const App = () => {
                   <button
                       type="submit"
                       disabled={loading || !input.trim()}
-                      className={`p-1.5 rounded-md transition-colors ${loading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white/10'} ${inputMode === 'prompt' ? 'text-green-500' : 'text-blue-500'}`}
+                      className={`p-1.5 rounded-md transition-colors border ${loading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white/10'} ${inputMode === 'prompt' ? 'border-green-500/50 text-green-500 bg-green-500/10' : 'border-blue-500/50 text-blue-500 bg-blue-500/10'}`}
                   >
                       <Send size={16} />
                   </button>

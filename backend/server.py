@@ -124,6 +124,18 @@ def cleanup_handler(*args):
         # Check if core is initialized and has shutdown
         if 'core' in globals() and hasattr(core, 'shutdown'):
             core.shutdown()
+        
+        # Aggressive Zombie Cleanup / Limpeza Agressiva de Zumbis
+        # Using pkill to ensure all instances are dead
+        print("[Shutdown] Ensuring HexStrike is dead...")
+        try:
+            # Kill by pattern
+            subprocess.run(['pkill', '-f', 'hexstrike_server.py'], stderr=subprocess.DEVNULL)
+            # Find any stray python processes running hexstrike
+            subprocess.run("ps aux | grep hexstrike_server.py | grep -v grep | awk '{print $2}' | xargs -r kill -9", shell=True, stderr=subprocess.DEVNULL)
+        except Exception as k_err:
+             print(f"[Shutdown] Cleanup warning: {k_err}")
+             
     except Exception as e:
         print(f"Error during cleanup: {e}")
     
