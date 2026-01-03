@@ -143,8 +143,18 @@ Iteration 3:
 
 **Roberto Dantas de Castro**
 - GitHub: [@robertodantasdecastro](https://github.com/robertodantasdecastro)
-- Email: robertodantasdecastro@gmail.com
+- Email: `robertodantasdecastro@gmail.com`
 - Project: [HexAgent](https://github.com/robertodantasdecastro/HexAgent)
+
+### 💰 Support & Donation
+
+To support continuous development:
+
+**Bitcoin Address**: `bc1qekh060wjfgspgt32vclmu3fcfx9fr7jh0akuwu`
+
+<div align="center">
+  <img src="public/qrcode.png" width="150" alt="Bitcoin QR Code" />
+</div>
 
 ### 📄 License
 
@@ -155,6 +165,106 @@ MIT License - See [LICENSE](LICENSE) for details.
 - HexSecGPT: AI brain for cybersecurity expertise
 - HexStrike: Powerful command execution engine
 - OpenRouter: AI model routing
+
+---
+
+## Português
+
+### 🎯 O que é o HexAgentGUI?
+<div align="center">
+  <img src="public/logo.png" width="100" />
+</div>
+
+HexAgentGUI é um **agente de IA autônomo especializado em cibersegurança** com interface gráfica moderna. Ele combina a inteligência do **HexSecGPT** (cérebro de IA) com o poder de execução do **HexStrike** (motor de execução de comandos) para criar um assistente de segurança verdadeiramente autônomo.
+
+Diferente de chatbots simples, o HexAgentGUI **pensa, planeja e executa tarefas complexas de múltiplas etapas autonomamente**, analisando resultados e adaptando sua abordagem até o objetivo ser completo.
+
+### ✨ Recursos Principais
+
+- 🤖 **Agente Verdadeiramente Autônomo**: Executa tarefas complexas com comandos interdependentes
+- 🔄 **Loop Iterativo com Feedback**: IA analisa resultados e decide próximos passos (até 10 iterações)
+- 🎨 **Interface Moderna Dark**: Interface inspirada em cyberpunk com respostas codificadas por cores
+- 🌐 **Integração com Busca Web**: Busca web opcional em tempo real para enriquecer conhecimento da IA
+- 🇧🇷 **Português e Inglês**: Suporte bilíngue com detecção automática
+- ⚡ **Streaming em Tempo Real**: Veja o pensamento da IA e execução de comandos em tempo real
+- 🛑 **Parar Geração**: Aborte respostas da IA instantaneamente com um clique
+- 📜 **Controle de Autoscroll**: Alterne o comportamento de rolagem automática
+- 🔧 **Diferenciação Visual**:
+  - Ciano: Explicações da IA
+  - Amarelo: Execução de comandos
+  - **Terminal**: Estilo shell realista (Verde sobre Preto)
+
+### 🧬 Origem do Projeto
+
+HexAgentGUI nasceu da integração de dois projetos poderosos:
+
+1. **HexSecGPT**: Um assistente de IA especializado em cibersegurança, criado para fornecer orientação especializada em tarefas de segurança
+2. **HexStrike**: Um robusto motor de execução de comandos projetado para operações de segurança
+
+A ideia surgiu durante sessões de desenvolvimento com o próprio HexSecGPT, onde a necessidade de uma **interface gráfica** e **capacidades de execução autônoma** ficou clara. Em vez de apenas sugerir comandos, por que não executá-los autonomamente e iterar até a tarefa estar completa?
+
+### 🚀 Início Rápido
+
+```bash
+# Clonar repositório
+git clone https://github.com/robertodantasdecastro/HexAgent.git
+cd HexAgent/HexAgentGUI
+
+# Executar instalador automatizado
+chmod +x install.sh
+./install.sh
+
+# Iniciar aplicação
+hexagent-gui
+```
+
+### 📦 Executando a Partir do Release
+
+Se você baixou uma versão compilada (ex: do GitHub Releases), siga estes passos:
+
+#### AppImage (Portátil)
+1. Tornar executável: `chmod +x HexAgentGUI-*.AppImage`
+2. Executar: `./HexAgentGUI-*.AppImage`
+
+#### Pacote Debian (.deb) (Ubuntu/Kali/Debian)
+1. Instalar: `sudo dpkg -i hexagent-gui_*.deb`
+2. Corrigir dependências (se houver): `sudo apt install -f`
+3. Executar: `hexagent-gui`
+
+Para instruções detalhadas de instalação, veja [INSTALL.md](INSTALL.md).
+
+### 📚 Documentação
+
+- [Guia de Instalação](INSTALL.md) - Passos detalhados de instalação
+- [Manual do Usuário](USER_MANUAL.md) - Guia completo de uso
+- [Contribuindo](CONTRIBUTING.md) - Diretrizes para contribuição
+
+### 👤 Desenvolvedor
+
+**Roberto Dantas de Castro**
+- GitHub: [@robertodantasdecastro](https://github.com/robertodantasdecastro)
+- Email: `robertodantasdecastro@gmail.com`
+- Project: [HexAgent](https://github.com/robertodantasdecastro/HexAgent)
+
+### 💰 Suporte & Doação
+
+Para apoiar o desenvolvimento contínuo:
+
+**Bitcoin Address**: `bc1qekh060wjfgspgt32vclmu3fcfx9fr7jh0akuwu`
+
+<div align="center">
+  <img src="public/qrcode.png" width="150" alt="Bitcoin QR Code" />
+</div>
+
+### 📄 Licença
+
+Licença MIT - Veja [LICENSE](LICENSE) para detalhes.
+
+### 🙏 Agradecimentos
+
+- HexSecGPT: Cérebro de IA para expertise em cibersegurança
+- HexStrike: Poderoso motor de execução de comandos
+- OpenRouter: Roteamento de modelos de IA
 
 ---
 
