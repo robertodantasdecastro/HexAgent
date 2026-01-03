@@ -44,8 +44,29 @@ function createWindow() {
       mainWindow.webContents.openDevTools();
   }
 
+  // Handle close event for Graceful Shutdown UI
+  mainWindow.on('close', (e) => {
+      // If we are not forcing quit, intervene
+      // We check a custom flag on different variable? 
+      // Actually we can listen to ipc from renderer to set a flag
+      if (!global.isQuitting) {
+          e.preventDefault();
+          // Send event to renderer to show shutdown screen
+          mainWindow.webContents.send('app-close-requested');
+      }
+  });
+
   mainWindow.on('closed', () => (mainWindow = null));
 }
+
+// Global flag
+global.isQuitting = false;
+
+// IPC listener to quit
+ipcMain.on('app-ready-to-quit', () => {
+    global.isQuitting = true;
+    app.quit(); // This will trigger window-all-closed -> quit -> will-quit
+});
 
 function startPythonBackend() {
 

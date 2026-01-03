@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Terminal, Send, Cpu, Shield, AlertTriangle, Power, Code, Settings, X, Square, ArrowDown, Ban, Play, Pause, ChevronRight, CheckCircle } from 'lucide-react';
+import { Terminal, Send, Cpu, Shield, AlertTriangle, Power, Code, Settings, X, Square, ArrowDown, Ban, Play, Pause, ChevronRight, CheckCircle, HelpCircle, Copy, RefreshCw } from 'lucide-react';
 import LoadingScreen from './components/LoadingScreen';
 import SettingsModal from './components/SettingsModal';
+import HelpModal from './components/HelpModal';
+import ShutdownModal from './components/ShutdownModal';
 
 // Parse agent content into formatted sections
 const parseAgentContent = (content) => {
@@ -40,10 +42,49 @@ const parseAgentContent = (content) => {
 
 
 // Block Component with enhanced formatting
-const Block = ({ type, content, result, timestamp, onExecute, executed }) => {
+const Block = ({ type, content, result, timestamp, onExecute, executed, onContinue }) => {
   // Parse content for agent responses
   const sections = type === 'agent' ? parseAgentContent(content) : [];
   const [editedCmd, setEditedCmd] = useState(content);
+
+  if (type === 'limit_prompt') {
+      return (
+        <div className="mb-4 rounded-lg bg-[#0a0a0a] border border-[#333] overflow-hidden shadow-lg border-yellow-500/30">
+             <div className="flex items-center gap-2 px-4 py-2 bg-yellow-500/10 border-b border-[#333] border-yellow-500/20">
+                    <AlertTriangle size={14} className="text-yellow-500" />
+                    <span className="text-xs text-yellow-500 font-mono font-bold">ITERATION LIMIT REACHED / LIMITE DE ITERAÇÕES</span>
+                    <span className="text-xs text-gray-500 font-mono ml-auto">{timestamp}</span>
+             </div>
+             <div className="p-4 space-y-4">
+                 <p className="text-sm text-gray-300">
+                     The agent reached the maximum iteration limit. Do you want to continue?
+                 </p>
+                 <div className="flex gap-2">
+                     <button
+                        onClick={() => onContinue(0)}
+                        className="px-4 py-2 bg-red-900/20 border border-red-500/30 text-red-500 rounded hover:bg-red-900/40 text-xs font-mono"
+                     >
+                         STOP
+                     </button>
+                     <button
+                        onClick={() => onContinue(5)}
+                        className="px-4 py-2 bg-green-900/20 border border-green-500/30 text-green-500 rounded hover:bg-green-900/40 text-xs font-mono flex items-center gap-2"
+                     >
+                         <Play size={12} />
+                         CONTINUE (+5)
+                     </button>
+                     <button
+                        onClick={() => onContinue(10)}
+                        className="px-4 py-2 bg-blue-900/20 border border-blue-500/30 text-blue-500 rounded hover:bg-blue-900/40 text-xs font-mono flex items-center gap-2"
+                     >
+                         <RefreshCw size={12} />
+                         CONTINUE (+10)
+                     </button>
+                 </div>
+             </div>
+        </div>
+      );
+  }
 
   if (type === 'proposal') {
       return (
@@ -100,16 +141,41 @@ const Block = ({ type, content, result, timestamp, onExecute, executed }) => {
             if (section.type === 'ai') {
               // AI explanation/response - cyan/blue
               return (
-                <div key={idx} className="text-cyan-300 leading-relaxed whitespace-pre-wrap">
+                <div key={idx} className="text-cyan-300 leading-relaxed whitespace-pre-wrap group relative pl-2 border-l-2 border-cyan-800/20">
                   {section.content}
+                   <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 bg-[#0a0a0a]/80 backdrop-blur rounded p-1">
+                       <button 
+                         onClick={() => navigator.clipboard.writeText(section.content)}
+                         className="p-1 hover:bg-[#222] text-gray-400 rounded transition-colors"
+                         title="Copy Text"
+                       >
+                           <Copy size={12} />
+                       </button>
+                   </div>
                 </div>
               );
             } else if (section.type === 'command') {
               // Command execution - yellow/orange with icon
               return (
-                <div key={idx} className="flex items-start gap-2 bg-yellow-500/10 border border-yellow-500/30 rounded p-2">
+                <div key={idx} className="group relative flex items-start gap-2 bg-yellow-500/10 border border-yellow-500/30 rounded p-2">
                   <Code size={16} className="text-yellow-400 mt-0.5 flex-shrink-0" />
                   <span className="text-yellow-300 font-semibold">{section.content}</span>
+                  <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 bg-[#0a0a0a]/80 backdrop-blur rounded p-1">
+                       <button 
+                         onClick={() => navigator.clipboard.writeText(section.content)}
+                         className="p-1 hover:bg-[#222] text-gray-400 rounded transition-colors"
+                         title="Copy Command"
+                       >
+                           <Copy size={12} />
+                       </button>
+                       <button 
+                         onClick={() => onExecute(section.content)}
+                         className="p-1 hover:bg-[#222] text-green-400 rounded transition-colors"
+                         title="Execute Command"
+                       >
+                           <Play size={12} />
+                       </button>
+                  </div>
                 </div>
               );
             } else if (section.type === 'terminal') {
@@ -145,7 +211,13 @@ const App = () => {
   const [serviceStatus, setServiceStatus] = useState({ flask: false, hexstrike: false, brain: false });
   const [webSearchEnabled, setWebSearchEnabled] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const [config, setConfig] = useState(null);
+  
+  // Terminal History / Histórico do Terminal
+  const [history, setHistory] = useState([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const [showShutdown, setShowShutdown] = useState(false);
   const [loading, setLoading] = useState(false);
   const [toggleLoading, setToggleLoading] = useState(false);
   
@@ -256,25 +328,35 @@ const App = () => {
     };
 
     // Init Backend - MUST complete before user can chat
-    const initBackend = async () => {
+    const initBackend = async (retries = 3, delay = 15000) => {
          console.log("[HexAgentGUI] Initializing backend...");
-         try {
-             const response = await fetch('http://localhost:5000/init', { method: 'POST' });
-             if (!response.ok) {
-                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-             }
-             const data = await response.json();
-             console.log("[HexAgentGUI] Init response:", data);
-             if (!data.success) {
+         for (let i = 0; i < retries; i++) {
+             try {
+                 if (i > 0) {
+                     // Update UI to show retry
+                     console.log(`[HexAgentGUI] Retrying Brain init (${i+1}/${retries})...`);
+                     setInitStatus(prev => ({ ...prev, brain: { status: 'loading', message: `Loading (${i+1}/${retries})...` }}));
+                     await new Promise(r => setTimeout(r, delay));
+                 }
+
+                 const response = await fetch('http://localhost:5000/init', { method: 'POST' });
+                 if (!response.ok) {
+                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                 }
+                 const data = await response.json();
+                 console.log("[HexAgentGUI] Init response:", data);
+                 
+                 if (data.success) {
+                     console.log("[HexAgentGUI] Brain initialized successfully!");
+                     return true;
+                 }
                  console.error("[HexAgentGUI] Init failed:", data.error || data.message);
-             } else {
-                 console.log("[HexAgentGUI] Brain initialized successfully!");
+                 // If specific error, maybe don't retry? But safe to retry generally.
+             } catch(e) { 
+                 console.error(`[HexAgentGUI] Init exception (attempt ${i+1}):`, e); 
              }
-             return data.success;
-         } catch(e) { 
-             console.error("[HexAgentGUI] Init exception:", e); 
-             return false;
          }
+         return false;
     };
 
     const initialize = async () => {
@@ -345,6 +427,18 @@ const App = () => {
     }
   }, [blocks, autoScroll]);
 
+  // IPC Listener for Shutdown
+  useEffect(() => {
+      if (window.require) {
+          try {
+              const { ipcRenderer } = window.require('electron');
+              const handler = () => setShowShutdown(true);
+              ipcRenderer.on('app-close-requested', handler);
+              return () => ipcRenderer.removeListener('app-close-requested', handler);
+          } catch(e) { console.log('Non-electron env'); }
+      }
+  }, []);
+
   // Save configuration handler / Handler para salvar configuração
   const saveConfig = async (newConfig) => {
     try {
@@ -366,6 +460,182 @@ const App = () => {
     }
   };
 
+  const handleContinue = async (count) => {
+      if (count <= 0) return; 
+
+      const msg = `Please continue the task for ${count} more iterations.`;
+      
+      const userBlock = {
+          id: Date.now(),
+          type: 'user',
+          content: msg,
+          timestamp: new Date().toLocaleTimeString()
+      };
+      setBlocks(prev => [...prev, userBlock]);
+      setLoading(true);
+      
+      if (abortControllerRef.current) abortControllerRef.current.abort();
+      abortControllerRef.current = new AbortController();
+
+      try {
+           const response = await fetch('http://localhost:5000/chat', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                  message: msg,
+                  language: 'auto', 
+                  auto_execute: autoExecute,
+                  max_iterations: count
+              }),
+              signal: abortControllerRef.current.signal
+           });
+           
+           const reader = response.body.getReader();
+           const decoder = new TextDecoder();
+           let agentText = '';
+           
+           setBlocks(prev => [...prev, {
+               id: Date.now() + 1,
+               type: 'agent',
+               content: '',
+               timestamp: new Date().toLocaleTimeString()
+           }]);
+
+           while (true) {
+               const { value, done } = await reader.read();
+               if (done) break;
+               
+               const chunk = decoder.decode(value, { stream: true });
+               const lines = chunk.split('\n');
+               
+               for (const line of lines) {
+                   if (!line.trim()) continue;
+                   try {
+                       const json = JSON.parse(line);
+                       if (json.chunk) {
+                            agentText += json.chunk;
+                            setBlocks(prev => {
+                                const newBlocks = [...prev];
+                                const lastBlock = newBlocks[newBlocks.length - 1];
+                                if (lastBlock.type === 'agent') {
+                                    lastBlock.content = agentText;
+                                }
+                                return newBlocks;
+                            });
+                       } else if (json.proposal) {
+                           setBlocks(prev => [...prev, {
+                               id: Date.now(),
+                               type: 'proposal',
+                               content: json.proposal,
+                               timestamp: new Date().toLocaleTimeString(),
+                               executed: false
+                           }]);
+                       } else if (json.limit_reached) {
+                            setBlocks(prev => [...prev, {
+                                type: 'limit_prompt',
+                                content: json.iterations,
+                                timestamp: new Date().toLocaleTimeString()
+                            }]);
+                       }
+                   } catch (e) {}
+               }
+           }
+      } catch (e) {
+          if (e.name !== 'AbortError') {
+              console.error(e);
+          }
+      } finally {
+          setLoading(false);
+          abortControllerRef.current = null;
+      }
+  };
+
+  const handleServiceCommand = async (commandLine) => {
+      const parts = commandLine.split(' ');
+      const action = parts[0].toLowerCase(); // stop/start
+      // "stop service <name>"
+      // parts[1] should be "service" or "services"
+      let serviceName = parts[2]?.replace(/["']/g, '');
+      
+      if (parts[1] === 'all' && parts[2] === 'services') {
+          // stop all services
+          // For now, handling generic 'all' or specific
+          serviceName = 'all'; 
+      }
+      
+      // Map 'app' or 'application' to something? Backend handles 'brain', 'hexstrike'.
+      try {
+          const res = await fetch('http://localhost:5000/service', {
+              method: 'POST', 
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({ action, service: serviceName })
+          });
+          const data = await res.json();
+          
+          setBlocks(prev => [...prev, {
+              id: Date.now(), type: 'terminal', 
+              content: `Service Control: ${data.message}`,
+              timestamp: new Date().toLocaleTimeString()
+          }]);
+      } catch(e) {
+          setBlocks(prev => [...prev, {
+              id: Date.now(), type: 'terminal', 
+              content: `Error: ${e.message}`,
+              timestamp: new Date().toLocaleTimeString()
+          }]);
+      }
+  };
+
+  const handleSessionCommand = async (commandLine) => {
+      // save session "name", open session "name"
+      const parts = commandLine.split(' ');
+      const actionMap = { 'save': 'save', 'open': 'load', 'delete': 'delete', 'list': 'list' };
+      const cmdAction = parts[0].toLowerCase();
+      const action = actionMap[cmdAction] || cmdAction;
+      
+      let name = parts[2]?.replace(/["']/g, '');
+      
+      // If list, no name needed
+      if (action === 'list') name = 'default';
+      if (!name) name = 'default';
+      
+      // For save, pass blocks
+      const payload = { action, name };
+      if (action === 'save') {
+           payload.data = blocks;
+      }
+      
+      try {
+          const res = await fetch('http://localhost:5000/sessions', {
+              method: 'POST', 
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify(payload)
+          });
+          const data = await res.json();
+          
+          if (action === 'load' && data.success) {
+               setBlocks(data.data);
+               setBlocks(prev => [...prev, {
+                  id: Date.now(), type: 'terminal', 
+                  content: `Session '${name}' loaded.`,
+                  timestamp: new Date().toLocaleTimeString()
+               }]);
+          } else {
+               setBlocks(prev => [...prev, {
+                  id: Date.now(), type: 'terminal', 
+                  content: data.message || (data.sessions ? "Sessions: " + data.sessions.join(", ") : "Done"),
+                  timestamp: new Date().toLocaleTimeString()
+               }]);
+          }
+      } catch(e) {
+             setBlocks(prev => [...prev, {
+              id: Date.now(), type: 'terminal', 
+              content: `Error: ${e.message}`,
+              timestamp: new Date().toLocaleTimeString()
+          }]);
+      }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!input.trim()) return;
@@ -384,13 +654,66 @@ const App = () => {
     };
     
     setBlocks(prev => [...prev, userBlock]);
-    const cmd = input;
+    let cmd = input;
+    
+    // Add to History
+    setHistory(prev => {
+        const newHist = [...prev, input];
+        // Limit history to 100 items
+        if (newHist.length > 100) return newHist.slice(newHist.length - 100);
+        return newHist;
+    });
+    setHistoryIndex(-1);
+    
     setInput('');
     setLoading(true);
 
+    // COMMAND INTERCEPTOR (Omni-commands for any mode if prefixed)
+    // Check for @exit, /exit, @stop service..., /save session...
+    const cleanCmd = cmd.replace(/^[@#\/]/, '').trim(); 
+    const lowerCmd = cleanCmd.toLowerCase();
+
+    if (lowerCmd === 'exit') {
+        setShowShutdown(true);
+        setLoading(false);
+        return;
+    }
+
+    if (lowerCmd.startsWith('stop service') || lowerCmd.startsWith('start service') || lowerCmd.startsWith('stop all') || lowerCmd.startsWith('start all')) {
+         await handleServiceCommand(cleanCmd);
+         setLoading(false);
+         return;
+    }
+    
+    if (lowerCmd.startsWith('save session') || lowerCmd.startsWith('open session') || lowerCmd.startsWith('delete session') || lowerCmd.startsWith('list sessions')) {
+         await handleSessionCommand(cleanCmd);
+         setLoading(false);
+         return;
+    }
+
     // PROMPT MODE LOGIC
     if (inputMode === 'prompt') {
-        const isAgentRequest = cmd.startsWith('@') || cmd.startsWith('#') || cmd.startsWith('/');
+        // Build-in Terminal Commands
+        if (cmd.trim() === '/help') {
+             setShowHelp(true);
+             setLoading(false);
+             return;
+        }
+        if (cmd.trim() === '/clear') {
+             setBlocks([]);
+             setLoading(false);
+             return;
+        }
+
+        // AI Inference Check (@, #, /ai)
+        let isAgentRequest = false;
+        if (cmd.startsWith('/ai ')) {
+            isAgentRequest = true;
+            cmd = cmd.substring(4); // Remove prefix
+        } else if (cmd.startsWith('@') || cmd.startsWith('#')) {
+            isAgentRequest = true;
+            cmd = cmd.substring(1); // Remove prefix
+        }
         
         if (!isAgentRequest) {
             // Direct execution
@@ -479,6 +802,13 @@ const App = () => {
                             timestamp: new Date().toLocaleTimeString(),
                             executed: false
                         }]);
+                    } else if (json.limit_reached) {
+                         setBlocks(prev => [...prev, {
+                            id: Date.now() + 3,
+                            type: 'limit_prompt',
+                            content: json.iterations,
+                            timestamp: new Date().toLocaleTimeString()
+                        }]);
                     }
                 } catch (e) {}
             }
@@ -543,11 +873,16 @@ const App = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-[#050505] text-white">
+    <div className="flex flex-col h-screen bg-[#050505] text-white relative overflow-hidden">
+      {/* Background Watermark */}
+      <div className="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none z-0">
+          <img src="/logo.png" className="w-[60vh] h-[60vh] object-contain filter grayscale" alt="watermark" />
+      </div>
+
       {/* Header */}
       <header className="h-10 bg-[#0a0a0a] border-b border-[#333] flex items-center justify-between px-4 pr-24 select-none drag-region">
           <div className="flex items-center gap-2">
-              <Shield size={16} className="text-[#00ff00]" />
+              <img src="/logo.png" className="w-4 h-4 object-contain" alt="logo" />
               <span className="font-bold text-sm tracking-wider">HEXAGENT GUI</span>
           </div>
           <div className="flex items-center gap-4 text-xs font-mono">
@@ -586,7 +921,12 @@ const App = () => {
               </div>
           )}
           {blocks.map(block => (
-              <Block key={block.id} {...block} onExecute={(cmd) => handleExecuteProposal(cmd, block.id)} />
+              <Block 
+                key={block.id} 
+                {...block} 
+                onExecute={(cmd) => handleExecuteProposal(cmd, block.id)} 
+                onContinue={handleContinue}
+              />
           ))}
           <div ref={bottomRef} />
       </main>
@@ -604,6 +944,15 @@ const App = () => {
                 >
                     <ArrowDown size={10} />
                     <span>AutoScroll: {autoScroll ? 'ON' : 'OFF'}</span>
+                </button>
+
+                <button
+                    onClick={() => setShowHelp(true)}
+                    className="flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-mono border text-blue-400 bg-blue-500/10 border-blue-500/30 hover:bg-blue-500/20 transition-all"
+                    title="Terminal Help & Commands"
+                >
+                    <HelpCircle size={10} />
+                    <span>HELP</span>
                 </button>
                 
                 <button
@@ -645,6 +994,63 @@ const App = () => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
                       handleSubmit(e);
+                    }
+                    if (e.key === 'Tab') {
+                        e.preventDefault();
+                        if (!input.trim()) return;
+                        
+                        // Call Autocomplete
+                        fetch('http://localhost:5000/complete', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ prefix: input })
+                        })
+                        .then(r => r.json())
+                        .then(data => {
+                            const suggs = data.suggestions;
+                            if (!suggs || suggs.length === 0) return;
+                            
+                            if (suggs.length === 1) {
+                                // Replace last token logic / Lógica de substituir último token
+                                const parts = input.split(' ');
+                                parts.pop();
+                                parts.push(suggs[0]);
+                                setInput(parts.join(' ') + (suggs[0].endsWith('/') ? '' : ' ')); 
+                            } else {
+                                // Show ambiguous options / Mostrar opções ambíguas
+                                setBlocks(prev => [...prev, {
+                                    id: Date.now(),
+                                    type: 'terminal',
+                                    content: suggs.join('  '),
+                                    timestamp: new Date().toLocaleTimeString()
+                                }]);
+                            }
+                        })
+                        .catch(err => console.error("Autocomplete error", err));
+                    }
+                    if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        setHistoryIndex(prev => {
+                            const newIndex = Math.min(prev + 1, history.length - 1);
+                            if (history.length > 0) {
+                                const val = history[history.length - 1 - newIndex];
+                                if (val) setInput(val);
+                            }
+                            return newIndex;
+                        });
+                    }
+                    if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        setHistoryIndex(prev => {
+                            const newIndex = Math.max(prev - 1, -1);
+                            if (newIndex === -1) {
+                                setInput('');
+                            } else {
+                                const val = history[history.length - 1 - newIndex];
+                                if (val) setInput(val);
+                            }
+                            return newIndex;
+                        });
                     }
                   }}
                   placeholder={inputMode === 'chat' ? "Ask HexAgent... (Enter to send)" : "root@hexagent:~# (Execute bash command)"}
@@ -703,6 +1109,18 @@ const App = () => {
         onClose={() => setShowSettings(false)}
         config={config}
         onSave={saveConfig}
+      />
+      
+      <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} />
+      
+      <ShutdownModal 
+          isOpen={showShutdown} 
+          onShutdownComplete={() => {
+              if (window.require) {
+                  const { ipcRenderer } = window.require('electron');
+                  ipcRenderer.send('app-ready-to-quit');
+              }
+          }}
       />
     </div>
   );

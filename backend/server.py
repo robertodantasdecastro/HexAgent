@@ -31,6 +31,9 @@ from flask_cors import CORS
 import json
 import time
 import subprocess
+import signal
+import atexit
+import threading
 
 # Add parent directories to sys.path to find HexAgent and its dependencies
 # Add path logic
@@ -100,16 +103,75 @@ except ImportError as e:
 app = Flask(__name__)
 CORS(app) # Enable CORS for Electron
 
+# Cleanup Handler / Handler de Limpeza
+# Cleanup Handler / Handler de Limpeza
+cleaned_up = False
+def cleanup_handler(*args):
+    global cleaned_up
+    if cleaned_up:
+        return
+    cleaned_up = True
+    
+    print("\n[HexAgentBackend] Shutting down... / Desligando...")
+    try:
+        # Check if core is initialized and has shutdown
+        if 'core' in globals() and hasattr(core, 'shutdown'):
+            core.shutdown()
+    except Exception as e:
+        print(f"Error during cleanup: {e}")
+    
+    # Only exit explicitly if called by signal (args present)
+    if args:
+        sys.exit(0)
+
+# Register handlers
+signal.signal(signal.SIGINT, cleanup_handler)
+signal.signal(signal.SIGTERM, cleanup_handler)
+atexit.register(cleanup_handler)
+
+def setup_workspace():
+    """Confirms default workspace exists and sets it as CWD"""
+    try:
+        home = os.path.expanduser("~")
+        work_dir = os.path.join(home, ".hexagent-gui")
+        if not os.path.exists(work_dir):
+            os.makedirs(work_dir)
+            print(f"[Workspace] Created default directory: {work_dir}")
+        
+        # Create subdirectories / Criar subdiretórios
+        # log is handled by server logic usually, but we define explicit path here if used
+        for folder in ['log', 'config', 'adjusts', 'agents', 'sessions']:
+            os.makedirs(os.path.join(work_dir, folder), exist_ok=True)
+
+        # Change to workspace so relative paths in user commands work there
+        os.chdir(work_dir)
+        print(f"[Workspace] Working directory set to: {os.getcwd()}")
+        
+        # Setup logging path (usually handled by logging config, but we ensure dir exists)
+        # We can symlink the central log here if needed?
+        
+        return work_dir
+    except Exception as e:
+        print(f"[Workspace] Error setting up workspace: {e}")
+        return os.getcwd()
+
+# Setup workspace immediately
+WORKSPACE_DIR = setup_workspace()
+
 # Global Agent Core / Núcleo Global do Agente
 core = AgentCore()
 
 # Configuration Management / Gerenciamento de Configuração
-def load_config():
     """
     Load configuration from config.json
     Carrega configuração do config.json
+    Priority: User Config (~/.hexagent-gui/config/config.json) > Default (base_dir/config.json)
     """
-    config_path = os.path.join(base_dir, 'config.json')
+    user_config = os.path.join(WORKSPACE_DIR, 'config', 'config.json')
+    sys_config = os.path.join(base_dir, 'config.json')
+    
+    config_path = user_config if os.path.exists(user_config) else sys_config
+    
     try:
         with open(config_path, 'r', encoding='utf-8') as f:
             return json.load(f)
@@ -139,9 +201,9 @@ def load_config():
 def save_config(config):
     """
     Save configuration to config.json
-    Salva configuração no config.json
+    Salva configuração no config.json (Always in User Dir)
     """
-    config_path = os.path.join(base_dir, 'config.json')
+    config_path = os.path.join(WORKSPACE_DIR, 'config', 'config.json')
     try:
         with open(config_path, 'w', encoding='utf-8') as f:
             json.dump(config, f, indent=2, ensure_ascii=False)
@@ -363,7 +425,9 @@ def chat():
         import re
         
         # Autonomous Agentic Loop with iterative feedback / Loop autônomo com feedback iterativo
-        max_limit = config['ai'].get('max_iterations', 10)
+        # Allow request override or config default
+        req_limit = data.get('max_iterations')
+        max_limit = req_limit if req_limit is not None else config['ai'].get('max_iterations', 10)
         unlimited = config['ai'].get('unlimited_iterations', False)
         
         # If unlimited, set a safe high limit or just use logic
@@ -436,8 +500,50 @@ Analise os resultados acima. Se a tarefa original ainda não está completa, sug
         # Loop ended
         if iteration >= actual_limit:
             yield json.dumps({"chunk": f"\n⚠️ Limite de {actual_limit} iterações atingido.\n"}) + "\n"
+            yield json.dumps({"limit_reached": True, "iterations": actual_limit}) + "\n"
     
     return Response(generate(), mimetype='application/json')
+
+@app.route('/complete', methods=['POST'])
+def autocomplete():
+    """
+    Provide shell autocompletion suggestions.
+    Expects: { "prefix": "ls -" } (full input line or partial)
+    """
+    data = request.json
+    # We take the last word for completion
+    full_input = data.get('prefix', '')
+    if not full_input:
+        return jsonify({"suggestions": []})
+        
+    try:
+        # extract last token
+        last_token = full_input.split(" ")[-1]
+        
+        # Use compgen
+        # -c for commands, -f for files
+        cmd = f'bash -c "compgen -c {last_token} && compgen -f {last_token}"'
+        output = subprocess.check_output(cmd, shell=True, stderr=subprocess.DEVNULL).decode('utf-8')
+        
+        # Filter duplicates
+        suggestions = sorted(list(set([line for line in output.split('\n') if line.strip()])))
+        
+        return jsonify({"suggestions": suggestions[:20]})
+    except Exception:
+        # If compgen fails or empty, return empty
+        return jsonify({"suggestions": []})
+
+@app.route('/shutdown', methods=['POST'])
+def shutdown_server():
+    """Graceful shutdown triggered by UI"""
+    print("[API] Shutdown requested")
+    def kill():
+        cleanup_handler("api") # Pass arg to force exit
+    
+    # Schedule kill to allow response to return
+    t = threading.Thread(target=lambda: (time.sleep(1), kill()))
+    t.start()
+    return jsonify({"status": "shutting_down"})
 
 @app.route('/execute', methods=['POST'])
 def execute_command():
@@ -476,6 +582,98 @@ def start_service():
 def stop_service():
     core.shutdown()
     return jsonify({"success": True, "message": "Service stopped"})
+
+@app.route('/service', methods=['POST'])
+def service_control():
+    """
+    Control services (hexstrike, brain)
+    { "service": "hexstrike", "action": "start"|"stop" }
+    """
+    data = request.json
+    service = data.get('service')
+    action = data.get('action')
+    
+    if service == 'hexstrike':
+        try:
+            if action == 'start':
+                # Force start check
+                if core._start_hexstrike_server():
+                    return jsonify({"success": True, "message": "HexStrike starting..."})
+                else:
+                    return jsonify({"success": False, "message": "Failed to trigger start"}), 500
+            elif action == 'stop':
+                # Try to kill port 8888 or use internal method if available
+                # AgentCore might not have public stop method for body only.
+                # using fuser/kill for linux
+                subprocess.run("fuser -k 8888/tcp", shell=True)
+                return jsonify({"success": True, "message": "HexStrike stopped"})
+        except Exception as e:
+            return jsonify({"success": False, "message": str(e)}), 500
+            
+    elif service == 'brain':
+        try:
+            if action == 'stop':
+                core.shutdown() # This might kill everything? NO, core.shutdown usually clears brain/body.
+                return jsonify({"success": True, "message": "Brain disconnected"})
+            elif action == 'start':
+                # We need API key. Core might have it cached?
+                # init_agent() endpoint handles this better.
+                # We tell frontend to call /init
+                return jsonify({"success": True, "action": "call_init", "message": "Please call /init"})
+        except Exception as e:
+             return jsonify({"success": False, "message": str(e)}), 500
+             
+    return jsonify({"success": False, "message": "Unknown service"})
+
+@app.route('/sessions', methods=['POST'])
+def session_control():
+    """
+    Manage sessions
+    { "action": "save"|"load"|"list"|"delete", "name": "foo", "data": [...] }
+    """
+    data = request.json
+    action = data.get('action')
+    name = data.get('name', 'default')
+    
+    sessions_dir = os.path.join(WORKSPACE_DIR, 'sessions')
+    if not os.path.exists(sessions_dir):
+        os.makedirs(sessions_dir)
+        
+    safe_name = "".join([c for c in name if c.isalnum() or c in ('-','_')])
+    file_path = os.path.join(sessions_dir, f"{safe_name}.json")
+    
+    try:
+        if action == 'save':
+            session_data = data.get('data', [])
+            with open(file_path, 'w', encoding='utf-8') as f:
+                json.dump(session_data, f, indent=2, ensure_ascii=False)
+            return jsonify({"success": True, "message": f"Session '{safe_name}' saved"})
+            
+        elif action == 'load':
+            if not os.path.exists(file_path):
+                 return jsonify({"success": False, "message": "Session not found"}), 404
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = json.load(f)
+            return jsonify({"success": True, "data": content})
+            
+        elif action == 'delete':
+             if os.path.exists(file_path):
+                 os.remove(file_path)
+                 return jsonify({"success": True, "message": f"Session '{safe_name}' deleted"})
+             return jsonify({"success": False, "message": "Session not found"}), 404
+
+        elif action == 'list':
+             # List files
+             try:
+                 files = [f.replace('.json', '') for f in os.listdir(sessions_dir) if f.endswith('.json')]
+                 return jsonify({"success": True, "sessions": sorted(files)})
+             except Exception:
+                 return jsonify({"success": True, "sessions": []})
+                 
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+        
+    return jsonify({"success": False, "message": "Invalid action"}), 400
 
 if __name__ == '__main__':
     # Run slightly different port to avoid conflict

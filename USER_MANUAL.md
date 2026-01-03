@@ -1,5 +1,12 @@
 # 📖 User Manual / Manual do Usuário
 
+# 📖 User Manual / Manual do Usuário
+
+![Banner](public/banner.jpg)
+<p align="center">
+  <img src="public/logo.png" width="100" />
+</p>
+
 [English](#english-manual) | [Português](#manual-em-português)
 
 ---
@@ -13,13 +20,16 @@
 3. [Basic Usage](#basic-usage)
 4. [Advanced Features](#advanced-features)
 5. [Autonomous Agent Behavior](#autonomous-agent-behavior)
-6. [Troubleshooting](#troubleshooting)
+6. [Configuration & Data](#configuration--data)
+7. [Troubleshooting](#troubleshooting)
 
 ### First Launch
 
 1. **Start the application**:
+   - **Desktop Shortcut**: Click "HexAgent GUI" in your applications menu.
+   - **Terminal**: Type `hexagent` or `hexagent-gui`.
    ```bash
-   hexagent-gui
+   hexagent
    ```
 
 2. **Wait for initialization** (15-20 seconds):
@@ -150,8 +160,16 @@ AI: Based on recent information, the latest Kali Linux...
 - **Icon**: `ChevronRight` ("Mode: CHAT/PROMPT").
 - **CHAT**: Standard AI interaction mode. Natural language queries.
 - **PROMPT**: Direct system shell mode.
-    - Type a command (e.g., `ls -la`) to execute it immediately.
-    - Start with `@`, `#` or `/` to send a request to the AI (e.g., `# list files`).
+    - **? Help Button**: Click to see available terminal commands.
+    - **Commands**:
+        - `ls -la`: Direct bash execution.
+        - `/help`: Show available commands list.
+        - `/clear`: Clear terminal output.
+        - `/exit`: Safely shutdown application.
+        - `/save session [name]`: Save current conversation history.
+        - `/open session [name]`: Load a saved session.
+        - `/stop service [name]`: Stop a service (e.g., hexstrike).
+        - `/ai <query>`, `@<query>`, `#<query>`: Send query to AI Agent (e.g., `@scan network`).
 
 ### Autonomous Agent Behavior
 
@@ -183,9 +201,13 @@ Iteration 3:
 
 #### Iteration Limits
 
-- Maximum: **10 iterations** per task
-- Prevents infinite loops
-- AI decides when task is complete
+- Maximum: **10 iterations** per task (default)
+- Prevents infinite loops.
+- **Continuing**: When limit is reached, you can choose to continue for +5 or +10 iterations.
+
+#### 🚪 Graceful Shutdown
+- When you close the application, a status modal appears.
+- It ensures services (HexStrike, Brain) are closed properly.
 
 #### Task Completion
 
@@ -194,6 +216,15 @@ AI ends loop when:
 - No more commands needed
 - Detects error that can't be resolved
 - Maximum iterations reached
+
+### Configuration & Data
+
+All application data is centralized in your home directory: `~/.hexagent-gui/`
+
+- **config/**: Configuration files (`config.json`).
+- **log/**: Application logs.
+- **sessions/**: Saved conversation history.
+- **agents/**: Agent profiles.
 
 ### Response Color Coding
 
@@ -228,13 +259,16 @@ AI ends loop when:
 3. [Uso Básico](#uso-básico)
 4. [Recursos Avançados](#recursos-avançados)
 5. [Comportamento Autônomo](#comportamento-autônomo)
-6. [Solução de Problemas](#solução-de-problemas-manual)
+6. [Configuração e Dados](#configuração-e-dados)
+7. [Solução de Problemas](#solução-de-problemas-manual)
 
 ### Primeiro Uso
 
 1. **Iniciar aplicação**:
+   - **Atalho Desktop**: Menu de aplicativos > "HexAgent GUI".
+   - **Terminal**: `hexagent` ou `hexagent-gui`.
    ```bash
-   hexagent-gui
+   hexagent
    ```
 
 2. **Aguardar inicialização** (15-20 segundos):
@@ -352,8 +386,16 @@ Habilite busca web para perguntas que requerem informação atual:
 - **Ícone**: `ChevronRight` ("Mode: CHAT/PROMPT").
 - **CHAT**: Modo padrão de interação com IA (Linguagem natural).
 - **PROMPT**: Modo de shell direto do sistema.
-    - Digite um comando (ex: `ls -la`) para execução imediata.
-    - Comece com `@`, `#` ou `/` para enviar uma requisição à IA (ex: `# listar arquivos`).
+    - **Botão ? Ajuda**: Clique para ver comandos disponíveis.
+    - **Comandos**:
+        - `ls -la`: Execução direta bash.
+        - `/help`: Mostrar lista de comandos.
+        - `/clear`: Limpar tela.
+        - `/exit`: Encerrar aplicação com segurança.
+        - `/save session [nome]`: Salvar histórico da conversa.
+        - `/open session [nome]`: Abrir sessão salva.
+        - `/stop service [nome]`: Parar um serviço (ex: hexstrike).
+        - `/ai <query>`, `@<query>`, `#<query>`: Enviar para Agente IA (ex: `@escanear rede`).
 
 ### Comportamento Autônomo
 
@@ -385,9 +427,12 @@ Iteração 3:
 
 #### Limites de Iteração
 
-- Máximo: **10 iterações** por tarefa
-- Previne loops infinitos
-- IA decide quando tarefa está completa
+- Máximo: **10 iterações** por tarefa (padrão)
+- **Continuar**: Ao atingir o limite, você pode escolher continuar por +5 ou +10 iterações.
+
+#### 🚪 Encerramento Gracioso
+- Ao fechar a janela, uma tela de status mostra o progresso do encerramento.
+- Garante fechamento limpo de serviços e processos.
 
 ### Codificação por Cores de Resposta
 
@@ -396,6 +441,15 @@ Iteração 3:
 | **Ciano** | IA pensando/explicando | Análise, sugestões, explicações |
 | **Amarelo** | Execução de comando | `🔧 Executando: comando` |
 | **Verde** | Saída de terminal | Resultados reais de comandos |
+
+### Configuração e Dados
+
+Todos os dados da aplicação são centralizados no seu diretório home: `~/.hexagent-gui/`
+
+- **config/**: Arquivos de configuração (`config.json`).
+- **log/**: Logs da aplicação.
+- **sessions/**: Histórico de conversas salvas.
+- **agents/**: Perfis de agentes.
 
 ### Melhores Práticas
 

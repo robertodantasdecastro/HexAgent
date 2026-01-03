@@ -39,7 +39,7 @@ const LoadingScreen = ({ initStatus, progress, error, onRetry, onContinue }) => 
       <div className="w-96 bg-[#0a0a0a] border border-[#333] rounded-lg p-8 shadow-2xl">
         {/* Header / Cabeçalho */}
         <div className="flex flex-col items-center mb-6">
-          <Shield size={48} className="text-[#00ff00] mb-3" />
+          <img src="/logo.png" className="w-16 h-16 object-contain mb-4" alt="HexAgent Logo" />
           <h1 className="text-2xl font-bold text-white tracking-wider">HEXAGENT GUI</h1>
           <p className="text-sm text-gray-400 mt-1">
             {error ? 'Initialization Error' : 'Initializing Services...'}
@@ -116,16 +116,16 @@ const LoadingScreen = ({ initStatus, progress, error, onRetry, onContinue }) => 
 
         {/* Action Buttons / Botões de Ação */}
         {error && (
-          <div className="flex gap-3">
+          <div className="flex flex-col gap-3">
             <button
               onClick={onRetry}
-              className="flex-1 bg-[#00ff00]/10 text-[#00ff00] border border-[#00ff00]/30 rounded py-2 px-4 hover:bg-[#00ff00]/20 transition text-sm font-semibold"
+              className="w-full bg-[#00ff00]/10 text-[#00ff00] border border-[#00ff00]/30 rounded py-3 px-4 hover:bg-[#00ff00]/20 transition text-sm font-semibold"
             >
               Retry / Tentar Novamente
             </button>
             <button
               onClick={onContinue}
-              className="flex-1 bg-gray-500/10 text-gray-400 border border-gray-500/30 rounded py-2 px-4 hover:bg-gray-500/20 transition text-sm font-semibold"
+              className="w-full bg-gray-500/10 text-gray-400 border border-gray-500/30 rounded py-3 px-4 hover:bg-gray-500/20 transition text-sm font-semibold"
             >
               Continue Anyway / Continuar Mesmo Assim
             </button>
