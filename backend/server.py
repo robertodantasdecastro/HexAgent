@@ -147,9 +147,17 @@ def setup_workspace():
         os.chdir(work_dir)
         print(f"[Workspace] Working directory set to: {os.getcwd()}")
         
-        # Setup logging path (usually handled by logging config, but we ensure dir exists)
-        # We can symlink the central log here if needed?
-        
+        # Ensure default config exists in user dir
+        config_dest = os.path.join(work_dir, 'config', 'config.json')
+        if not os.path.exists(config_dest):
+            default_config = os.path.join(base_dir, 'config.json')
+            if os.path.exists(default_config):
+                try:
+                    with open(default_config, 'r') as src, open(config_dest, 'w') as dst:
+                         dst.write(src.read())
+                    print(f"[Workspace] Copied default config to {config_dest}")
+                except Exception as ex:
+                    print(f"[Workspace] Failed to copy config: {ex}")
         return work_dir
     except Exception as e:
         print(f"[Workspace] Error setting up workspace: {e}")
@@ -162,6 +170,7 @@ WORKSPACE_DIR = setup_workspace()
 core = AgentCore()
 
 # Configuration Management / Gerenciamento de Configuração
+def load_config():
     """
     Load configuration from config.json
     Carrega configuração do config.json
@@ -508,6 +517,7 @@ Analise os resultados acima. Se a tarefa original ainda não está completa, sug
 def autocomplete():
     """
     Provide shell autocompletion suggestions.
+    Fornece sugestões de autocompletar do shell.
     Expects: { "prefix": "ls -" } (full input line or partial)
     """
     data = request.json
@@ -535,7 +545,7 @@ def autocomplete():
 
 @app.route('/shutdown', methods=['POST'])
 def shutdown_server():
-    """Graceful shutdown triggered by UI"""
+    """Graceful shutdown triggered by UI / Encerramento gracioso via interface"""
     print("[API] Shutdown requested")
     def kill():
         cleanup_handler("api") # Pass arg to force exit
@@ -586,7 +596,7 @@ def stop_service():
 @app.route('/service', methods=['POST'])
 def service_control():
     """
-    Control services (hexstrike, brain)
+    Control services (hexstrike, brain) / Controlar serviços
     { "service": "hexstrike", "action": "start"|"stop" }
     """
     data = request.json
@@ -628,7 +638,7 @@ def service_control():
 @app.route('/sessions', methods=['POST'])
 def session_control():
     """
-    Manage sessions
+    Manage sessions / Gerenciar sessões
     { "action": "save"|"load"|"list"|"delete", "name": "foo", "data": [...] }
     """
     data = request.json

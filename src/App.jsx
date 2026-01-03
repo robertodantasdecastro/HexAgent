@@ -5,7 +5,7 @@ import SettingsModal from './components/SettingsModal';
 import HelpModal from './components/HelpModal';
 import ShutdownModal from './components/ShutdownModal';
 
-// Parse agent content into formatted sections
+// Parse agent content into formatted sections / Analisa conteúdo do agente em seções formatadas
 const parseAgentContent = (content) => {
   const sections = [];
   const lines = content.split('\n');
@@ -41,7 +41,7 @@ const parseAgentContent = (content) => {
 };
 
 
-// Block Component with enhanced formatting
+// Block Component with enhanced formatting / Componente de Bloco com formatação aprimorada
 const Block = ({ type, content, result, timestamp, onExecute, executed, onContinue }) => {
   // Parse content for agent responses
   const sections = type === 'agent' ? parseAgentContent(content) : [];
@@ -876,13 +876,13 @@ const App = () => {
     <div className="flex flex-col h-screen bg-[#050505] text-white relative overflow-hidden">
       {/* Background Watermark */}
       <div className="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none z-0">
-          <img src="/logo.png" className="w-[60vh] h-[60vh] object-contain filter grayscale" alt="watermark" />
+          <img src="logo.png" className="w-[60vh] h-[60vh] object-contain filter grayscale" alt="watermark" />
       </div>
 
       {/* Header */}
       <header className="h-10 bg-[#0a0a0a] border-b border-[#333] flex items-center justify-between px-4 pr-24 select-none drag-region">
           <div className="flex items-center gap-2">
-              <img src="/logo.png" className="w-4 h-4 object-contain" alt="logo" />
+              <img src="logo.png" className="w-4 h-4 object-contain" alt="logo" />
               <span className="font-bold text-sm tracking-wider">HEXAGENT GUI</span>
           </div>
           <div className="flex items-center gap-4 text-xs font-mono">

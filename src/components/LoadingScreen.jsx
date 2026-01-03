@@ -39,7 +39,7 @@ const LoadingScreen = ({ initStatus, progress, error, onRetry, onContinue }) => 
       <div className="w-96 bg-[#0a0a0a] border border-[#333] rounded-lg p-8 shadow-2xl">
         {/* Header / Cabeçalho */}
         <div className="flex flex-col items-center mb-6">
-          <img src="/logo.png" className="w-16 h-16 object-contain mb-4" alt="HexAgent Logo" />
+          <img src="logo.png" className="w-16 h-16 object-contain mb-4" alt="HexAgent Logo" />
           <h1 className="text-2xl font-bold text-white tracking-wider">HEXAGENT GUI</h1>
           <p className="text-sm text-gray-400 mt-1">
             {error ? 'Initialization Error' : 'Initializing Services...'}

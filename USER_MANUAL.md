@@ -22,6 +22,7 @@
 5. [Autonomous Agent Behavior](#autonomous-agent-behavior)
 6. [Configuration & Data](#configuration--data)
 7. [Troubleshooting](#troubleshooting)
+8. [Support & Donation](#support--donation--suporte-e-doação)
 
 ### First Launch
 
@@ -261,6 +262,7 @@ All application data is centralized in your home directory: `~/.hexagent-gui/`
 5. [Comportamento Autônomo](#comportamento-autônomo)
 6. [Configuração e Dados](#configuração-e-dados)
 7. [Solução de Problemas](#solução-de-problemas-manual)
+8. [Suporte e Doação](#support--donation--suporte-e-doação)
 
 ### Primeiro Uso
 
@@ -467,9 +469,19 @@ Todos os dados da aplicação são centralizados no seu diretório home: `~/.hex
 
 ---
 
-## Support / Suporte
+## Support & Donation / Suporte e Doação
 
-**Developer / Desenvolvedor**: Roberto Dantas de Castro
-- Email: robertodantasdecastro@gmail.com
-- GitHub: [@robertodantasdecastro](https://github.com/robertodantasdecastro)
-- Project: [HexAgent](https://github.com/robertodantasdecastro/HexAgent)
+### Developer / Desenvolvedor
+**Roberto Dantas de Castro**
+- **Email**: `robertodantasdecastro@gmail.com`
+- **GitHub Wiki**: [HexAgent Wiki](https://github.com/robertodantasdecastro/HexAgent/wiki)
+
+### Support the Project / Apoie o Projeto
+To support development, you can donate via Bitcoin:
+Para apoiar o desenvolvimento, você pode doar via Bitcoin:
+
+**Bitcoin Address**: `bc1qekh060wjfgspgt32vclmu3fcfx9fr7jh0akuwu`
+
+<p align="center">
+  <img src="public/qrcode.png" width="150" alt="Bitcoin QR Code" />
+</p>

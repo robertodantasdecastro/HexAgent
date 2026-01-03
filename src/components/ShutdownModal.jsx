@@ -57,7 +57,7 @@ const ShutdownModal = ({ isOpen, onShutdownComplete }) => {
   return (
     <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-[100] backdrop-blur-md">
       <div className="w-[400px] p-6 bg-[#0a0a0a] border border-red-900/50 rounded-xl shadow-2xl flex flex-col items-center">
-        <img src="/logo.png" className="w-16 h-16 object-contain mb-4 animate-pulse opacity-80" alt="Shutdown" />
+        <img src="logo.png" className="w-16 h-16 object-contain mb-4 animate-pulse opacity-80" alt="Shutdown" />
         <h2 className="text-xl font-bold text-white mb-6">System Shutdown</h2>
         
         <div className="w-full space-y-4">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, X, Cpu, Globe, Server, Shield, Activity, Save, Database, Key } from 'lucide-react';
+import { Settings, X, Cpu, Globe, Server, Shield, Activity, Save, Database, Key, Copy } from 'lucide-react';
 
 const SettingsModal = ({ isOpen, onClose, config, onSave }) => {
   const [localConfig, setLocalConfig] = useState(config || {
@@ -242,11 +242,32 @@ const SettingsModal = ({ isOpen, onClose, config, onSave }) => {
             {/* SYSTEM TAB */}
             {activeTab === 'system' && (
                 <div className="space-y-6 animate-in fade-in zoom-in-95 duration-200">
-                     <div className="text-center py-8">
-                        <Shield size={48} className="mx-auto text-yellow-500 mb-4 opacity-50" />
+                     <div className="text-center py-4">
+                        <img src="logo.png" className="w-16 h-16 mx-auto object-contain mb-4" alt="logo" />
                         <h3 className="text-xl font-bold text-white">HexAgent GUI</h3>
                         <p className="text-gray-500 font-mono text-sm mt-1">v1.0.0 Alpha</p>
-                        <div className="mt-6 p-4 bg-[#111] rounded border border-[#333] text-left text-xs font-mono text-gray-400 space-y-2">
+                        
+                        <div className="mt-4 mb-6">
+                            <p className="text-sm text-gray-300">Developer: <span className="text-[#00ff00]">Roberto Dantas de Castro</span></p>
+                            <p className="text-xs text-gray-500">Email: robertodantasdecastro@gmail.com</p>
+                            <a href="https://github.com/robertodantasdecastro/HexAgent/wiki" target="_blank" rel="noreferrer" className="text-xs text-cyan-400 hover:text-cyan-300 underline block mt-1">
+                                 GitHub Wiki
+                            </a>
+                        </div>
+
+                        <div className="bg-[#111] p-4 rounded border border-[#333] flex flex-col items-center max-w-sm mx-auto mb-6">
+                            <h4 className="text-xs font-bold text-yellow-500 mb-3 uppercase tracking-wider">Support the Project / Apoie o Projeto</h4>
+                            <img src="qrcode.png" className="w-32 h-32 object-contain bg-white p-1 rounded mb-3" alt="Bitcoin QR" />
+                            <div className="w-full bg-black p-2 rounded border border-[#333] flex items-center justify-between gap-2 overflow-hidden">
+                                 <code className="text-[10px] text-gray-400 font-mono truncate select-all">bc1qekh060wjfgspgt32vclmu3fcfx9fr7jh0akuwu</code>
+                                 <button className="text-gray-500 hover:text-white shrink-0" title="Copy" onClick={() => navigator.clipboard.writeText('bc1qekh060wjfgspgt32vclmu3fcfx9fr7jh0akuwu')}>
+                                     <Copy size={12} />
+                                 </button>
+                            </div>
+                            <p className="text-[10px] text-gray-600 mt-2">Bitcoin Donation Address</p>
+                        </div>
+
+                        <div className="p-4 bg-[#111] rounded border border-[#333] text-left text-xs font-mono text-gray-400 space-y-2">
                             <div className="flex justify-between"><span>Electron:</span> <span>v33.2.1</span></div>
                             <div className="flex justify-between"><span>Chrome:</span> <span>v130.0.6723.137</span></div>
                             <div className="flex justify-between"><span>Node:</span> <span>v20.18.1</span></div>
