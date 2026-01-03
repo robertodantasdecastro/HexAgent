@@ -13,5 +13,9 @@
   "ui": {
     "theme": "dark",
     "show_iteration_markers": true
+  },
+  "system": {
+    "cleanup_on_exit": false,
+    "auto_save_session": true
   }
 }

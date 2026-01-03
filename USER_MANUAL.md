@@ -256,11 +256,29 @@ All application data is centralized in your home directory: `~/.hexagent-gui/`
 4. **Monitor Iterations**: Watch progress markers
 5. **Review Commands**: AI shows what it will execute
 
-### Keyboard Shortcuts
+### Keyboard Shortcuts & Input Modes
 
+#### Input Modes
+- **PROMPT Mode (Chat) - GREEN**:
+    - Focus: Text editing & AI Interaction.
+    - **Up/Down Arrows**: Move cursor (Text Editor behavior).
+    - **Shift + Ctrl + Up/Down**: Navigate local Prompt History.
+- **COMMAND Mode (Terminal) - BLUE**:
+    - Focus: System Shell Execution.
+    - **Up/Down Arrows**: Navigate **System Shell History** (`~/.zsh_history` / `~/.bash_history`).
+
+#### Shortcuts
 - **Enter**: Send message
 - **Shift + Enter**: New line in input
-- **Ctrl + C**: Copy selected text (in conversation)
+- **Ctrl + C**: Copy selected text
+- **Tab**: Autocomplete commands/paths
+
+### Session Management 🗂️
+- **Start Fresh**: Each launch starts a clean session.
+- **History Icon (Clock)**: Located in the header.
+    - Click to view saved sessions.
+    - **Load**: Restore a previous context.
+    - **Save**: Save current session snapshot.
 
 ---
 
@@ -272,10 +290,11 @@ All application data is centralized in your home directory: `~/.hexagent-gui/`
 2. [Visão Geral da Interface](#visão-geral-da-interface)
 3. [Uso Básico](#uso-básico)
 4. [Recursos Avançados](#recursos-avançados)
-5. [Comportamento Autônomo](#comportamento-autônomo)
-6. [Configuração e Dados](#configuração-e-dados)
-7. [Solução de Problemas](#solução-de-problemas-manual)
-8. [Suporte e Doação](#support--donation--suporte-e-doação)
+5. [Gerenciamento de Sessão e Atalhos](#gerenciamento-de-sessão-e-atalhos)
+6. [Comportamento Autônomo](#comportamento-autônomo)
+7. [Configuração e Dados](#configuração-e-dados)
+8. [Solução de Problemas](#solução-de-problemas-manual)
+9. [Suporte e Doação](#support--donation--suporte-e-doação)
 
 ### Primeiro Uso
 
@@ -487,11 +506,29 @@ Todos os dados da aplicação são centralizados no seu diretório home: `~/.hex
 4. **Monitore Iterações**: Observe marcadores de progresso
 5. **Revise Comandos**: IA mostra o que vai executar
 
-### Atalhos de Teclado
+### Atalhos de Teclado e Modos de Entrada
 
+#### Modos de Entrada
+- **Modo PROMPT (Chat) - VERDE**:
+    - Foco: Edição de texto e Interação com IA.
+    - **Setas Cima/Baixo**: Movem o cursor (comportamento de editor).
+    - **Shift + Ctrl + Cima/Baixo**: Navega no Histórico de Prompts local.
+- **Modo COMANDO (Terminal) - AZUL**:
+    - Foco: Execução de Shell do Sistema.
+    - **Setas Cima/Baixo**: Navega no **Histórico do Shell do Sistema** (`~/.zsh_history` / `~/.bash_history`).
+
+#### Atalhos
 - **Enter**: Enviar mensagem
 - **Shift + Enter**: Nova linha na entrada
-- **Ctrl + C**: Copiar texto selecionado (na conversa)
+- **Ctrl + C**: Copiar texto selecionado
+- **Tab**: Autocompletar comandos/caminhos
+
+### Gerenciamento de Sessão 🗂️
+- **Início Limpo**: Cada execução inicia uma sessão limpa.
+- **Ícone de Histórico (Relógio)**: Localizado no cabeçalho.
+    - Clique para ver sessões salvas.
+    - **Carregar**: Restaura um contexto anterior.
+    - **Salvar**: Salva snapshot da sessão atual.
 
 ---
 

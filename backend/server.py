@@ -42,6 +42,13 @@ if getattr(sys, 'frozen', False):
 else:
     base_dir = os.path.dirname(os.path.abspath(__file__))
 
+# Global Paths
+home_dir = os.path.expanduser("~")
+workspace_dir = os.path.join(home_dir, ".hexagent-gui")
+tmp_dir = os.path.join(workspace_dir, "tmp")
+downloads_dir = os.path.join(workspace_dir, "downloads")
+sessions_dir = os.path.join(workspace_dir, "sessions")
+
 # Add bundled libs to path
 libs_path = os.path.join(base_dir, 'libs')
 if os.path.exists(libs_path):
@@ -139,7 +146,8 @@ def setup_workspace():
             print(f"[Workspace] Created default directory: {work_dir}")
         
         # Create extended subdirectories / Criar subdiretórios estendidos
-        for folder in ['log', 'config', 'config/agents', 'config/mcp', 'adjusts', 'agents', 'sessions']:
+        # Create extended subdirectories / Criar subdiretórios estendidos
+        for folder in ['log', 'config', 'config/agents', 'config/mcp', 'adjusts', 'agents', 'sessions', 'tmp', 'tmp/files', 'downloads']:
             os.makedirs(os.path.join(work_dir, folder), exist_ok=True)
 
         # Change to workspace so relative paths in user commands work there
@@ -201,11 +209,18 @@ def setup_workspace():
     [COMMAND FORMAT / FORMATO DE COMANDO]
     To execute a command, write it inside a markdown code block labeled 'bash' or 'sh'.
     Para executar um comando, escreva-o dentro de um bloco de código markdown rotulado 'bash' ou 'sh'.
+
+    [FILE SYSTEM RULES / REGRAS DE SISTEMA DE ARQUIVOS]
+    1. Unless the user specifies a path, ALWAYS use: ~/.hexagent-gui/tmp/files/
+       A menos que o usuário especifique, SEMPRE use: ~/.hexagent-gui/tmp/files/
+    2. If creating scripts/apps, ASK TO CONFIRM the path or suggest the default.
+       Se criar scripts/apps, PEÇA CONFIRMAÇÃO do caminho ou sugira o padrão.
 """
         create_template(os.path.join(work_dir, 'config', 'agents', 'hexagent.json'), {
             "name": "HexAgent",
             "system_prompt": default_system_prompt,
             "language_rule_pt": "1. **LANGUAGE**: ALWAYS reply in PORTUGUESE (PT-BR). / **IDIOMA**: SEMPRE responda em PORTUGUÊS (PT-BR).",
+            "language_rule_es": "1. **LANGUAGE**: ALWAYS reply in SPANISH. / **IDIOMA**: SEMPRE responda em ESPANHOL.",
             "language_rule_en": "1. **LANGUAGE**: ALWAYS reply in ENGLISH. / **IDIOMA**: SEMPRE responda em INGLÊS."
         })
 
@@ -220,6 +235,25 @@ def setup_workspace():
                 "nmap": 1.0
              }
         })
+
+        # 4. styles.json (OS-Aware Theme)
+        import platform
+        system_os = platform.system().lower()
+        
+        # Default Kali (Vibrant)
+        theme_colors = {
+            "30": "#000000", "31": "#ef4444", "32": "#22c55e", "33": "#eab308", "34": "#3b82f6", "35": "#d946ef", "36": "#06b6d4", "37": "#e5e7eb",
+            "90": "#6b7280", "91": "#f87171", "92": "#4ade80", "93": "#facc15", "94": "#60a5fa", "95": "#e879f9", "96": "#22d3ee", "97": "#ffffff"
+        }
+        
+        # macOS ZSH (Slightly different, more subdued or specific to Terminal.app)
+        if system_os == 'darwin':
+             theme_colors = {
+                "30": "#000000", "31": "#ff3b30", "32": "#4cd964", "33": "#ffcc00", "34": "#007aff", "35": "#5856d6", "36": "#5ac8fa", "37": "#ffffff",
+                "90": "#8e8e93", "91": "#ff3b30", "92": "#4cd964", "93": "#ffcc00", "94": "#007aff", "95": "#5856d6", "96": "#5ac8fa", "97": "#ffffff"
+            }
+
+        create_template(os.path.join(work_dir, 'config', 'styles.json'), theme_colors)
 
         # Ensure default config exists in user dir
         config_dest = os.path.join(work_dir, 'config', 'config.json')
@@ -241,7 +275,14 @@ def setup_workspace():
 WORKSPACE_DIR = setup_workspace()
 
 # Global Agent Core / Núcleo Global do Agente
-core = AgentCore()
+core = None
+init_error = None
+
+try:
+    core = AgentCore()
+except Exception as e:
+    init_error = str(e)
+    print(f"[HexAgentBackend] CRITICAL: Failed to initialize AgentCore: {e}")
 
 # Configuration Management / Gerenciamento de Configuração
 def load_config():
@@ -253,33 +294,72 @@ def load_config():
     user_config = os.path.join(WORKSPACE_DIR, 'config', 'config.json')
     sys_config = os.path.join(base_dir, 'config.json')
     
-    config_path = user_config if os.path.exists(user_config) else sys_config
-    
-    try:
-        with open(config_path, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except Exception as e:
-        print(f"[Config] Failed to load config.json: {e}")
-        # Return default config / Retorna config padrão
-        return {
-            "ai": {
-                "language": "auto", 
-                "model": "openai/gpt-4-turbo", 
-                "temperature": 0.7, 
-                "max_iterations": 10, 
-                "unlimited_iterations": False,
-                "web_search_enabled": False,
-                "api_key": ""
-            },
-            "services": {
-                "flask_port": 5000, 
-                "hexstrike_port": 8888,
-                "backend_host": "127.0.0.1"
-            },
-            "system": {
-                "theme": "dark"
-            }
+    # Base Config (Defaults)
+    base_data = {
+        "ai": {
+            "language": "auto", 
+            "model": "openai/gpt-4-turbo", 
+            "temperature": 0.7, 
+            "max_iterations": 10, 
+            "unlimited_iterations": False,
+            "web_search_enabled": False,
+            "api_key": ""
+        },
+        "services": {
+            "flask_port": 5000, 
+            "hexstrike_port": 8888,
+            "backend_host": "127.0.0.1"
+        },
+        "ui": {
+            "theme": "dark",
+            "show_iteration_markers": True
+        },
+        "system": {
+            "cleanup_on_exit": False,
+            "auto_save_session": True
         }
+    }
+
+    # Load System Config if exists to override hardcoded defaults
+    if os.path.exists(sys_config):
+        try:
+             with open(sys_config, 'r', encoding='utf-8') as f:
+                sys_data = json.load(f)
+                _deep_update(base_data, sys_data)
+        except Exception as e:
+            print(f"[Config] Failed to load sys config: {e}")
+
+    # Load User Config and merge
+    if os.path.exists(user_config):
+        try:
+            with open(user_config, 'r', encoding='utf-8') as f:
+                user_data = json.load(f)
+                _deep_update(base_data, user_data)
+        except Exception as e:
+            print(f"[Config] Failed to load user config: {e}")
+            
+    # Load Styles Config (custom_ansi) / Carregar Estilos
+    styles_path = os.path.join(WORKSPACE_DIR, 'config', 'styles.json')
+    if os.path.exists(styles_path):
+        try:
+             with open(styles_path, 'r', encoding='utf-8') as f:
+                 styles_data = json.load(f)
+                 # Merge into ui.styles
+                 if 'ui' not in base_data: base_data['ui'] = {}
+                 base_data['ui']['custom_ansi'] = styles_data
+        except Exception as e:
+            print(f"[Config] Failed to load styles.json: {e}")
+            
+    return base_data
+
+def _deep_update(base_dict, update_dict):
+    """Recursive update for nested dictionaries"""
+    for key, value in update_dict.items():
+        if isinstance(value, dict) and key in base_dict and isinstance(base_dict[key], dict):
+            _deep_update(base_dict[key], value)
+        else:
+            base_dict[key] = value
+    return base_dict
 
 def save_config(config):
     """
@@ -310,12 +390,24 @@ def detect_language(text):
         'instale', 'configure', 'para', 'pela', 'pelo', 'está'
     ]
     
-    # Count Portuguese keyword matches / Conta matches de palavras PT
-    pt_count = sum(1 for keyword in pt_keywords if keyword in text_lower)
+    # Spanish keywords / Palavras-chave em espanhol
+    es_keywords = [
+        'hola', 'gracias', 'por favor', 'que', 'cómo', 'cuándo', 'dónde',
+        'quién', 'sí', 'no', 'haga', 'muestra', 'lista', 'abre', 'cierra',
+        'instala', 'configura', 'para', 'está', 'esto', 'archivo'
+    ]
     
-    # If 2+ Portuguese keywords found, assume Portuguese
-    # Se 2+ palavras PT encontradas, assume Português
-    return 'pt' if pt_count >= 2 else 'en'
+    # Count matches / Conta matches
+    pt_count = sum(1 for keyword in pt_keywords if keyword in text_lower)
+    es_count = sum(1 for keyword in es_keywords if keyword in text_lower)
+    
+    # Heuristic: If 2+ keywords found, assume language
+    if pt_count >= 2:
+        return 'pt'
+    if es_count >= 2:
+        return 'es'
+        
+    return 'en'
 
 # Load configuration on startup / Carrega configuração na inicialização
 config = load_config()
@@ -330,7 +422,7 @@ def init_status():
     try:
         # Check HexStrike connection / Verifica conexão HexStrike
         hexstrike_ready = False
-        if core.body:
+        if core and core.body:
             try:
                 health = core.get_hexstrike_health()
                 hexstrike_ready = health.get('alive', False) or health.get('status') == 'ok'
@@ -344,9 +436,9 @@ def init_status():
                 'port': config.get('services', {}).get('flask_port', 5000)
             },
             'brain': {
-                'ready': core.brain is not None,
-                'status': 'success' if core.brain is not None else 'error',
-                'message': 'HexSecGPT initialized' if core.brain else 'Brain not initialized'
+                'ready': core and core.brain is not None,
+                'status': 'success' if core and core.brain is not None else 'error',
+                'message': 'HexSecGPT initialized' if core and core.brain else ('Brain not initialized' if core else f'Core Error: {init_error}')
             },
             'hexstrike': {
                 'ready': hexstrike_ready,
@@ -393,36 +485,42 @@ def init_agent():
     if not api_key:
         return jsonify({"success": False, "error": "API Key not found. Please configure it in Settings."}), 400
         
-    if core.initialize(api_key):
-        # Auto-start HexStrike logic / Lógica de auto-início HexStrike
-        # The core.initialize already attempts this, but let's double check and enforce
-        started = False
-        if core.body:
-             try:
-                 health = core.body.check_health()
-                 if health.get('alive') or health.get('status') == 'ok':
-                     started = True
-                 else:
-                     print("[HexAgentGUI] HexStrike not alive, forcing start...")
-                     if core._start_hexstrike_server():
-                         time.sleep(3) # Wait for startup
-                         health = core.body.check_health()
-                         if health.get('alive') or health.get('status') == 'ok':
-                             started = True
-             except Exception as e:
-                 print(f"[HexAgentGUI] Error accessing HexStrike body: {e}")
-                 # Try blind start
-                 core._start_hexstrike_server()
-                 time.sleep(3) 
-                 started = True # Optimistic
+    try:
+        if not core:
+            return jsonify({"success": False, "error": f"Agent Core not loaded: {init_error}"}), 400
 
-        message = "Neural Link Established."
-        if not started:
-             message += " WARNING: HexStrike Server might be offline. Check 'Power' button."
+        if core.initialize(api_key):
+            # Auto-start HexStrike logic
+            started = False
+            if core.body:
+                 try:
+                     health = core.body.check_health()
+                     if health.get('alive') or health.get('status') == 'ok':
+                         started = True
+                     else:
+                         print("[HexAgentGUI] HexStrike not alive, forcing start...")
+                         if core._start_hexstrike_server():
+                             time.sleep(3) # Wait for startup
+                             health = core.body.check_health()
+                             if health.get('alive') or health.get('status') == 'ok':
+                                 started = True
+                 except Exception as e:
+                     print(f"[HexAgentGUI] Error accessing HexStrike body: {e}")
+                     # Try blind start
+                     core._start_hexstrike_server()
+                     time.sleep(3) 
+                     started = True # Optimistic
 
-        return jsonify({"success": True, "message": message})
-    else:
-        return jsonify({"success": False, "error": "Failed to initialize Agent Core"}), 500
+            message = "Neural Link Established."
+            if not started:
+                 message += " WARNING: HexStrike Server might be offline. Check 'Power' button."
+
+            return jsonify({"success": True, "message": message})
+        else:
+            return jsonify({"success": False, "error": "Failed to initialize Agent Core (Check API Key / Logs)"}), 400
+    except Exception as e:
+        print(f"[Init] Exception: {e}")
+        return jsonify({"success": False, "error": f"Brain Init Exception: {str(e)}"}), 400
 
 @app.route('/config', methods=['GET', 'POST'])
 def config_endpoint():
@@ -587,6 +685,82 @@ Analise os resultados acima. Se a tarefa original ainda não está completa, sug
     
     return Response(generate(), mimetype='application/json')
 
+@app.route('/cleanup', methods=['POST'])
+def cleanup_files():
+    """
+    Delete temporary files and downloads.
+    Expected payload: {"target": "tmp" | "downloads" | "all"}
+    """
+    data = request.json or {}
+    target = data.get('target', 'all')
+    deleted_count = 0
+    
+    dirs_to_clean = []
+    if target in ['tmp', 'all']:
+        dirs_to_clean.append(tmp_dir)
+    if target in ['downloads', 'all']:
+        dirs_to_clean.append(downloads_dir)
+        
+    try:
+        for d in dirs_to_clean:
+            if os.path.exists(d):
+                for filename in os.listdir(d):
+                    file_path = os.path.join(d, filename)
+                    try:
+                        if os.path.isfile(file_path) or os.path.islink(file_path):
+                            os.unlink(file_path)
+                            deleted_count += 1
+                        elif os.path.isdir(file_path):
+                            import shutil
+                            shutil.rmtree(file_path)
+                            deleted_count += 1
+                    except Exception as e:
+                        print(f"Failed to delete {file_path}. Reason: {e}")
+        return jsonify({"success": True, "message": f"Cleaned {deleted_count} items."})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/save_session', methods=['POST'])
+def save_session_endpoint():
+    """
+    Save chat session.
+    Expected: {"name": "autosave", "blocks": [...]}
+    """
+    data = request.json
+    name = data.get('name', 'autosave')
+    blocks = data.get('blocks', [])
+    
+    if not name or not blocks:
+        return jsonify({"error": "Missing name or blocks"}), 400
+        
+    try:
+        filename = f"{name}.json"
+        filepath = os.path.join(sessions_dir, filename)
+        with open(filepath, 'w', encoding='utf-8') as f:
+            json.dump({"blocks": blocks, "timestamp": time.time()}, f, ensure_ascii=False, indent=2)
+        return jsonify({"success": True, "file": filepath})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/load_session', methods=['GET'])
+def load_session_endpoint():
+    """
+    Load chat session.
+    Params: name=autosave
+    """
+    name = request.args.get('name', 'autosave')
+    filepath = os.path.join(sessions_dir, f"{name}.json")
+    
+    if not os.path.exists(filepath):
+        return jsonify({"success": False, "message": "Session not found", "blocks": []})
+        
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            return jsonify({"success": True, "blocks": data.get('blocks', [])})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/complete', methods=['POST'])
 def autocomplete():
     """
@@ -617,6 +791,52 @@ def autocomplete():
         # If compgen fails or empty, return empty
         return jsonify({"suggestions": []})
 
+@app.route('/history/system', methods=['GET'])
+def get_system_history():
+    """
+    Retrieve system shell history for the frontend.
+    Tenta recuperar o histórico do shell do sistema (zsh ou bash).
+    """
+    try:
+        history_files = [
+            os.path.expanduser('~/.zsh_history'),
+            os.path.expanduser('~/.bash_history')
+        ]
+        
+        commands = []
+        seen = set()
+        
+        for h_file in history_files:
+            if os.path.exists(h_file):
+                try:
+                    with open(h_file, 'r', errors='ignore') as f:
+                        lines = f.readlines()
+                        # Reverse to get newest first
+                        for line in reversed(lines):
+                            line = line.strip()
+                            if not line: continue
+                            
+                            # Handle ZSH extended history (: 167890000:0;command)
+                            if line.startswith(':') and ';' in line:
+                                parts = line.split(';', 1)
+                                if len(parts) > 1:
+                                    line = parts[1]
+                            
+                            if line not in seen:
+                                seen.add(line)
+                                commands.append(line)
+                                
+                            if len(commands) >= 100:
+                                break
+                except Exception as ex:
+                    print(f"Error reading {h_file}: {ex}")
+            if commands: break # Prioritize ZSH if found, else BASH
+            
+        return jsonify({"history": commands}) 
+    except Exception as e:
+        return jsonify({"history": [], "error": str(e)})
+
+
 @app.route('/shutdown', methods=['POST'])
 def shutdown_server():
     """Graceful shutdown triggered by UI / Encerramento gracioso via interface"""
@@ -640,6 +860,9 @@ def execute_command():
     if not cmd:
         return jsonify({"error": "No command provided"}), 400
         
+    if not core:
+        return jsonify({"error": f"Agent Core not loaded: {init_error}"}), 400
+        
     result = core.execute_tool(cmd)
     return jsonify({"result": result})
 
@@ -650,7 +873,7 @@ def status():
     Returns: {"status": "ok", "alive": True} if Brain is ready
     """
     # Check if Brain is initialized first
-    if not core.brain:
+    if not core or not core.brain:
         return jsonify({"status": "offline", "alive": False, "message": "Brain not initialized"})
     
     # Brain is initialized
@@ -658,13 +881,14 @@ def status():
 
 @app.route('/start_service', methods=['POST'])
 def start_service():
+    if not core: return jsonify({"success": False, "error": "Core not loaded"}), 400
     if core._start_hexstrike_server():
         return jsonify({"success": True, "message": "Service starting..."})
     return jsonify({"success": False, "error": "Failed to start service"}), 500
 
 @app.route('/stop_service', methods=['POST'])
 def stop_service():
-    core.shutdown()
+    if core: core.shutdown()
     return jsonify({"success": True, "message": "Service stopped"})
 
 @app.route('/service', methods=['POST'])
@@ -758,6 +982,19 @@ def session_control():
         return jsonify({"success": False, "message": str(e)}), 500
         
     return jsonify({"success": False, "message": "Invalid action"}), 400
+
+@app.route('/files/temp', methods=['GET'])
+def list_temp_files():
+    """List files in the temp directory / Listar arquivos no diretório temporário"""
+    tmp_files_dir = os.path.join(WORKSPACE_DIR, 'tmp', 'files')
+    files = []
+    if os.path.exists(tmp_files_dir):
+        try:
+            files = [f for f in os.listdir(tmp_files_dir) if os.path.isfile(os.path.join(tmp_files_dir, f))]
+        except Exception as e:
+            print(f"Error listing temp files: {e}")
+            
+    return jsonify({"files": files, "count": len(files), "path": tmp_files_dir})
 
 if __name__ == '__main__':
     # Check for setup-only mode

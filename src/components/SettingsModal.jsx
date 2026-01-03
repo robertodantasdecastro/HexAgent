@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Settings, X, Cpu, Globe, Server, Shield, Activity, Save, Database, Key, Copy } from 'lucide-react';
+import { Activity, Cpu, Database, Globe, Key, Save, Server, Settings, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
-const SettingsModal = ({ isOpen, onClose, config, onSave }) => {
+const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
   const [localConfig, setLocalConfig] = useState(config || {
     ai: { 
         language: 'auto', 
@@ -20,10 +20,13 @@ const SettingsModal = ({ isOpen, onClose, config, onSave }) => {
     },
     system: {
         theme: 'dark'
+    },
+    ui: {
+        custom_colors: {}
     }
   });
 
-  const [activeTab, setActiveTab] = useState('brain'); // brain, services, system
+  const [activeTab, setActiveTab] = useState('brain'); // brain, services, appearance, system
 
   useEffect(() => {
     if (config) {
@@ -33,7 +36,8 @@ const SettingsModal = ({ isOpen, onClose, config, onSave }) => {
             ...config,
             ai: { ...prev.ai, ...config.ai },
             services: { ...prev.services, ...config.services },
-            system: { ...prev.system, ...config.system }
+            system: { ...prev.system, ...config.system },
+            ui: { ...prev.ui, ...config.ui }
         }));
     }
   }, [config]);
@@ -57,6 +61,16 @@ const SettingsModal = ({ isOpen, onClose, config, onSave }) => {
     }));
   };
 
+  const updateUI = (field, value) => {
+    setLocalConfig(prev => ({
+        ...prev,
+        ui: { 
+            ...prev.ui, 
+            custom_colors: { ...prev.ui?.custom_colors, [field]: value } 
+        }
+    }));
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -66,7 +80,7 @@ const SettingsModal = ({ isOpen, onClose, config, onSave }) => {
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#333] bg-[#111]">
           <h2 className="text-lg font-bold text-[#00ff00] flex items-center gap-2 font-mono">
-            <Settings size={20} /> CONFIGURATION / CONFIGURAÇÕES
+            <Settings size={20} /> {t ? t('settings.title') : 'CONFIGURATION'}
           </h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white transition hover:rotate-90">
             <X size={20} />
@@ -79,7 +93,7 @@ const SettingsModal = ({ isOpen, onClose, config, onSave }) => {
                 onClick={() => setActiveTab('brain')}
                 className={`flex-1 py-3 text-xs font-mono font-bold flex items-center justify-center gap-2 border-b-2 transition-colors ${activeTab === 'brain' ? 'border-[#00ff00] text-[#00ff00] bg-[#00ff00]/5' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
             >
-                <Cpu size={14} /> BRAIN (AI)
+                <Cpu size={14} /> {t ? t('settings.tab_brain') : 'BRAIN'}
             </button>
             <button 
                 onClick={() => setActiveTab('services')}
@@ -88,10 +102,16 @@ const SettingsModal = ({ isOpen, onClose, config, onSave }) => {
                 <Server size={14} /> SERVICES
             </button>
             <button 
+                onClick={() => setActiveTab('appearance')}
+                className={`flex-1 py-3 text-xs font-mono font-bold flex items-center justify-center gap-2 border-b-2 transition-colors ${activeTab === 'appearance' ? 'border-purple-500 text-purple-400 bg-purple-500/5' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
+            >
+                <Globe size={14} /> {t ? t('settings.tab_appearance') : 'APPEARANCE'}
+            </button>
+            <button 
                 onClick={() => setActiveTab('system')}
                 className={`flex-1 py-3 text-xs font-mono font-bold flex items-center justify-center gap-2 border-b-2 transition-colors ${activeTab === 'system' ? 'border-yellow-500 text-yellow-400 bg-yellow-500/5' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
             >
-                <Database size={14} /> SYSTEM
+                <Database size={14} /> {t ? t('settings.tab_general') : 'SYSTEM'}
             </button>
         </div>
 
@@ -103,19 +123,35 @@ const SettingsModal = ({ isOpen, onClose, config, onSave }) => {
                 <div className="space-y-5 animate-in fade-in zoom-in-95 duration-200">
                     <div className="grid grid-cols-2 gap-4">
                         <div className="col-span-2">
-                             <label className="block text-xs text-gray-400 mb-1.5 font-mono">AI Model / Modelo de IA</label>
+                             <label className="block text-xs text-gray-400 mb-1.5 font-mono">{t ? t('brain.provider') : 'AI Provider'}</label>
+                             <select
+                                value={localConfig.ai?.provider || 'openai'}
+                                onChange={(e) => updateAI('provider', e.target.value)}
+                                className="w-full bg-black border border-[#333] rounded px-3 py-2 text-white text-sm focus:border-[#00ff00] focus:outline-none mb-3"
+                             >
+                                <option value="openai">OpenAI</option>
+                                <option value="openrouter">OpenRouter</option>
+                                <option value="anthropic">Anthropic</option>
+                                <option value="deepseek">DeepSeek</option>
+                                <option value="local">Local (Ollama/LM Studio)</option>
+                                <option value="custom">Custom (Generic)</option>
+                             </select>
+                        </div>
+
+                        <div className="col-span-2">
+                             <label className="block text-xs text-gray-400 mb-1.5 font-mono">{t ? t('brain.model') : 'AI Model'}</label>
                              <input 
                                 type="text" 
                                 value={localConfig.ai?.model || ''}
                                 onChange={(e) => updateAI('model', e.target.value)}
-                                placeholder="e.g., openai/gpt-4-turbo, anthropic/claude-3"
+                                placeholder="e.g., openai/gpt-4-turbo, llama3"
                                 className="w-full bg-black border border-[#333] rounded px-3 py-2 text-white text-sm focus:border-[#00ff00] focus:outline-none font-mono"
                              />
                         </div>
 
                         <div className="col-span-2">
                              <label className="block text-xs text-gray-400 mb-1.5 font-mono flex items-center gap-2">
-                                <Key size={12} /> API Key (HexSecGPT)
+                                <Key size={12} /> {t ? t('brain.api_key') : 'API Key'}
                              </label>
                              <input 
                                 type="password" 
@@ -125,16 +161,30 @@ const SettingsModal = ({ isOpen, onClose, config, onSave }) => {
                                 className="w-full bg-black border border-[#333] rounded px-3 py-2 text-white text-sm focus:border-[#00ff00] focus:outline-none font-mono"
                              />
                         </div>
+                        
+                        {(localConfig.ai?.provider === 'local' || localConfig.ai?.provider === 'custom') && (
+                            <div className="col-span-2 animate-in fade-in slide-in-from-top-2">
+                                 <label className="block text-xs text-gray-400 mb-1.5 font-mono">{t ? t('brain.base_url') : 'Base URL'}</label>
+                                 <input 
+                                    type="text" 
+                                    value={localConfig.ai?.base_url || ''}
+                                    onChange={(e) => updateAI('base_url', e.target.value)}
+                                    placeholder="http://localhost:11434/v1"
+                                    className="w-full bg-black border border-[#333] rounded px-3 py-2 text-white text-sm focus:border-[#00ff00] focus:outline-none font-mono"
+                                 />
+                            </div>
+                        )}
 
                         <div>
-                            <label className="block text-xs text-gray-400 mb-1.5 font-mono">Language / Idioma</label>
+                            <label className="block text-xs text-gray-400 mb-1.5 font-mono">{t ? t('settings.language') : 'Language'}</label>
                             <select
                                 value={localConfig.ai?.language || 'auto'}
                                 onChange={(e) => updateAI('language', e.target.value)}
                                 className="w-full bg-black border border-[#333] rounded px-3 py-2 text-white text-sm focus:border-[#00ff00] focus:outline-none"
                             >
-                                <option value="auto">Auto-detect</option>
+                                <option value="auto">{t ? t('settings.language_auto') : 'Auto-detect'}</option>
                                 <option value="pt">Português</option>
+                                <option value="es">Español</option>
                                 <option value="en">English</option>
                             </select>
                         </div>
@@ -154,7 +204,7 @@ const SettingsModal = ({ isOpen, onClose, config, onSave }) => {
                          <div className="flex items-center justify-between">
                             <label className="text-sm font-mono text-gray-300 flex items-center gap-2">
                                 <Activity size={14} className="text-[#00ff00]" />
-                                Max Iterations
+                                {t ? t('brain.max_iterations') : 'Max Iterations'}
                                 <span className="text-xs text-gray-500">({localConfig.ai?.unlimited_iterations ? '∞' : localConfig.ai?.max_iterations})</span>
                             </label>
                             <div className="flex items-center gap-2">
@@ -181,16 +231,60 @@ const SettingsModal = ({ isOpen, onClose, config, onSave }) => {
                         <div className="flex items-center gap-3">
                             <Globe size={18} className="text-blue-400" />
                             <div>
-                                <div className="text-sm font-bold text-gray-200">Web Search Access</div>
-                                <div className="text-xs text-gray-500">Allow AI to search the internet</div>
+                                <div className="text-sm font-bold text-gray-200">{t ? t('brain.browser_search') : 'Web Search Access'}</div>
                             </div>
                         </div>
                         <button 
-                            onClick={() => updateAI('web_search_enabled', !localConfig.ai?.web_search_enabled)}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                updateAI('web_search_enabled', !localConfig.ai?.web_search_enabled);
+                            }}
                             className={`w-10 h-5 rounded-full relative transition-colors ${localConfig.ai?.web_search_enabled ? 'bg-blue-500' : 'bg-gray-700'}`}
                         >
                             <div className={`w-4 h-4 bg-white rounded-full absolute top-0.5 transition-all ${localConfig.ai?.web_search_enabled ? 'left-5.5' : 'left-0.5'}`} />
                         </button>
+                    </div>
+                </div>
+            )}
+
+            {/* APPEARANCE TAB */}
+            {activeTab === 'appearance' && (
+                <div className="space-y-6 animate-in fade-in zoom-in-95 duration-200">
+                    <div className="grid grid-cols-2 gap-6">
+                        <div>
+                             <label className="block text-xs text-gray-400 mb-2 font-mono">{t ? t('appearance.ai_text_color') : 'AI Text Color'}</label>
+                             <div className="flex items-center gap-3">
+                                 <input 
+                                    type="color" 
+                                    value={localConfig.ui?.custom_colors?.ai_text || '#06b6d4'}
+                                    onChange={(e) => updateUI('ai_text', e.target.value)}
+                                    className="w-10 h-10 rounded cursor-pointer bg-transparent border-none"
+                                 />
+                                 <span className="text-xs font-mono text-gray-500">{localConfig.ui?.custom_colors?.ai_text || '#06b6d4'}</span>
+                             </div>
+                        </div>
+                        <div>
+                             <label className="block text-xs text-gray-400 mb-2 font-mono">{t ? t('appearance.user_text_color') : 'User Text Color'}</label>
+                             <div className="flex items-center gap-3">
+                                 <input 
+                                    type="color" 
+                                    value={localConfig.ui?.custom_colors?.user_text || '#00ff00'}
+                                    onChange={(e) => updateUI('user_text', e.target.value)}
+                                    className="w-10 h-10 rounded cursor-pointer bg-transparent border-none"
+                                 />
+                                 <span className="text-xs font-mono text-gray-500">{localConfig.ui?.custom_colors?.user_text || '#00ff00'}</span>
+                             </div>
+                        </div>
+                    </div>
+                    
+                    <div className="p-4 rounded border border-[#333] bg-[#000000] space-y-2">
+                        <div className="text-xs text-gray-500 mb-2">PREVIEW / PRÉVIA</div>
+                        <div className="font-mono text-sm" style={{ color: localConfig.ui?.custom_colors?.user_text || '#00ff00' }}>
+                            Hello System.
+                        </div>
+                        <div className="font-mono text-sm" style={{ color: localConfig.ui?.custom_colors?.ai_text || '#06b6d4' }}>
+                            Hello! How can I help you today?
+                        </div>
                     </div>
                 </div>
             )}
@@ -285,13 +379,13 @@ const SettingsModal = ({ isOpen, onClose, config, onSave }) => {
                 onClick={onClose}
                 className="px-4 py-2 text-xs font-bold text-gray-400 hover:text-white transition-colors"
             >
-                CANCEL
+                {t ? t('settings.cancel') : 'CANCEL'}
             </button>
             <button 
                 onClick={handleSave}
                 className="px-6 py-2 bg-[#00ff00] text-black text-xs font-bold rounded hover:bg-[#00cc00] transition-colors flex items-center gap-2"
             >
-                <Save size={14} /> SAVE SETTINGS
+                <Save size={14} /> {t ? t('settings.save') : 'SAVE SETTINGS'}
             </button>
         </div>
 

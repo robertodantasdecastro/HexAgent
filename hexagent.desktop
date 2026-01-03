@@ -1,9 +1,0 @@
-[Desktop Entry]
-Name=HexAgent GUI
-Comment=Autonomous AI Cybsersecurity Agent
-Exec=/home/d4r13n/iatools/HexAgentGUI/dist/linux-arm64-unpacked/hexagent-gui --no-sandbox
-Icon=/home/d4r13n/iatools/HexAgentGUI/icon.png
-Terminal=false
-Type=Application
-Categories=Development;Security;
-StartupWMClass=HexAgentGUI

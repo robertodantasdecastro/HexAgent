@@ -1,0 +1,81 @@
+{
+    "common": {
+        "hexagent_gui": "HEXAGENT GUI",
+        "settings": "Settings",
+        "status": {
+            "online": "ONLINE",
+            "offline": "OFFLINE",
+            "disconnected": "DISCONNECTED"
+        },
+        "copy": "COPY",
+        "copy_text": "COPY TEXT",
+        "copy_command": "COPY COMMAND",
+        "execute": "EXECUTE",
+        "executed": "Executed"
+    },
+    "block": {
+        "hexagent": "HEXAGENT",
+        "proposal_title": "COMMAND PROPOSAL",
+        "proposal_desc": "The agent wants to execute the following command. You can edit it before running.",
+        "limit_title": "ITERATION LIMIT REACHED",
+        "limit_desc": "The agent reached the maximum iteration limit. Do you want to continue?",
+        "stop": "STOP",
+        "continue_5": "CONTINUE (+5)",
+        "continue_10": "CONTINUE (+10)"
+    },
+    "input": {
+        "placeholder": "Type your request here...",
+        "analyzing": "Analyzing...",
+        "generating": "Generating...",
+        "send": "Send Message",
+        "stop": "Stop Generation",
+        "mode": {
+            "chat": "CHAT MODE",
+            "prompt": "PROMPT MODE"
+        },
+        "auto_execute": "Auto-Execute",
+        "web_search": "Web Search"
+    },
+    "settings": {
+        "title": "Settings",
+        "tab_general": "General",
+        "tab_appearance": "Appearance",
+        "tab_brain": "Brain / AI",
+        "language": "Language",
+        "language_auto": "Auto Detect",
+        "theme": "Theme",
+        "theme_dark": "Dark",
+        "theme_light": "Light",
+        "theme_kali": "Kali Dark",
+        "theme_macos": "macOS Dark",
+        "cleanup": "Cleanup on Exit",
+        "cleanup_desc": "Delete tmp files automatically",
+        "save": "Save Changes",
+        "cancel": "Cancel"
+    },
+    "appearance": {
+        "ai_text_color": "AI Text Color",
+        "user_text_color": "User Text Color",
+        "terminal_bg": "Terminal Background",
+        "reset": "Reset to Default"
+    },
+     "brain": {
+        "provider": "AI Provider",
+        "model": "Model Name",
+        "api_key": "API Key",
+        "base_url": "Base URL (Optional)",
+        "max_iterations": "Max Iterations",
+        "browser_search": "Enable Web Search"
+    },
+    "loading": {
+        "initializing": "Initializing System...",
+        "components": {
+            "backend": "Backend Server",
+            "brain": "AI Brain Core",
+            "hexstrike": "HexStrike Client",
+            "config": "Configuration"
+        },
+        "retry": "Retry",
+        "continue_anyway": "Continue Anyway"
+    }
+}

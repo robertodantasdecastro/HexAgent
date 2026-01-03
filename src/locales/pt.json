@@ -1,0 +1,81 @@
+{
+    "common": {
+        "hexagent_gui": "HEXAGENT GUI",
+        "settings": "Configurações",
+        "status": {
+            "online": "ONLINE",
+            "offline": "OFFLINE",
+            "disconnected": "DESCONECTADO"
+        },
+        "copy": "COPIAR",
+        "copy_text": "COPIAR TEXTO",
+        "copy_command": "COPIAR COMANDO",
+        "execute": "EXECUTAR",
+        "executed": "Executado"
+    },
+    "block": {
+        "hexagent": "HEXAGENT",
+        "proposal_title": "PROPOSTA DE COMANDO",
+        "proposal_desc": "O agente deseja executar o seguinte comando. Você pode editá-lo antes de executar.",
+        "limit_title": "LIMITE DE ITERAÇÕES",
+        "limit_desc": "O agente atingiu o limite máximo de iterações. Deseja continuar?",
+        "stop": "PARAR",
+        "continue_5": "CONTINUAR (+5)",
+        "continue_10": "CONTINUAR (+10)"
+    },
+    "input": {
+        "placeholder": "Digite sua solicitação aqui...",
+        "analyzing": "Analisando...",
+        "generating": "Gerando...",
+        "send": "Enviar Mensagem",
+        "stop": "Parar Geração",
+        "mode": {
+            "chat": "MODO CHAT",
+            "prompt": "MODO PROMPT"
+        },
+        "auto_execute": "Auto-Executar",
+        "web_search": "Busca Web"
+    },
+    "settings": {
+        "title": "Configurações",
+        "tab_general": "Geral",
+        "tab_appearance": "Aparência",
+        "tab_brain": "Cérebro / IA",
+        "language": "Idioma",
+        "language_auto": "Auto Detectar",
+        "theme": "Tema",
+        "theme_dark": "Escuro",
+        "theme_light": "Claro",
+        "theme_kali": "Kali Dark",
+        "theme_macos": "macOS Dark",
+        "cleanup": "Limpeza ao Sair",
+        "cleanup_desc": "Apagar arquivos temporários automaticamente",
+        "save": "Salvar Alterações",
+        "cancel": "Cancelar"
+    },
+    "appearance": {
+        "ai_text_color": "Cor Texto IA",
+        "user_text_color": "Cor Texto Usuário",
+        "terminal_bg": "Fundo Terminal",
+        "reset": "Restaurar Padrão"
+    },
+     "brain": {
+        "provider": "Provedor IA",
+        "model": "Nome do Modelo",
+        "api_key": "Chave API",
+        "base_url": "URL Base (Opcional)",
+        "max_iterations": "Máx Iterações",
+        "browser_search": "Busca Web"
+    },
+    "loading": {
+        "initializing": "Inicializando Sistema...",
+        "components": {
+            "backend": "Servidor Backend",
+            "brain": "Núcleo IA",
+            "hexstrike": "Cliente HexStrike",
+            "config": "Configuração"
+        },
+        "retry": "Tentar Novamente",
+        "continue_anyway": "Continuar Assim Mesmo"
+    }
+}
