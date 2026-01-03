@@ -5,6 +5,7 @@ import LoadingScreen from './components/LoadingScreen';
 import SessionModal from './components/SessionModal';
 import SettingsModal from './components/SettingsModal';
 import ShutdownModal from './components/ShutdownModal';
+import { useTranslation } from './hooks/useTranslation';
 
 // Parse agent content into formatted sections / Analisa conteúdo do agente em seções formatadas
 const parseAgentContent = (content) => {
@@ -208,12 +209,26 @@ const App = () => {
   const [blocks, setBlocks] = useState([]); // Start empty
   const [input, setInput] = useState('');
   const [isLoading, setLoading] = useState(false);
+  const [status, setStatus] = useState('OFFLINE'); // Global Connection Status
+  const [serviceStatus, setServiceStatus] = useState({ flask: false, hexstrike: false, brain: false });
   const [inputMode, setInputMode] = useState('prompt'); // 'prompt' | 'command'
   const [autoScroll, setAutoScroll] = useState(true);
+  
+  // Configuration State (Must be initialized before useTranslation)
+  const [config, setConfig] = useState(null);
+  const scrollRef = useRef(null);
+  
+
+  // Translation Hook
+  const { t } = useTranslation(config);
   
   // History State
   const [promptHistory, setPromptHistory] = useState([]); // Local Prompt History
   const [systemHistory, setSystemHistory] = useState([]); // Remote Shell History
+  
+  
+  // History State
+
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [sysHistoryIndex, setSysHistoryIndex] = useState(-1);
 
@@ -225,10 +240,7 @@ const App = () => {
   const [currentSessionName, setCurrentSessionName] = useState('');
   
   // UI Enhancements State / Estados de Melhorias de UI
-  // UI Enhancements State / Estados de Melhorias de UI
-  const [autoScroll, setAutoScroll] = useState(true);
   const [autoExecute, setAutoExecute] = useState(false); // Default false for safety
-  const [inputMode, setInputMode] = useState('chat'); // 'chat' or 'prompt'
   const abortControllerRef = useRef(null);
   const bottomRef = useRef(null);
   
@@ -982,7 +994,7 @@ const App = () => {
       </div>
 
       {/* Header */}
-      <header className="h-10 bg-[#0a0a0a] border-b border-[#333] flex items-center justify-between px-4 pr-24 select-none">
+      <header className="drag-region h-10 bg-[#0a0a0a] border-b border-[#333] flex items-center justify-between px-4 pr-24 select-none">
           <div className="flex items-center gap-2">
               <img src="logo.png" className="w-4 h-4 object-contain" alt="logo" />
               <span className="font-bold text-sm tracking-wider">HEXAGENT GUI</span>
@@ -1089,7 +1101,7 @@ const App = () => {
                 </button>
              </div>
              <div>
-                {loading && (
+                {isLoading && (
                     <button
                         onClick={stopGeneration}
                         className="flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-mono border text-red-400 bg-red-500/10 border-red-500/30 hover:bg-red-500/20 transition-all animate-pulse"
@@ -1117,8 +1129,8 @@ const App = () => {
               <div className="absolute right-2 top-2 flex items-center gap-2">
                   <button
                       type="submit"
-                      disabled={loading || !input.trim()}
-                      className={`p-1.5 rounded-md transition-colors border ${loading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white/10'} ${inputMode === 'prompt' ? 'border-green-500/50 text-green-500 bg-green-500/10' : 'border-blue-500/50 text-blue-500 bg-blue-500/10'}`}
+                      disabled={isLoading || !input.trim()}
+                      className={`p-1.5 rounded-md transition-colors border ${isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white/10'} ${inputMode === 'prompt' ? 'border-green-500/50 text-green-500 bg-green-500/10' : 'border-blue-500/50 text-blue-500 bg-blue-500/10'}`}
                   >
                       <Send size={16} />
                   </button>
@@ -1148,7 +1160,24 @@ const App = () => {
         currentSessionName={currentSessionName}
       />
       <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} />
-      <ShutdownModal isOpen={showShutdown} onClose={() => setShowShutdown(false)} />
+      <ShutdownModal 
+        isOpen={showShutdown} 
+        onClose={() => setShowShutdown(false)} 
+        onShutdownComplete={() => {
+          // Send IPC to Electron to actually close the window
+          if (window.require) {
+            try {
+              const { ipcRenderer } = window.require('electron');
+              ipcRenderer.send('app-ready-to-quit');
+            } catch (e) {
+              console.error('Failed to send quit signal:', e);
+              window.close();
+            }
+          } else {
+            window.close();
+          }
+        }}
+      />
     </div>
   );
 };

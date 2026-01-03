@@ -60,6 +60,13 @@ const LoadingScreen = ({ initStatus, progress, error, onRetry, onContinue }) => 
       }
   };
 
+  // Copy Error Logs
+  const copyError = () => {
+    if (!error) return;
+    const text = `Error: ${error.message}\nTimestamp: ${new Date().toISOString()}\nStack: ${JSON.stringify(error.stack || 'N/A')}`;
+    navigator.clipboard.writeText(text);
+  };
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-[#050505] text-white selection:bg-cyan-500/30 relative">
       

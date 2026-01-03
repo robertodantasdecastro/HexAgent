@@ -93,9 +93,8 @@ const ShutdownModal = ({ isOpen, onShutdownComplete }) => {
                 </p>
                 <div className="flex gap-4 w-full">
                     <button 
-                        onClick={() => window.location.reload()} /* Hack to cancel shutdown request effectively by reloading? No, we should call a prop to close. Actually App doesn't pass onClose to ShutdownModal, it just mounts it. We might need to reload or just execute shutdown. For now let's just offer Proceed */
                         className="flex-1 bg-gray-800 hover:bg-gray-700 text-white py-3 rounded font-bold transition"
-                        onClick={() => { /* User wants to cancel? Current App implementation shows ShutdownModal when showShutdown is true. There is no close. We will just proceed for now to keep it simple as per request to 'Warn', or ask user. */ startShutdown() }}
+                        onClick={() => startShutdown()}
                     >
                         Delete & Shutdown
                     </button>

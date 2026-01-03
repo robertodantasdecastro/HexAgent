@@ -138,6 +138,14 @@ create_links() {
 create_shortcuts() {
     print_info "Creating Desktop Shortcut..."
     APP_FILE="$HOME/.local/share/applications/hexagent-gui.desktop"
+    DESKTOP_FILE="$DESKTOP_DIR/hexagent-gui.desktop"
+
+    # Aggressive cleanup of old shortcuts
+    rm -f "$APP_FILE"
+    rm -f "$DESKTOP_DIR/HexAgentGUI.desktop" 
+    rm -f "$DESKTOP_DIR/hexagent.desktop"
+    rm -f "$DESKTOP_DIR/hexagent-gui.desktop"
+
     ICON="$INSTALL_DIR/resources/public/logo.png"
     if [ ! -f "$ICON" ]; then ICON="$(pwd)/public/logo.png"; fi
     

@@ -1,8 +1,8 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
-import path from 'path';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
 import { spawn } from 'child_process';
+import { app, BrowserWindow, ipcMain } from 'electron';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 // import isDev from 'electron-is-dev'; // Removed
 // import isDev from 'electron-is-dev'; // Removed causing crash
 // Actually let's use app.isPackaged or process.env.NODE_ENV
@@ -12,6 +12,26 @@ const __dirname = path.dirname(__filename);
 
 let mainWindow;
 let pythonProcess;
+
+// Single Instance Lock
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on('second-instance', (event, commandLine, workingDirectory) => {
+    // Someone tried to run a second instance, we should focus our window.
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    }
+  });
+
+  // Create window only if we have the lock
+  app.on('ready', () => {
+      createWindow();
+      startPythonBackend();
+  });
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -113,10 +133,7 @@ function startPythonBackend() {
     });
 }
 
-app.on('ready', () => {
-    startPythonBackend();
-    createWindow();
-});
+
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
