@@ -125,6 +125,18 @@ setup_python_env() {
     fi
 }
 
+# Initialize Configuration Templates
+setup_configs() {
+    print_info "Initializing configuration templates..."
+    export HEXAGENT_SETUP_ONLY=1
+    if command -v python3 &> /dev/null; then
+        python3 backend/server.py
+        print_success "Config templates created/updated in ~/.hexagent-gui/"
+    else
+        print_error "Python3 not found (unexpected), skipping config init."
+    fi
+}
+
 # Build application
 build_app() {
     print_info "Building HexAgentGUI..."
@@ -215,6 +227,7 @@ main() {
     check_prerequisites
     install_node_deps
     setup_python_env
+    setup_configs
     build_app
     install_globally
     create_desktop_shortcut

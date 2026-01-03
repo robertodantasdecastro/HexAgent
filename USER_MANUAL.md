@@ -32,6 +32,7 @@
    ```bash
    hexagent
    ```
+   > **Note**: The installation script automatically initializes your configuration templates in `~/.hexagent-gui`.
 
 2. **Wait for initialization** (15-20 seconds):
    - Backend Flask server starts
@@ -222,10 +223,22 @@ AI ends loop when:
 
 All application data is centralized in your home directory: `~/.hexagent-gui/`
 
-- **config/**: Configuration files (`config.json`).
+- **config/**: Configuration files.
+    - `config.json`: General app settings (language, iterations, theme).
+    - `ai_models.json`: AI Provider settings (OpenRouter/DeepSeek) and API URLs.
+    - **agents/**:
+        - `hexagent.json`: Define the Agent's Persona and System Prompt.
+    - **mcp/**:
+        - `hexstrike.json`: Advanced tool configuration for HexStrike (attack patterns, timeout).
 - **log/**: Application logs.
 - **sessions/**: Saved conversation history.
-- **agents/**: Agent profiles.
+- **agents/**: Agent profiles (internal).
+
+#### 🛠️ Customization (New!)
+
+1. **Change AI Model**: Edit `ai_models.json` to switch between `openrouter` or `deepseek` and change model names.
+2. **Edit Persona**: Modify `config/agents/hexagent.json` to change how the agent behaves (System Prompt).
+3. **Tune Hacking Tools**: Modify `config/mcp/hexstrike.json` to adjust tool effectiveness scores and auto-optimization settings.
 
 ### Response Color Coding
 
@@ -272,6 +285,7 @@ All application data is centralized in your home directory: `~/.hexagent-gui/`
    ```bash
    hexagent
    ```
+   > **Nota**: O script de instalação cria ou atualiza automaticamente seus modelos de configuração em `~/.hexagent-gui`.
 
 2. **Aguardar inicialização** (15-20 segundos):
    - Servidor Flask backend inicia
@@ -448,10 +462,22 @@ Iteração 3:
 
 Todos os dados da aplicação são centralizados no seu diretório home: `~/.hexagent-gui/`
 
-- **config/**: Arquivos de configuração (`config.json`).
+- **config/**: Arquivos de configuração.
+    - `config.json`: Configurações gerais (idioma, iterações, tema).
+    - `ai_models.json`: Configurações de provedor de IA (OpenRouter/DeepSeek) e URLs de API.
+    - **agents/**:
+        - `hexagent.json`: Define a Persona do Agente e o Prompt do Sistema.
+    - **mcp/**:
+        - `hexstrike.json`: Configuração avançada de ferramentas do HexStrike (padrões de ataque, timeout).
 - **log/**: Logs da aplicação.
 - **sessions/**: Histórico de conversas salvas.
-- **agents/**: Perfis de agentes.
+- **agents/**: Perfis de agentes (interno).
+
+#### 🛠️ Personalização (Novo!)
+
+1. **Alterar Modelo de IA**: Edite `ai_models.json` para alternar entre `openrouter` ou `deepseek` e alterar nomes de modelos.
+2. **Editar Persona**: Modifique `config/agents/hexagent.json` para mudar como o agente se comporta (System Prompt).
+3. **Ajustar Ferramentas Hacker**: Modifique `config/mcp/hexstrike.json` para ajustar pontuações de eficácia e otimização automática.
 
 ### Melhores Práticas
 
