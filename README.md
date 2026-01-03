@@ -94,6 +94,19 @@ chmod +x install.sh
 hexagent-gui
 ```
 
+### 📦 Running from Release (Compiled)
+
+If you downloaded a release version (e.g., from GitHub Releases), follow these steps:
+
+#### AppImage (Portable)
+1. Make executable: `chmod +x HexAgentGUI-*.AppImage`
+2. Run: `./HexAgentGUI-*.AppImage`
+
+#### Debian Package (.deb) (Ubuntu/Kali/Debian)
+1. Install: `sudo dpkg -i hexagent-gui_*.deb`
+2. Fix dependencies (if any): `sudo apt install -f`
+3. Run: `hexagent-gui`
+
 For detailed installation instructions, see [INSTALL.md](INSTALL.md).
 
 ### 📚 Documentation
@@ -191,6 +204,19 @@ chmod +x install.sh
 # Iniciar aplicação
 hexagent-gui
 ```
+
+### 📦 Executando a Partir do Release
+
+Se você baixou uma versão compilada (ex: do GitHub Releases), siga estes passos:
+
+#### AppImage (Portátil)
+1. Tornar executável: `chmod +x HexAgentGUI-*.AppImage`
+2. Executar: `./HexAgentGUI-*.AppImage`
+
+#### Pacote Debian (.deb) (Ubuntu/Kali/Debian)
+1. Instalar: `sudo dpkg -i hexagent-gui_*.deb`
+2. Corrigir dependências (se houver): `sudo apt install -f`
+3. Executar: `hexagent-gui`
 
 Para instruções detalhadas de instalação, veja [INSTALL.md](INSTALL.md).
 
