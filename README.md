@@ -2,7 +2,9 @@
 
 <div align="center">
 
-![HexAgentGUI Banner](docs/banner.png)
+<p align="center">
+  <img src="public/logo.png" width="300" />
+</p>
 
 **An Autonomous AI-Powered Cybersecurity Agent with GUI**
 
@@ -150,9 +152,11 @@ Iteration 3:
 
 To support continuous development:
 
-**Bitcoin Address**: `bc1qekh060wjfgspgt32vclmu3fcfx9fr7jh0akuwu`
-
 **Brazilian PIX**: `robertodantasdecastro@gmail.com`
+
+or
+
+**Bitcoin Address**: `bc1qekh060wjfgspgt32vclmu3fcfx9fr7jh0akuwu`
 
 <div align="center">
   <img src="public/qrcode.png" width="150" alt="Bitcoin QR Code" />

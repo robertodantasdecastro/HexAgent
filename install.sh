@@ -104,15 +104,21 @@ setup_user_config() {
     mkdir -p "$HOME/.hexagent-gui/sessions"
     mkdir -p "$HOME/.hexagent-gui/logs"
     
-    # Copy default config templates if they don't exist
-    for config_file in colors.json theme.json terminal.json preferences.json; do
-        if [ ! -f "$USER_CONFIG_DIR/$config_file" ]; then
-            if [ -f "config_templates/$config_file" ]; then
-                cp "config_templates/$config_file" "$USER_CONFIG_DIR/$config_file"
-                print_success "Created $config_file"
+    # Use Python script to intelligently merge configs
+    if [ -f "scripts/merge_configs.py" ]; then
+        python3 scripts/merge_configs.py config_templates "$USER_CONFIG_DIR"
+    else
+        # Fallback: simple copy if merge script not found
+        print_warning "Merge script not found, using simple copy"
+        for config_file in colors.json theme.json terminal.json preferences.json; do
+            if [ ! -f "$USER_CONFIG_DIR/$config_file" ]; then
+                if [ -f "config_templates/$config_file" ]; then
+                    cp "config_templates/$config_file" "$USER_CONFIG_DIR/$config_file"
+                    print_success "Created $config_file"
+                fi
             fi
-        fi
-    done
+        done
+    fi
     
     print_success "User configuration ready at $USER_CONFIG_DIR"
 }
