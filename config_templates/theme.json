@@ -1,0 +1,15 @@
+{
+  "name": "kali-dark",
+  "mode": "dark",
+  "description": "Default Kali Linux inspired dark theme",
+  "colors": {
+    "primary": "#00ff00",
+    "secondary": "#22d3ee",
+    "accent": "#eab308",
+    "danger": "#ef4444",
+    "success": "#22c55e",
+    "warning": "#eab308",
+    "info": "#06b6d4"
+  },
+  "syntax_highlighting": "prism-tomorrow"
+}

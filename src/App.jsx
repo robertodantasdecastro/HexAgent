@@ -304,7 +304,7 @@ const CodeBlock = ({ code, language, onExecute, colors }) => {
           className="w-full bg-[#1e1e1e] text-gray-200 p-3 font-mono text-sm focus:outline-none focus:ring-1 focus:ring-yellow-500"
           rows={editedCode.split('\n').length + 1}
         />
-      ) : language === 'bash' && code.includes('\u001b[') ? (
+      ) : language === 'bash' && (code.includes('\u001b[') || code.includes('\x1b[') || code.match(/\[\d+(?:;\d+)*m/)) ? (
         // Bash with ANSI codes - use AnsiRenderer
         <div className="p-3 overflow-x-auto bg-black font-mono text-sm text-gray-200">
           <AnsiRenderer text={code} customColors={colors?.custom_ansi} />
@@ -1095,7 +1095,7 @@ const App = () => {
           setBlocks(prev => [...prev, {
                 id: Date.now(),
                 type: 'agent',
-                content: `Command Executed / Comando Executado:\n\`\`\`bash\n${cmd}\n\`\`\`\n\n[Output]:\n${resultText}`,
+                content: `Command Executed / Comando Executado:\n\`\`\`bash\n${cmd}\n\`\`\`\n\n[Output]:\n\`\`\`bash\n${resultText}\n\`\`\``,
                 timestamp: new Date().toLocaleTimeString()
           }]);
       } catch (e) {

@@ -1,0 +1,10 @@
+{
+  "shell_type": "auto",
+  "shell_history_path": "",
+  "default_cwd": "~/.hexagent-gui",
+  "enable_colors": true,
+  "color_scheme": "kali-zsh",
+  "font_family": "monospace",
+  "font_size": 14,
+  "line_height": 1.5
+}

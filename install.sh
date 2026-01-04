@@ -95,6 +95,28 @@ configure_theme() {
     fi
 }
 
+setup_user_config() {
+    print_info "Setting up user configuration..."
+    
+    # Create config directories
+    USER_CONFIG_DIR="$HOME/.hexagent-gui/config"
+    mkdir -p "$USER_CONFIG_DIR"
+    mkdir -p "$HOME/.hexagent-gui/sessions"
+    mkdir -p "$HOME/.hexagent-gui/logs"
+    
+    # Copy default config templates if they don't exist
+    for config_file in colors.json theme.json terminal.json preferences.json; do
+        if [ ! -f "$USER_CONFIG_DIR/$config_file" ]; then
+            if [ -f "config_templates/$config_file" ]; then
+                cp "config_templates/$config_file" "$USER_CONFIG_DIR/$config_file"
+                print_success "Created $config_file"
+            fi
+        fi
+    done
+    
+    print_success "User configuration ready at $USER_CONFIG_DIR"
+}
+
 setup_configs() {
     export HEXAGENT_SETUP_ONLY=1
     python3 backend/server.py > /dev/null 2>&1 || true
@@ -176,6 +198,7 @@ main() {
     check_deps
     cleanup_old_versions # CRITICAL STEP
     configure_theme
+    setup_user_config
     setup_configs
     build_app
     create_links
