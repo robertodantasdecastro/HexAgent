@@ -1,0 +1,7 @@
+{
+  "flask_port": 5000,
+  "hexstrike_port": 8888,
+  "backend_host": "127.0.0.1",
+  "enable_cors": true,
+  "cors_origins": ["*"]
+}

@@ -1,0 +1,6 @@
+{
+  "openai": "",
+  "openrouter": "",
+  "custom_endpoint": "",
+  "note": "API keys are stored here but should be kept secret. Never commit this file with actual keys."
+}

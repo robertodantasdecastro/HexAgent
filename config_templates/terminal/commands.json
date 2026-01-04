@@ -1,0 +1,23 @@
+{
+  "system_commands": {
+    "/exit": {
+      "description": "Exit application",
+      "enabled": true
+    },
+    "/clean": {
+      "description": "Clear terminal",
+      "enabled": true
+    },
+    "/help": {
+      "description": "Show help",
+      "enabled": true
+    },
+    "/save": {
+      "description": "Save current session",
+      "enabled": true
+    }
+  },
+  "llm_prefix": "@",
+  "enable_at_commands": true,
+  "command_history_size": 100
+}

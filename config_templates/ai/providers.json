@@ -1,0 +1,17 @@
+{
+  "openai": {
+    "base_url": "https://api.openai.com/v1",
+    "enabled": true,
+    "name": "OpenAI"
+  },
+  "openrouter": {
+    "base_url": "https://openrouter.ai/api/v1",
+    "enabled": true,
+    "name": "OpenRouter"
+  },
+  "custom": {
+    "base_url": "",
+    "enabled": false,
+    "name": "Custom Endpoint"
+  }
+}

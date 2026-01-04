@@ -1,0 +1,6 @@
+{
+  "auto_execute": false,
+  "confirm_dangerous": true,
+  "dangerous_commands": ["rm -rf", "dd", "mkfs", "format"],
+  "enable_sudo": false
+}

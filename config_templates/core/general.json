@@ -1,0 +1,9 @@
+{
+  "app_name": "HexAgentGUI",
+  "version": "1.0.0",
+  "workspace_dir": "~/.hexagent-gui",
+  "auto_save": true,
+  "debug_mode": false,
+  "cleanup_on_exit": false,
+  "log_level": "INFO"
+}

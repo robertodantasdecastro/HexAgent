@@ -1,0 +1,6 @@
+{
+  "default_language": "pt",
+  "available_languages": ["pt", "en", "es"],
+  "auto_detect": true,
+  "fallback_language": "en"
+}
