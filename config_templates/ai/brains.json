@@ -1,0 +1,102 @@
+{
+  "cloud_engines": {
+    "openai": {
+      "name": "ChatGPT / OpenAI",
+      "enabled": true,
+      "models": ["gpt-4-turbo", "gpt-4", "gpt-4o", "gpt-3.5-turbo"],
+      "requires": ["api_key"],
+      "health_endpoint": "https://api.openai.com/v1/models",
+      "config_path": "core/api_keys.json",
+      "icon": "🤖"
+    },
+    "anthropic": {
+      "name": "Claude / Anthropic",
+      "enabled": true,
+      "models": ["claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307"],
+      "requires": ["api_key"],
+      "health_endpoint": "https://api.anthropic.com/v1/messages",
+      "config_path": "core/api_keys.json",
+      "icon": "🧠"
+    },
+    "deepseek": {
+      "name": "DeepSeek",
+      "enabled": true,
+      "models": ["deepseek-chat", "deepseek-coder"],
+      "requires": ["api_key"],
+      "health_endpoint": "https://api.deepseek.com/v1/models",
+      "config_path": "core/api_keys.json",
+      "icon": "🔬"
+    },
+    "openrouter": {
+      "name": "OpenRouter",
+      "enabled": true,
+      "models": [],
+      "requires": ["api_key"],
+      "health_endpoint": "https://openrouter.ai/api/v1/models",
+      "config_path": "core/api_keys.json",
+      "icon": "🌐"
+    }
+  },
+  "local_engines": {
+    "hexsecgpt": {
+      "name": "HexSecGPT",
+      "type": "local_service",
+      "enabled": true,
+      "requires": ["binary_path"],
+      "health_endpoint": "http://localhost:8889/health",
+      "config_path": "deps/hexsecgpt.json",
+      "install_url": "https://github.com/HexSecTeam/HexSecGPT",
+      "icon": "🛡️"
+    },
+    "hexstrike": {
+      "name": "HexStrike-AI",
+      "type": "local_service",
+      "enabled": true,
+      "requires": ["binary_path"],
+      "health_endpoint": "http://localhost:8888/health",
+      "config_path": "deps/hexstrike.json",
+      "auto_start": true,
+      "icon": "⚡"
+    },
+    "ollama": {
+      "name": "Ollama",
+      "type": "local_llm",
+      "enabled": true,
+      "requires": ["endpoint"],
+      "health_endpoint": "http://localhost:11434/api/tags",
+      "config_path": "ai/providers.json",
+      "install_url": "https://ollama.ai",
+      "icon": "🦙"
+    },
+    "lmstudio": {
+      "name": "LM Studio",
+      "type": "local_llm",
+      "enabled": true,
+      "requires": ["endpoint"],
+      "health_endpoint": "http://localhost:1234/v1/models",
+      "config_path": "ai/providers.json",
+      "install_url": "https://lmstudio.ai",
+      "icon": "🎬"
+    },
+    "local_model": {
+      "name": "Local Model Files",
+      "type": "local_file",
+      "enabled": true,
+      "requires": ["model_path"],
+      "supported_formats": [".gguf", ".bin", ".pth"],
+      "config_path": "ai/models.json",
+      "icon": "📁"
+    }
+  },
+  "mcp_servers": {
+    "hexstrike_mcp": {
+      "name": "HexStrike MCP Server",
+      "type": "mcp",
+      "enabled": false,
+      "requires": ["server_config"],
+      "health_endpoint": "http://localhost:3000/mcp",
+      "config_path": "mcp/hexstrike.json",
+      "icon": "🔌"
+    }
+  }
+}

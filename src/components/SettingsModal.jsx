@@ -1,5 +1,7 @@
 import { Activity, Cpu, Database, Globe, Key, Save, Server, Settings, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import Draggable from 'react-draggable';
+import { loadConfig } from '../utils/configManager';
 
 const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
   const [localConfig, setLocalConfig] = useState(config || {
@@ -124,12 +126,25 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-[#0a0a0a] border border-[#333] rounded-xl w-[600px] h-[500px] shadow-2xl flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 backdrop-blur-md" onClick={onClose}>
+      <Draggable handle=".drag-handle" bounds="parent" defaultPosition={{x: 0, y: 0}}>
+        <div 
+          className="bg-[#0a0a0a]/95 border border-[#00ff00] rounded-xl shadow-2xl flex flex-col overflow-hidden backdrop-blur-sm"
+          style={{
+            width: '75vw',
+            minWidth: '800px',
+            maxWidth: '95vw',
+            height: '80vh',
+            minHeight: '600px',
+            maxHeight: '95vh',
+            boxShadow: '0 0 30px rgba(0, 255, 0, 0.3)'
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
         
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#333] bg-[#111]">
-          <h2 className="text-lg font-bold text-[#00ff00] flex items-center gap-2 font-mono">
+        {/* Header - Draggable */}
+        <div className="drag-handle flex items-center justify-between px-6 py-4 border-b border-[#00ff00]/30 bg-gradient-to-r from-[#001a00] to-[#003300] cursor-move">
+          <h2 className="text-lg font-bold text-[#00ff00] flex items-center gap-2 font-mono select-none">
             <Settings size={20} /> {t ? t('settings.title') : 'CONFIGURATION'}
           </h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white transition hover:rotate-90">
@@ -702,6 +717,7 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
         </div>
 
       </div>
+      </Draggable>
     </div>
   );
 };
