@@ -30,17 +30,23 @@ const BrainSelector = ({ onBrainChange, currentBrain }) => {
 
   const loadBrainDefinitions = async () => {
     try {
+      // Try loading from backend first / Tentar carregar do backend primeiro
       const response = await fetch('http://localhost:5000/config/user/ai/brains');
       if (response.ok) {
         const data = await response.json();
         setBrains(data);
       } else {
-        // Fallback to template
-        const template = await import('../../../config_templates/ai/brains.json');
-        setBrains(template.default);
+        // Fallback to fetch from template file
+        const templateResponse = await fetch('/config_templates/ai/brains.json');
+        if (templateResponse.ok) {
+          const templateData = await templateResponse.json();
+          setBrains(templateData);
+        }
       }
     } catch (error) {
       console.error('[BrainSelector] Failed to load brains:', error);
+      // Set empty brains to prevent infinite loading
+      setBrains({ cloud_engines: {}, local_engines: {} });
     }
   };
 
