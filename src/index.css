@@ -11,6 +11,7 @@ body {
   background-color: var(--hex-bg);
   color: white;
   font-family: 'Courier New', Courier, monospace;
+  font-size: 14px; /* Base font size reduced from 16px */
 }
 
 .drag-region {
@@ -20,3 +21,72 @@ body {
 button, input {
   -webkit-app-region: no-drag;
 }
+
+/* UX Improvements - Font Size Reductions */
+.message-content {
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.code-block {
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.terminal-output {
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+/* Thinking Mode - Discrete Styling */
+.thinking-block {
+  background: rgba(80, 80, 80, 0.05);
+  border: 1px solid rgba(80, 80, 80, 0.2);
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin: 6px 0;
+  font-size: 0.75rem;
+}
+
+.thinking-details summary {
+  list-style: none;
+  font-size: 0.7rem;
+  color: #666;
+  cursor: pointer;
+  transition: color 0.2s;
+  user-select: none;
+}
+
+.thinking-details summary:hover {
+  color: #888;
+}
+
+.thinking-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.thinking-details[open] summary {
+  margin-bottom: 8px;
+  color: #888;
+}
+
+.thinking-content {
+  font-size: 0.7rem;
+  color: #777;
+  padding-left: 1rem;
+  border-left: 2px solid #333;
+  margin-top: 8px;
+  line-height: 1.4;
+}
+
+/* Iteration indicator - smaller */
+.iteration-marker {
+  font-size: 0.65rem;
+  opacity: 0.6;
+}
+
+/* Headers - slightly smaller */
+h1 { font-size: 1.75rem; }
+h2 { font-size: 1.5rem; }
+h3 { font-size: 1.25rem; }
+h4 { font-size: 1.1rem; }
