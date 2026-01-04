@@ -4,5 +4,8 @@
   "auto_initialize": true,
   "use_web_search": false,
   "persona": "HexAgent",
-  "language": "auto"
+  "language": "auto",
+  "first_run_complete": false,
+  "show_thinking": true,
+  "thinking_collapsed": true
 }

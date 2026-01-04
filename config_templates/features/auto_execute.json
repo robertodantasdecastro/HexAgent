@@ -1,6 +1,8 @@
 {
-  "auto_execute": false,
-  "confirm_dangerous": true,
-  "dangerous_commands": ["rm -rf", "dd", "mkfs", "format"],
-  "enable_sudo": false
+  "enabled": false,
+  "safe_commands_only": true,
+  "require_confirmation": true,
+  "whitelist": [
+    "ls", "pwd", "echo", "cat", "head", "tail", "grep", "find"
+  ]
 }
