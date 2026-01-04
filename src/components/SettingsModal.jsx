@@ -71,7 +71,24 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
     }));
   };
 
+  const updateSystem = (field, value) => {
+    setLocalConfig(prev => ({
+        ...prev,
+        system: { ...prev.system, [field]: value }
+    }));
+  }
+
   if (!isOpen) return null;
+
+  console.log('[SettingsModal] Rendering with isOpen:', isOpen, 'config:', config);
+
+  // Ensure localConfig has values even if config is null
+  const activeConfig = localConfig || {
+    ai: { language: 'auto', max_iterations: 10, temperature: 0.7, model: 'openai/gpt-4-turbo', api_key: '', api_url: '', web_search_enabled: false, unlimited_iterations: false },
+    services: { flask_port: 5000, hexstrike_port: 8888, backend_host: '127.0.0.1' },
+    system: { theme: 'dark' },
+    ui: { custom_colors: {} }
+  };
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 backdrop-blur-sm" onClick={onClose}>
@@ -213,7 +230,7 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
                                     onClick={() => updateAI('unlimited_iterations', !localConfig.ai?.unlimited_iterations)}
                                     className={`w-8 h-4 rounded-full relative transition-colors ${localConfig.ai?.unlimited_iterations ? 'bg-[#00ff00]' : 'bg-gray-700'}`}
                                 >
-                                    <div className={`w-3 h-3 bg-white rounded-full absolute top-0.5 transition-all ${localConfig.ai?.unlimited_iterations ? 'left-4.5' : 'left-0.5'}`} />
+                                    <div className={`w-3 h-3 bg-white rounded-full absolute top-0.5 left-0.5 transition-transform ${localConfig.ai?.unlimited_iterations ? 'translate-x-4' : 'translate-x-0'}`} />
                                 </button>
                             </div>
                          </div>
@@ -241,7 +258,7 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
                             }}
                             className={`w-10 h-5 rounded-full relative transition-colors ${localConfig.ai?.web_search_enabled ? 'bg-blue-500' : 'bg-gray-700'}`}
                         >
-                            <div className={`w-4 h-4 bg-white rounded-full absolute top-0.5 transition-all ${localConfig.ai?.web_search_enabled ? 'left-5.5' : 'left-0.5'}`} />
+                            <div className={`w-4 h-4 bg-white rounded-full absolute top-0.5 left-0.5 transition-transform ${localConfig.ai?.web_search_enabled ? 'translate-x-5' : 'translate-x-0'}`} />
                         </button>
                     </div>
                 </div>
@@ -327,6 +344,35 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
                                     onChange={(e) => updateService('hexstrike_port', parseInt(e.target.value))}
                                     className="w-full bg-black border border-[#333] rounded px-3 py-2 text-white text-sm focus:border-cyan-500 focus:outline-none font-mono"
                                 />
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 className="text-xs font-bold text-gray-500 mb-3 uppercase tracking-wider border-b border-[#333] pb-1">Shell History</h3>
+                        <div className="space-y-3">
+                            <div>
+                                <label className="block text-xs text-gray-400 mb-1.5 font-mono">Shell Type</label>
+                                <select
+                                    value={localConfig.system?.shell_type || 'auto'}
+                                    onChange={(e) => updateSystem('shell_type', e.target.value)}
+                                    className="w-full bg-black border border-[#333] rounded px-3 py-2 text-white text-sm focus:border-cyan-500 focus:outline-none font-mono"
+                                >
+                                    <option value="auto">Auto Detect</option>
+                                    <option value="zsh">ZSH</option>
+                                    <option value="bash">Bash</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs text-gray-400 mb-1.5 font-mono">History File Path</label>
+                                <input
+                                    type="text"
+                                    value={localConfig.system?.shell_history_path || ''}
+                                    onChange={(e) => updateSystem('shell_history_path', e.target.value)}
+                                    placeholder="~/.zsh_history or ~/.bash_history"
+                                    className="w-full bg-black border border-[#333] rounded px-3 py-2 text-white text-sm focus:border-cyan-500 focus:outline-none font-mono"
+                                />
+                                <p className="text-[10px] text-gray-600 mt-1">Leave empty for auto-detect</p>
                             </div>
                         </div>
                     </div>

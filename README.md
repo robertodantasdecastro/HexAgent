@@ -270,99 +270,72 @@ Licença MIT - Veja [LICENSE](LICENSE) para detalhes.
 
 ---
 
-## Português
+##  Troubleshooting / Solução de Problemas
 
-### 🎯 O que é o HexAgentGUI?
+### Common Issues / Problemas Comuns
 
-HexAgentGUI é um **agente de IA autônomo especializado em cibersegurança** com interface gráfica moderna. Ele combina a inteligência do **HexSecGPT** (cérebro de IA) com o poder de execução do **HexStrike** (motor de execução de comandos) para criar um assistente de segurança verdadeiramente autônomo.
+#### 1. Application Won't Launch from Desktop / Aplicação Não Inicia do Desktop
 
-Diferente de chatbots simples, o HexAgentGUI **pensa, planeja e executa tarefas complexas de múltiplas etapas autonomamente**, analisando resultados e adaptando sua abordagem até o objetivo ser completo.
+**English:**
+- **Symptom**: Clicking desktop shortcut does nothing or shows error
+- **Cause**: Missing DISPLAY environment variable
+- **Solution**: Re-run `./install.sh` (latest version includes DISPLAY fix)
 
-### ✨ Recursos Principais
+**Português:**
+- **Sintoma**: Clicar no atalho da área de trabalho não faz nada ou mostra erro
+- **Causa**: Variável de ambiente DISPLAY ausente
+- **Solução**: Execute novamente `./install.sh` (versão mais recente inclui correção do DISPLAY)
 
-- 🤖 **Agente Verdadeiramente Autônomo**: Executa tarefas complexas com comandos interdependentes
-- 🔄 **Loop Iterativo com Feedback**: IA analisa resultados e decide próximos passos (até 10 iterações)
-- 🎨 **Interface Moderna Dark**: Interface inspirada em cyberpunk com respostas codificadas por cores
-- 🌐 **Integração com Busca Web**: Busca web opcional em tempo real para enriquecer conhecimento da IA
-- 🇧🇷 **Português e Inglês**: Suporte bilíngue com detecção automática
-- ⚡ **Streaming em Tempo Real**: Veja o pensamento da IA e execução de comandos em tempo real
-- 🛑 **Parar Geração**: Aborte respostas da IA instantaneamente com um clique
-- 📜 **Controle de Autoscroll**: Alterne o comportamento de rolagem automática
-- 🔧 **Diferenciação Visual**:
-  - Ciano: Explicações da IA
-  - Amarelo: Execução de comandos
-  - **Terminal**: Estilo shell realista (Verde sobre Preto)
+#### 2. Brain Init Failed Error / Erro de Inicialização do Cérebro
 
-### 🧬 Origem do Projeto
+**English:**
+- **Symptom**: Loading screen shows "Brain init failed"
+- **Cause**: Missing API key or HexSecGPT dependency issue
+- **Solution**: 
+  1. Click "Force Continue" to bypass (app works without brain init)
+  2. Configure API key in Settings
+  3. Check `/home/d4r13n/.gemini/antigravity/brain` for detailed error logs
 
-HexAgentGUI nasceu da integração de dois projetos poderosos:
+**Português:**
+- **Sintoma**: Tela de carregamento mostra "Falha na inicialização do cérebro"
+- **Causa**: Chave de API ausente ou problema de dependência do HexSecGPT
+- **Solução**:
+  1. Clique em "Forçar Continuar" para prosseguir (app funciona sem init do cérebro)
+  2. Configure a chave de API em Configurações
+  3. Verifique `/home/d4r13n/.gemini/antigravity/brain` para logs detalhados de erro
 
-1. **HexSecGPT**: Um assistente de IA especializado em cibersegurança, criado para fornecer orientação especializada em tarefas de segurança
-2. **HexStrike**: Um robusto motor de execução de comandos projetado para operações de segurança
+#### 3. Window Cannot Be Moved / Janela Não Pode Ser Movida
 
-A ideia surgiu durante sessões de desenvolvimento com o próprio HexSecGPT, onde a necessidade de uma **interface gráfica** e **capacidades de execução autônoma** ficou clara. Em vez de apenas sugerir comandos, por que não executá-los autonomamente e iterar até a tarefa estar completa?
+**English:**
+- **Symptom**: Can resize window but cannot drag it
+- **Cause**: Old version without drag-region fix
+- **Solution**: Update to latest version with `git pull && ./install.sh`
 
-### 🚀 Início Rápido
+**Português:**
+- **Sintoma**: Pode redimensionar a janela mas não pode arrastá-la
+- **Causa**: Versão antiga sem correção de drag-region
+- **Solução**: Atualize para a versão mais recente com `git pull && ./install.sh`
 
-```bash
-# Clonar repositório
-git clone https://github.com/robertodantasdecastro/HexAgent.git
-cd HexAgent/HexAgentGUI
+#### 4. Settings Modal Won't Open / Modal de Configurações Não Abre
 
-# Executar instalador automatizado
-chmod +x install.sh
-./install.sh
+**English:**
+- **Symptom**: Clicking settings icon does nothing
+- **Cause**: Config not loaded yet or null config state
+- **Solution**: Wait for app to fully initialize (green status indicators)
 
-# Iniciar aplicação
-hexagent-gui
-```
+**Português:**
+- **Sintoma**: Clicar no ícone de configurações não faz nada
+- **Causa**: Configuração ainda não carregada ou estado nulo
+- **Solução**: Aguarde a aplicação inicializar completamente (indicadores de status verdes)
 
-### 📦 Executando a Partir do Release
+### Getting Help / Obtendo Ajuda
 
-Se você baixou uma versão compilada (ex: do GitHub Releases), siga estes passos:
-
-#### AppImage (Portátil)
-1. Tornar executável: `chmod +x HexAgentGUI-*.AppImage`
-2. Executar: `./HexAgentGUI-*.AppImage`
-
-#### Pacote Debian (.deb) (Ubuntu/Kali/Debian)
-1. Instalar: `sudo dpkg -i hexagent-gui_*.deb`
-2. Corrigir dependências (se houver): `sudo apt install -f`
-3. Executar: `hexagent-gui`
-
-Para instruções detalhadas de instalação, veja [INSTALL.md](INSTALL.md).
-
-### 📚 Documentação
-
-- [Guia de Instalação](INSTALL.md) - Passos detalhados de instalação
-- [Manual do Usuário](USER_MANUAL.md) - Guia completo de uso
-- [Contribuindo](CONTRIBUTING.md) - Diretrizes para contribuição
-
-### 👤 Desenvolvedor
-
-**Roberto Dantas de Castro**
-- GitHub: [@robertodantasdecastro](https://github.com/robertodantasdecastro)
+**English:**
+- GitHub Issues: https://github.com/robertodantasdecastro/HexAgent/issues
 - Email: robertodantasdecastro@gmail.com
-- Projeto: [HexAgent](https://github.com/robertodantasdecastro/HexAgent)
+- Wiki: https://github.com/robertodantasdecastro/HexAgent/wiki
 
-### 💰 Suporte & Doação
-
-Para apoiar o desenvolvimento contínuo:
-
-**Bitcoin Address**: `bc1qekh060wjfgspgt32vclmu3fcfx9fr7jh0akuwu`
-
-**PIX Brasileiro**: `robertodantasdecastro@gmail.com`
-
-<div align="center">
-  <img src="public/qrcode.png" width="150" alt="Bitcoin QR Code" />
-</div>
-
-### 📄 Licença
-
-Licença MIT - Veja [LICENSE](LICENSE) para detalhes.
-
-### 🙏 Agradecimentos
-
-- HexSecGPT: Cérebro de IA para expertise em cibersegurança
-- HexStrike: Poderoso motor de execução de comandos
-- OpenRouter: Roteamento de modelos de IA
+**Português:**
+- Issues no GitHub: https://github.com/robertodantasdecastro/HexAgent/issues
+- Email: robertodantasdecastro@gmail.com
+- Wiki: https://github.com/robertodantasdecastro/HexAgent/wiki

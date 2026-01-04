@@ -1018,6 +1018,36 @@ def list_temp_files():
             
     return jsonify({"files": files, "count": len(files), "path": tmp_files_dir})
 
+@app.route('/history/shell', methods=['GET'])
+def get_shell_history():
+    """Get system shell history"""
+    home = os.path.expanduser("~")
+    shell = os.environ.get('SHELL', '/bin/bash')
+    
+    if 'zsh' in shell:
+        history_file = os.path.join(home, '.zsh_history')
+    else:
+        history_file = os.path.join(home, '.bash_history')
+    
+    commands = []
+    try:
+        if os.path.exists(history_file):
+            with open(history_file, 'r', encoding='utf-8', errors='ignore') as f:
+                for line in f:
+                    if line.startswith(':') and ';' in line:
+                        cmd = line.split(';', 1)[1].strip()
+                    else:
+                        cmd = line.strip()
+                    
+                    if cmd and not cmd.startswith('#'):
+                        commands.append(cmd)
+            
+            return jsonify({"success": True, "commands": commands[-100:], "history_file": history_file, "shell": shell})
+        else:
+            return jsonify({"success": False, "error": "History file not found"})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
 if __name__ == '__main__':
     # Check for setup-only mode
     if os.environ.get('HEXAGENT_SETUP_ONLY'):

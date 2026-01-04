@@ -16,6 +16,9 @@
   },
   "system": {
     "cleanup_on_exit": false,
-    "auto_save_session": true
+    "auto_save_session": true,
+    "shell_type": "auto",
+    "shell_history_path": "",
+    "terminal_theme": "kali-zsh"
   }
 }

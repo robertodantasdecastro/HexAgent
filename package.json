@@ -23,11 +23,12 @@
     "build:all": "vite build && electron-builder --linux --mac --win"
   },
   "dependencies": {
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.436.0",
+    "prismjs": "^1.30.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "clsx": "^2.1.1",
-    "tailwind-merge": "^2.5.2",
-    "lucide-react": "^0.436.0"
+    "tailwind-merge": "^2.5.2"
   },
   "devDependencies": {
     "@types/react": "^18.3.3",
@@ -68,17 +69,29 @@
       {
         "from": "../HexAgent",
         "to": "HexAgent",
-        "filter": ["!venv", "!__pycache__", "!.git"]
+        "filter": [
+          "!venv",
+          "!__pycache__",
+          "!.git"
+        ]
       },
       {
         "from": "../HexSecGPT-main",
         "to": "HexSecGPT-main",
-        "filter": ["!venv", "!__pycache__", "!.git"]
+        "filter": [
+          "!venv",
+          "!__pycache__",
+          "!.git"
+        ]
       },
       {
         "from": "../hexstrike-ai",
         "to": "hexstrike-ai",
-        "filter": ["!venv", "!__pycache__", "!.git"]
+        "filter": [
+          "!venv",
+          "!__pycache__",
+          "!.git"
+        ]
       },
       {
         "from": ".HexSec",
@@ -89,11 +102,17 @@
       "target": [
         {
           "target": "AppImage",
-          "arch": ["x64", "arm64"]
+          "arch": [
+            "x64",
+            "arm64"
+          ]
         },
         {
           "target": "deb",
-          "arch": ["x64", "arm64"]
+          "arch": [
+            "x64",
+            "arm64"
+          ]
         }
       ],
       "category": "Security",
@@ -103,11 +122,17 @@
       "target": [
         {
           "target": "dmg",
-          "arch": ["x64", "arm64"]
+          "arch": [
+            "x64",
+            "arm64"
+          ]
         },
         {
           "target": "zip",
-          "arch": ["x64", "arm64"]
+          "arch": [
+            "x64",
+            "arm64"
+          ]
         }
       ],
       "category": "public.app-category.developer-tools"
@@ -116,11 +141,16 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64", "ia32"]
+          "arch": [
+            "x64",
+            "ia32"
+          ]
         },
         {
           "target": "portable",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ]
     }

@@ -1,4 +1,10 @@
-import { AlertTriangle, ArrowDown, CheckCircle, Code, Copy, Cpu, FileText, Hash, HelpCircle, History, Infinity, Pause, Play, Power, Send, Settings, Square, Terminal } from 'lucide-react';
+import { AlertTriangle, ArrowDown, CheckCircle, Code, Copy, Cpu, Download, Edit, FileText, Hash, HelpCircle, History, Infinity, Pause, Play, Power, Send, Settings, Square, Terminal } from 'lucide-react';
+import Prism from 'prismjs';
+import 'prismjs/components/prism-bash';
+import 'prismjs/components/prism-javascript';
+import 'prismjs/components/prism-json';
+import 'prismjs/components/prism-python';
+import 'prismjs/themes/prism-tomorrow.css';
 import { useEffect, useRef, useState } from 'react';
 import HelpModal from './components/HelpModal';
 import LoadingScreen from './components/LoadingScreen';
@@ -10,33 +16,40 @@ import { useTranslation } from './hooks/useTranslation';
 // Parse agent content into formatted sections / Analisa conteúdo do agente em seções formatadas
 const parseAgentContent = (content) => {
   const sections = [];
-  const lines = content.split('\n');
-  let currentSection = { type: 'ai', content: '' };
   
-  for (const line of lines) {
-    if (line.startsWith('🔧 Executando:')) {
-      // Save current section if it has content
-      if (currentSection.content.trim()) {
-        sections.push(currentSection);
+  // First, extract code blocks with regex
+  const codeBlockRegex = /```(\w+)?\n([\s\S]*?)\n```/g;
+  let lastIndex = 0;
+  let match;
+  
+  while ((match = codeBlockRegex.exec(content)) !== null) {
+    // Add text before code block as 'ai' section
+    if (match.index > lastIndex) {
+      const textBefore = content.substring(lastIndex, match.index).trim();
+      if (textBefore) {
+        sections.push({ type: 'ai', content: textBefore });
       }
-      // Start command section
-      currentSection = { type: 'command', content: line };
-    } else if (line.startsWith('Command Executed') || line.startsWith('Comando Executado')) {
-      // Save current section
-      if (currentSection.content.trim()) {
-        sections.push(currentSection);
-      }
-      // Start terminal output section
-      currentSection = { type: 'terminal', content: line };
-    } else {
-      // Append to current section
-      currentSection.content += (currentSection.content ? '\n' : '') + line;
+    }
+    
+    // Add code block
+    const language = match[1] || 'plaintext';
+    const code = match[2];
+    sections.push({ type: 'code', content: code, language });
+    
+    lastIndex = match.index + match[0].length;
+  }
+  
+  // Add remaining text after last code block
+  if (lastIndex < content.length) {
+    const remaining = content.substring(lastIndex).trim();
+    if (remaining) {
+      sections.push({ type: 'ai', content: remaining });
     }
   }
   
-  // Add final section
-  if (currentSection.content.trim()) {
-    sections.push(currentSection);
+  // If no code blocks were found, return whole content as ai section
+  if (sections.length === 0) {
+    sections.push({ type: 'ai', content });
   }
   
   return sections;
@@ -189,6 +202,8 @@ const Block = ({ type, content, result, timestamp, onExecute, executed, onContin
                   </div>
                 </div>
               );
+            } else if (section.type === 'code') {
+              return <CodeBlock key={idx} code={section.content} language={section.language} onExecute={onExecute} colors={colors} />;
             }
             return null;
           })
@@ -200,6 +215,103 @@ const Block = ({ type, content, result, timestamp, onExecute, executed, onContin
            </div>
         )}
       </div>
+    </div>
+  );
+};
+
+// CodeBlock component with action buttons / Componente de bloco de código com botões de ação
+const CodeBlock = ({ code, language, onExecute, colors }) => {
+  const [copied, setCopied] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editedCode, setEditedCode] = useState(code);
+  const codeRef = useRef(null);
+
+  useEffect(() => {
+    if (codeRef.current && !editing) {
+      Prism.highlightElement(codeRef.current);
+    }
+  }, [code, language, editing]);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(editing ? editedCode : code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleSave = () => {
+    const extensions = { python: 'py', javascript: 'js', bash: 'sh', json: 'json', markdown: 'md' };
+    const ext = extensions[language] || 'txt';
+    const filename = prompt('Nome do arquivo:', `script.${ext}`);
+    if (filename) {
+      const blob = new Blob([editing ? editedCode : code], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    }
+  };
+
+  const handleExecute = () => {
+    if (onExecute) onExecute(editing ? editedCode : code, language);
+  };
+
+  const handleEdit = () => {
+    setEditing(!editing);
+    if (editing) {
+      // Save changes
+      // For now just toggle, could add save logic here
+    }
+  };
+
+  const isExecutable = ['bash', 'python', 'javascript', 'sh'].includes(language);
+
+  return (
+    <div className="my-2 rounded-lg bg-[#1e1e1e] border border-[#333] overflow-hidden">
+      {/* Action Bar */}
+      <div className="flex items-center justify-between px-3 py-1.5 bg-[#2d2d2d] border-b border-[#444]">
+        <span className="text-xs text-gray-400 font-mono">{language || 'plaintext'}</span>
+        <div className="flex items-center gap-1">
+          <button onClick={handleCopy} className="flex items-center gap-1 px-2 py-1 text-[10px] rounded hover:bg-[#3d3d3d] text-gray-400 hover:text-white transition">
+            {copied ? <CheckCircle size={12} /> : <Copy size={12} />}
+            {copied ? 'Copiado!' : 'Copiar'}
+          </button>
+          <button onClick={handleSave} className="flex items-center gap-1 px-2 py-1 text-[10px] rounded hover:bg-[#3d3d3d] text-gray-400 hover:text-white transition">
+            {saved ? <CheckCircle size={12} /> : <Download size={12} />}
+            {saved ? 'Salvo!' : 'Salvar'}
+          </button>
+          <button onClick={handleEdit} className={`flex items-center gap-1 px-2 py-1 text-[10px] rounded hover:bg-[#3d3d3d] transition ${editing ? 'text-yellow-400' : 'text-gray-400 hover:text-white'}`}>
+            <Edit size={12} />
+            {editing ? 'Fechar' : 'Editar'}
+          </button>
+          {isExecutable && onExecute && (
+            <button onClick={handleExecute} className="flex items-center gap-1 px-2 py-1 text-[10px] rounded hover:bg-[#3d3d3d] text-green-400 hover:text-green-300 transition">
+              <Play size={12} />
+              Executar
+            </button>
+          )}
+        </div>
+      </div>
+      {/* Code Content */}
+      {editing ? (
+        <textarea
+          value={editedCode}
+          onChange={(e) => setEditedCode(e.target.value)}
+          className="w-full bg-[#1e1e1e] text-gray-200 p-3 font-mono text-sm focus:outline-none focus:ring-1 focus:ring-yellow-500"
+          rows={editedCode.split('\n').length + 1}
+        />
+      ) : language === 'bash' && code.includes('\u001b[') ? (
+        // Bash with ANSI codes - use AnsiRenderer
+        <div className="p-3 overflow-x-auto bg-black font-mono text-sm text-gray-200">
+          <AnsiRenderer text={code} customColors={colors?.custom_ansi} />
+        </div>
+      ) : (
+        <pre className="p-3 overflow-x-auto"><code ref={codeRef} className={`language-${language || 'plaintext'}`}>{code}</code></pre>
+      )}
     </div>
   );
 };
@@ -450,14 +562,17 @@ const App = () => {
     };
   }, []);
 
-  // Fetch System History on Mount
+  // Fetch System Shell History on Mount / Carregar histórico do shell no início
   useEffect(() => {
-      fetch('http://localhost:5000/history/system')
+      fetch('http://localhost:5000/history/shell')
         .then(res => res.json())
         .then(data => {
-            if (data.history) setSystemHistory(data.history);
+            if (data.success && data.commands) {
+                setSystemHistory(data.commands);
+                console.log(`[Shell History] Loaded ${data.commands.length} commands from ${data.shell}`);
+            }
         })
-        .catch(err => console.error("Failed to fetch system history", err));
+        .catch(err => console.error("Failed to fetch shell history", err));
   }, []);
 
   // UseEffect for AutoScroll logic / Lógica de AutoScroll
@@ -799,13 +914,106 @@ const App = () => {
         // ... (rest of logic handles AI)
     }
 
-    // Command/Chat logic continues block...
-    // Actually, to keep it simple and preserve existing logic flow, we just let the existing extensive logic run
-    // but we fixed the Slash Command interception above.
     
-    // Re-use existing chat logic for now, but ensure 'clean' works
-    
-    // CHAT MODE LOGIC (Fallback)
+    // COMMAND MODE - Direct Execution / MODO COMANDO - Execução Direta
+    if (inputMode === 'command') {
+        // Check if it's an @llm request / Verificar se é solicitação @llm
+        if (cmd.trim().startsWith('@')) {
+            // Strip @ and send to AI / Remover @ e enviar para IA
+            const llmPrompt = cmd.trim().substring(1);
+            
+            try {
+                const response = await fetch('http://localhost:5000/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        message: llmPrompt, 
+                        language: 'auto',
+                        auto_execute: autoExecute 
+                    }),
+                    signal: abortControllerRef.current.signal
+                });
+                
+                if (!response.body) throw new Error('No body');
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let agentText = '';
+
+                setBlocks(prev => [...prev, {
+                    id: Date.now() + 1,
+                    type: 'agent',
+                    content: '',
+                    timestamp: new Date().toLocaleTimeString()
+                }]);
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split('\n');
+                    for (const line of lines) {
+                        if (!line.trim()) continue;
+                        try {
+                            const json = JSON.parse(line);
+                            if (json.chunk) {
+                                agentText += json.chunk;
+                                setBlocks(prev => {
+                                    const newBlocks = [...prev];
+                                    newBlocks[newBlocks.length - 1].content = agentText;
+                                    return newBlocks;
+                                });
+                            } else if (json.proposal) {
+                                setBlocks(prev => [...prev, {
+                                    id: Date.now() + 2,
+                                    type: 'proposal',
+                                    content: json.proposal.trim(),
+                                    timestamp: new Date().toLocaleTimeString(),
+                                    executed: false
+                                }]);
+                            }
+                        } catch (e) {}
+                    }
+                }
+            } catch(e) {
+                if(e.name !== 'AbortError') console.error(e);
+            } finally {
+                setLoading(false);
+            }
+            return;
+        }
+        
+        // Direct command execution / Execução direta de comando
+        try {
+            const response = await fetch('http://localhost:5000/execute', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ command: cmd })
+            });
+            const data = await response.json();
+            
+            // Show terminal-style output wrapped in bash code block
+            const output = data.result || data.error || "(No output)";
+            setBlocks(prev => [...prev, {
+                id: Date.now(),
+                type: 'agent',
+                content: `\`\`\`bash\n${output}\n\`\`\``,
+                timestamp: new Date().toLocaleTimeString()
+            }]);
+        } catch (e) {
+            console.error("Command execution failed", e);
+            setBlocks(prev => [...prev, {
+                id: Date.now(),
+                type: 'agent',
+                content: `❌ Error: ${e.message}`,
+                timestamp: new Date().toLocaleTimeString()
+            }]);
+        } finally {
+            setLoading(false);
+        }
+        return;
+    }
+
+    // PROMPT MODE LOGIC (Fallback for chat/AI)
     try {
         const response = await fetch('http://localhost:5000/chat', {
             method: 'POST',
@@ -813,13 +1021,12 @@ const App = () => {
             body: JSON.stringify({ 
                 message: cmd, 
                 language: 'pt',
-                web_search: false, // Params handled via config
+                web_search: false,
                 auto_execute: autoExecute 
             }),
             signal: abortControllerRef.current.signal
         });
         
-        // ... (existing stream handling)
         if (!response.body) throw new Error('No body');
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
@@ -1029,7 +1236,24 @@ const App = () => {
               </div>
 
               <div className="flex items-center gap-2 border-l border-[#333] pl-3 ml-2">
-                   <Settings size={14} className="text-gray-400 hover:text-white cursor-pointer" onClick={() => setShowSettings(true)} />
+                   <button
+                     onClick={() => {
+                       console.log('[DEBUG] Settings button clicked!');
+                       console.log('[DEBUG] Current showSettings:', showSettings);
+                       console.log('[DEBUG] Current config:', config);
+                       setShowSettings(prev => {
+                         console.log('[DEBUG] Setting showSettings from', prev, 'to true');
+                         return true;
+                       });
+                     }}
+                     className="p-0 bg-transparent border-0 cursor-pointer flex items-center"
+                     title="Settings / Configurações"
+                   >
+                     <Settings 
+                       size={14} 
+                       className="text-gray-400 hover:text-white transition-colors" 
+                     />
+                   </button>
                    <Power size={14} className="text-red-500 hover:text-red-400 cursor-pointer" onClick={() => setShowShutdown(true)} title="Shutdown and Kill All Services" />
               </div>
           </div>
@@ -1145,9 +1369,13 @@ const App = () => {
       </div>
       
       {/* Modals */}
+      {console.log('[DEBUG] About to render SettingsModal, showSettings=', showSettings, 'config=', config)}
       <SettingsModal
         isOpen={showSettings}
-        onClose={() => setShowSettings(false)}
+        onClose={() => {
+          console.log('[DEBUG] SettingsModal onClose called');
+          setShowSettings(false);
+        }}
         config={config}
         onSave={saveConfig}
         t={t}
