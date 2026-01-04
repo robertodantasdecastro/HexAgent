@@ -655,7 +655,10 @@ def validate_config():
 
 @app.route('/config/backup/list', methods=['GET'])
 def list_backups():
-    """List all available config backups"""
+    """
+    List all available config backups
+    Lista todos os backups de configuração disponíveis
+    """
     try:
         backups = []
         backup_parent = os.path.join(home_dir, ".hexagent-gui")
@@ -670,6 +673,137 @@ def list_backups():
         
         backups.sort(key=lambda x: x['timestamp'], reverse=True)
         return jsonify({"backups": backups})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/config/merge', methods=['POST'])
+def merge_configs():
+    """
+    Deep merge new config data with existing user config
+    Merge profundo de novos dados de config com config existente do usuário
+    
+    Expects JSON: { "type": "ai/models", "data": {...} }
+    """
+    try:
+        req_data = request.json
+        config_type = req_data.get('type')
+        new_data = req_data.get('data')
+        
+        if not config_type or not new_data:
+            return jsonify({"success": False, "error": "Missing 'type' or 'data'"}), 400
+        
+        user_config_dir = os.path.join(home_dir, ".hexagent-gui", "config")
+        config_file = os.path.join(user_config_dir, f"{config_type}.json")
+        
+        # Deep merge function / Função de merge profundo
+        def deep_merge(base, updates):
+            """Recursively merge updates into base"""
+            if isinstance(base, dict) and isinstance(updates, dict):
+                for key, value in updates.items():
+                    if key in base and isinstance(base[key], dict) and isinstance(value, dict):
+                        base[key] = deep_merge(base[key], value)
+                    else:
+                        base[key] = value
+            return base
+        
+        # Load existing config / Carregar config existente
+        if os.path.exists(config_file):
+            with open(config_file, 'r') as f:
+                existing_data = json.load(f)
+        else:
+            existing_data = {}
+        
+        # Merge / Mesclar
+        merged = deep_merge(existing_data.copy(), new_data)
+        
+        # Save / Salvar
+        os.makedirs(os.path.dirname(config_file), exist_ok=True)
+        with open(config_file, 'w') as f:
+            json.dump(merged, f, indent=2)
+        
+        return jsonify({"success": True, "merged": merged, "path": config_file})
+        
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/config/restore/<timestamp>', methods=['POST'])
+def restore_backup(timestamp):
+    """
+    Restore configuration from a specific backup
+    Restaurar configuração de um backup específico
+    
+    Creates backup of current config before restoring
+    Cria backup da config atual antes de restaurar
+    """
+    try:
+        import shutil
+        from datetime import datetime
+        
+        backup_dir = os.path.join(home_dir, ".hexagent-gui", f"config.backup.{timestamp}")
+        current_config_dir = os.path.join(home_dir, ".hexagent-gui", "config")
+        
+        if not os.path.exists(backup_dir):
+            return jsonify({"success": False, "error": f"Backup {timestamp} not found"}), 404
+        
+        # Create backup of current config first / Criar backup da config atual primeiro
+        new_backup_timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        new_backup_dir = os.path.join(home_dir, ".hexagent-gui", f"config.backup.{new_backup_timestamp}")
+        
+        if os.path.exists(current_config_dir):
+            shutil.copytree(current_config_dir, new_backup_dir)
+        
+        # Remove current config / Remover config atual
+        if os.path.exists(current_config_dir):
+            shutil.rmtree(current_config_dir)
+        
+        # Restore from backup / Restaurar do backup
+        shutil.copytree(backup_dir, current_config_dir)
+        
+        return jsonify({
+            "success": True,
+            "restored_from": timestamp,
+            "backup_created": new_backup_timestamp,
+            "message": "Config restored successfully. Previous config backed up."
+        })
+        
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/config/tree', methods=['GET'])
+def config_tree():
+    """
+    Get complete config tree structure
+    Obter estrutura completa da árvore de configs
+    
+    Returns all configs in hierarchical format
+    """
+    try:
+        from pathlib import Path
+        
+        user_config_dir = Path(home_dir) / ".hexagent-gui" / "config"
+        tree = {}
+        
+        if user_config_dir.exists():
+            for json_file in user_config_dir.rglob('*.json'):
+                relative_path = json_file.relative_to(user_config_dir)
+                parts = relative_path.parts
+                
+                # Build nested dict / Construir dict aninhado
+                current = tree
+                for part in parts[:-1]:  # All but filename
+                    if part not in current:
+                        current[part] = {}
+                    current = current[part]
+                
+                # Load file content / Carregar conteúdo do arquivo
+                try:
+                    with open(json_file) as f:
+                        current[parts[-1].replace('.json', '')] = json.load(f)
+                except:
+                    current[parts[-1].replace('.json', '')] = {"error": "Failed to load"}
+        
+        return jsonify({"tree": tree, "path": str(user_config_dir)})
+        
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
