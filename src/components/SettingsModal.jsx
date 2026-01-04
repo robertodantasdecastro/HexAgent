@@ -26,7 +26,7 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
     }
   });
 
-  const [activeTab, setActiveTab] = useState('brain'); // brain, services, appearance, system
+  const [activeTab, setActiveTab] = useState('general'); // general, api, models, terminal, appearance, features, brain, services, system
 
   useEffect(() => {
     if (config) {
@@ -105,28 +105,46 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-[#333] bg-[#0f0f0f]">
+        <div className="flex border-b border-[#333] bg-[#0f0f0f] overflow-x-auto">
+            <button 
+                onClick={() => setActiveTab('general')}
+                className={`flex-1 py-3 px-2 text-xs font-mono font-bold flex items-center justify-center gap-2 border-b-2 transition-colors ${activeTab === 'general' ? 'border-blue-500 text-blue-400 bg-blue-500/5' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
+            >
+                <Settings size={14} /> GENERAL
+            </button>
+            <button 
+                onClick={() => setActiveTab('api')}
+                className={`flex-1 py-3 px-2 text-xs font-mono font-bold flex items-center justify-center gap-2 border-b-2 transition-colors ${activeTab === 'api' ? 'border-red-500 text-red-400 bg-red-500/5' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
+            >
+                <Key size={14} /> API KEYS
+            </button>
+            <button 
+                onClick={() => setActiveTab('models')}
+                className={`flex-1 py-3 px-2 text-xs font-mono font-bold flex items-center justify-center gap-2 border-b-2 transition-colors ${activeTab === 'models' ? 'border-pink-500 text-pink-400 bg-pink-500/5' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
+            >
+                <Activity size={14} /> MODELS
+            </button>
             <button 
                 onClick={() => setActiveTab('brain')}
-                className={`flex-1 py-3 text-xs font-mono font-bold flex items-center justify-center gap-2 border-b-2 transition-colors ${activeTab === 'brain' ? 'border-[#00ff00] text-[#00ff00] bg-[#00ff00]/5' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
+                className={`flex-1 py-3 px-2 text-xs font-mono font-bold flex items-center justify-center gap-2 border-b-2 transition-colors ${activeTab === 'brain' ? 'border-[#00ff00] text-[#00ff00] bg-[#00ff00]/5' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
             >
                 <Cpu size={14} /> {t ? t('settings.tab_brain') : 'BRAIN'}
             </button>
             <button 
                 onClick={() => setActiveTab('services')}
-                className={`flex-1 py-3 text-xs font-mono font-bold flex items-center justify-center gap-2 border-b-2 transition-colors ${activeTab === 'services' ? 'border-cyan-500 text-cyan-400 bg-cyan-500/5' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
+                className={`flex-1 py-3 px-2 text-xs font-mono font-bold flex items-center justify-center gap-2 border-b-2 transition-colors ${activeTab === 'services' ? 'border-cyan-500 text-cyan-400 bg-cyan-500/5' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
             >
                 <Server size={14} /> SERVICES
             </button>
             <button 
                 onClick={() => setActiveTab('appearance')}
-                className={`flex-1 py-3 text-xs font-mono font-bold flex items-center justify-center gap-2 border-b-2 transition-colors ${activeTab === 'appearance' ? 'border-purple-500 text-purple-400 bg-purple-500/5' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
+                className={`flex-1 py-3 px-2 text-xs font-mono font-bold flex items-center justify-center gap-2 border-b-2 transition-colors ${activeTab === 'appearance' ? 'border-purple-500 text-purple-400 bg-purple-500/5' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
             >
                 <Globe size={14} /> {t ? t('settings.tab_appearance') : 'APPEARANCE'}
             </button>
             <button 
                 onClick={() => setActiveTab('system')}
-                className={`flex-1 py-3 text-xs font-mono font-bold flex items-center justify-center gap-2 border-b-2 transition-colors ${activeTab === 'system' ? 'border-yellow-500 text-yellow-400 bg-yellow-500/5' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
+                className={`flex-1 py-3 px-2 text-xs font-mono font-bold flex items-center justify-center gap-2 border-b-2 transition-colors ${activeTab === 'system' ? 'border-yellow-500 text-yellow-400 bg-yellow-500/5' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
             >
                 <Database size={14} /> {t ? t('settings.tab_general') : 'SYSTEM'}
             </button>
@@ -134,6 +152,98 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            
+            {/* GENERAL TAB */}
+            {activeTab === 'general' && (
+                <div className="space-y-5 animate-in fade-in zoom-in-95 duration-200">
+                    <div className="text-sm text-gray-400 mb-4">
+                        Core application settings and preferences
+                    </div>
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-xs text-gray-400 mb-1.5 font-mono">Auto Save Sessions</label>
+                            <div className="flex items-center gap-2">
+                                <input type="checkbox" defaultChecked className="w-4 h-4"/>
+                                <span className="text-sm text-gray-300">Automatically save chat sessions</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-xs text-gray-400 mb-1.5 font-mono">Debug Mode</label>
+                            <div className="flex items-center gap-2">
+                                <input type="checkbox" className="w-4 h-4"/>
+                                <span className="text-sm text-gray-300">Enable debug logging</span>
+                            </div>
+                        </div>
+                        <div className="text-xs text-yellow-500 mt-4">
+                            💡 More general settings coming soon in ~/.hexagent-gui/config/
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* API KEYS TAB */}
+            {activeTab === 'api' && (
+                <div className="space-y-5 animate-in fade-in zoom-in-95 duration-200">
+                    <div className="text-sm text-gray-400 mb-4">
+                        Configure API keys for AI providers
+                    </div>
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-xs text-gray-400 mb-1.5 font-mono">OpenAI API Key</label>
+                            <input 
+                                type="password"
+                                placeholder="sk-..."
+                                className="w-full bg-black border border-[#333] rounded px-3 py-2 text-white text-sm focus:border-red-500 focus:outline-none"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs text-gray-400 mb-1.5 font-mono">OpenRouter API Key</label>
+                            <input 
+                                type="password"
+                                placeholder="sk-or-..."
+                                className="w-full bg-black border border-[#333] rounded px-3 py-2 text-white text-sm focus:border-red-500 focus:outline-none"
+                            />
+                        </div>
+                        <div className="text-xs text-blue-500 mt-4">
+                            🔒 Keys stored in ~/.hexagent-gui/config/core/api_keys.json
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* MODELS TAB */}
+            {activeTab === 'models' && (
+                <div className="space-y-5 animate-in fade-in zoom-in-95 duration-200">
+                    <div className="text-sm text-gray-400 mb-4">
+                        AI model selection and parameters
+                    </div>
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-xs text-gray-400 mb-1.5 font-mono">Default Model</label>
+                            <select className="w-full bg-black border border-[#333] rounded px-3 py-2 text-white text-sm focus:border-pink-500 focus:outline-none">
+                                <option>openai/gpt-4-turbo</option>
+                                <option>openai/gpt-4</option>
+                                <option>openai/gpt-3.5-turbo</option>
+                                <option>openrouter/anthropic/claude-3-sonnet</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-xs text-gray-400 mb-1.5 font-mono">Temperature: 0.7</label>
+                            <input 
+                                type="range" 
+                                min="0" 
+                                max="2" 
+                                step="0.1" 
+                                defaultValue="0.7"
+                                className="w-full"
+                            />
+                        </div>
+                        <div className="text-xs text-pink-500 mt-4">
+                            ⚙️ Config in ~/.hexagent-gui/config/ai/models.json
+                        </div>
+                    </div>
+                </div>
+            )}
             
             {/* BRAIN TAB */}
             {activeTab === 'brain' && (
