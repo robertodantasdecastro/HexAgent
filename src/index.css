@@ -36,6 +36,9 @@ button, input {
 .terminal-output {
   font-size: 0.8rem;
   line-height: 1.4;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: 'Courier New', Courier, monospace;
 }
 
 /* Thinking Mode - Discrete Styling */
