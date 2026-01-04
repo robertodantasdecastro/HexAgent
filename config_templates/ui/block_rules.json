@@ -1,0 +1,60 @@
+{
+  "block_types": {
+    "text": {
+      "actions": ["copy", "save"],
+      "syntax_highlight": false,
+      "style": "prose",
+      "description": "Natural language explanations"
+    },
+    "code": {
+      "actions": ["copy", "save", "edit"],
+      "syntax_highlight": true,
+      "style": "code",
+      "description": "Source code files"
+    },
+    "shell": {
+      "actions": ["copy", "execute", "save"],
+      "syntax_highlight": true,
+      "auto_execute_hides_button": true,
+      "style": "terminal",
+      "description": "Terminal commands and execution"
+    },
+    "thinking": {
+      "actions": [],
+      "syntax_highlight": false,
+      "style": "discrete",
+      "collapsed_by_default": true,
+      "opacity": 0.6,
+      "font_size": "0.7rem",
+      "description": "AI reasoning process"
+    },
+    "log": {
+      "actions": ["copy", "save"],
+      "syntax_highlight": false,
+      "style": "log",
+      "description": "Tool output and logs"
+    },
+    "readme": {
+      "actions": ["copy", "save"],
+      "syntax_highlight": true,
+      "style": "documentation",
+      "description": "Instructions and documentation"
+    },
+    "error": {
+      "actions": ["copy", "save"],
+      "syntax_highlight": false,
+      "style": "error",
+      "description": "Error messages"
+    }
+  },
+  "global_rules": {
+    "show_empty_actions": false,
+    "button_position": "top-right",
+    "enable_tooltips": true,
+    "max_buttons_per_block": 4
+  },
+  "auto_execute": {
+    "hide_button_when_enabled": true,
+    "show_confirmation": false
+  }
+}
