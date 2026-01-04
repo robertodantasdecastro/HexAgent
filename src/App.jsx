@@ -203,16 +203,37 @@ const Block = ({ type, content, result, timestamp, onExecute, executed, onContin
                 </div>
               );
             } else if (section.type === 'code') {
-              return <CodeBlock key={idx} code={section.content} language={section.language} onExecute={onExecute} colors={colors} />;
+              return (
+                <SmartBlock 
+                  key={idx}
+                  content={section.content}
+                  metadata={{ language: section.language, type: 'code' }}
+                  autoExecuteEnabled={false}
+                  onAction={(action, content, blockInfo) => {
+                    if (action === 'execute') {
+                      onExecute(content, blockInfo.language);
+                    } else if (action === 'save') {
+                      tempFileManager.trackFile(`script_${Date.now()}.${blockInfo.language}`, content);
+                    }
+                  }}
+                />
+              );
             }
             return null;
           })
         )}
         
         {result && (
-           <div className="mt-2 p-2 bg-black rounded border border-[#333] text-gray-300 whitespace-pre-wrap font-mono text-xs">
-             <AnsiRenderer text={result} customColors={colors?.custom_ansi} />
-           </div>
+          <SmartBlock 
+            content={result}
+            metadata={{ type: 'output', source: 'command_execution' }}
+            autoExecuteEnabled={false}
+            onAction={(action, content) => {
+              if (action === 'save') {
+                tempFileManager.trackFile(`output_${Date.now()}.log`, content);
+              }
+            }}
+          />
         )}
       </div>
     </div>
