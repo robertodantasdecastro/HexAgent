@@ -570,6 +570,48 @@ def config_endpoint():
         except Exception as e:
             return jsonify({"success": False, "error": str(e)}), 400
 
+@app.route('/config/user/<config_type>', methods=['GET', 'POST'])
+def user_config_endpoint(config_type):
+    """
+    Get or update user configuration files in ~/.hexagent-gui/config/
+    Supported types: colors, theme, terminal, preferences
+    """
+    valid_types = ['colors', 'theme', 'terminal', 'preferences']
+    if config_type not in valid_types:
+        return jsonify({"error": f"Invalid config type. Must be one of: {valid_types}"}), 400
+    
+    user_config_dir = os.path.join(home_dir, ".hexagent-gui", "config")
+    config_file = os.path.join(user_config_dir, f"{config_type}.json")
+    
+    if request.method == 'GET':
+        # Return user config if exists, otherwise return template
+        if os.path.exists(config_file):
+            try:
+                with open(config_file, 'r') as f:
+                    user_cfg = json.load(f)
+                return jsonify(user_cfg)
+            except Exception as e:
+                return jsonify({"error": f"Failed to load {config_type}: {str(e)}"}), 500
+        else:
+            # Return default/template
+            return jsonify({"error": "Config file not found", "suggestion": "Run install.sh to create user configs"}), 404
+    
+    elif request.method == 'POST':
+        # Save user config
+        try:
+            new_cfg = request.json
+            
+            # Ensure directory exists
+            os.makedirs(user_config_dir, exist_ok=True)
+            
+            # Save to file
+            with open(config_file, 'w') as f:
+                json.dump(new_cfg, f, indent=2)
+            
+            return jsonify({"success": True, "config": new_cfg, "path": config_file})
+        except Exception as e:
+            return jsonify({"error": f"Failed to save {config_type}: {str(e)}"}), 500
+
 @app.route('/chat', methods=['POST'])
 def chat():
     """
