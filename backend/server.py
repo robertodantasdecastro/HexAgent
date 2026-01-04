@@ -574,11 +574,34 @@ def config_endpoint():
 def user_config_endpoint(config_type):
     """
     Get or update user configuration files in ~/.hexagent-gui/config/
-    Supported types: colors, theme, terminal, preferences
+    Supported types: colors, theme, terminal, preferences, and all subdirectories
+    
+    Paths:
+    - colors, theme → ui/
+    - terminal, preferences → root level (legacy) or subdirs
+    - core/general, core/api_keys, core/servers
+    - ai/models, ai/providers, ai/brain
+    - terminal/commands, terminal/shell, terminal/history
+    - deps/hexstrike, deps/hexsecgpt
+    - features/auto_execute, features/iterations, features/web_search, features/sessions
+    - preferences/user, preferences/shortcuts, preferences/language
+    - ui/layout, ui/animations
     """
-    valid_types = ['colors', 'theme', 'terminal', 'preferences']
-    if config_type not in valid_types:
-        return jsonify({"error": f"Invalid config type. Must be one of: {valid_types}"}), 400
+    # Support both flat and hierarchical config types
+    # Examples: 'colors', 'ai/models', 'core/general'
+    valid_paths = [
+        'colors', 'theme', 'terminal', 'preferences',  # Legacy flat
+        'core/general', 'core/api_keys', 'core/servers',
+        'ai/models', 'ai/providers', 'ai/brain',
+        'terminal/commands', 'terminal/shell', 'terminal/history',
+        'deps/hexstrike', 'deps/hexsecgpt',
+        'features/auto_execute', 'features/iterations', 'features/web_search', 'features/sessions',
+        'preferences/user', 'preferences/shortcuts', 'preferences/language',
+        'ui/layout', 'ui/animations', 'ui/colors', 'ui/theme'
+    ]
+    
+    if config_type not in valid_paths:
+        return jsonify({"error": f"Invalid config type. Must be one of: {valid_paths[:10]}..."}), 400
     
     user_config_dir = os.path.join(home_dir, ".hexagent-gui", "config")
     config_file = os.path.join(user_config_dir, f"{config_type}.json")
@@ -611,6 +634,44 @@ def user_config_endpoint(config_type):
             return jsonify({"success": True, "config": new_cfg, "path": config_file})
         except Exception as e:
             return jsonify({"error": f"Failed to save {config_type}: {str(e)}"}), 500
+
+@app.route('/config/validate', methods=['POST'])
+def validate_config():
+    """Validate configuration data"""
+    try:
+        req_data = request.json
+        config_type = req_data.get('type')
+        config_data = req_data.get('data')
+        
+        if not config_type or not config_data:
+            return jsonify({"valid": False, "error": "Missing 'type' or 'data'"}), 400
+        
+        if not isinstance(config_data, dict):
+            return jsonify({"valid": False, "error": "Config data must be a JSON object"}), 400
+        
+        return jsonify({"valid": True, "type": config_type})
+    except Exception as e:
+        return jsonify({"valid": False, "error": str(e)}), 500
+
+@app.route('/config/backup/list', methods=['GET'])
+def list_backups():
+    """List all available config backups"""
+    try:
+        backups = []
+        backup_parent = os.path.join(home_dir, ".hexagent-gui")
+        
+        if os.path.exists(backup_parent):
+            for item in os.listdir(backup_parent):
+                if item.startswith("config.backup."):
+                    backups.append({
+                        "timestamp": item.replace("config.backup.", ""),
+                        "path": os.path.join(backup_parent, item)
+                    })
+        
+        backups.sort(key=lambda x: x['timestamp'], reverse=True)
+        return jsonify({"backups": backups})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/chat', methods=['POST'])
 def chat():

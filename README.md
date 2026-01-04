@@ -178,7 +178,7 @@ MIT License - See [LICENSE](LICENSE) for details.
 
 ### 🎯 O que é o HexAgentGUI?
 <div align="center">
-  <img src="public/logo.png" width="100" />
+  <img src="public/logo.png" width="300" />
 </div>
 
 HexAgentGUI é um **agente de IA autônomo especializado em cibersegurança** com interface gráfica moderna. Ele combina a inteligência do **HexSecGPT** (cérebro de IA) com o poder de execução do **HexStrike** (motor de execução de comandos) para criar um assistente de segurança verdadeiramente autônomo.
@@ -255,6 +255,8 @@ Para instruções detalhadas de instalação, veja [INSTALL.md](INSTALL.md).
 ### 💰 Suporte & Doação
 
 Para apoiar o desenvolvimento contínuo:
+
+**PIX email**: `robertodantasdecastro@gmail.com`
 
 **Bitcoin Address**: `bc1qekh060wjfgspgt32vclmu3fcfx9fr7jh0akuwu`
 
