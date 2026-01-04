@@ -155,7 +155,7 @@ Version=1.0
 Type=Application
 Name=HexAgentGUI
 Comment=Autonomous AI Security Agent
-Exec=$INSTALL_DIR/hexagent-gui
+Exec=env DISPLAY=:0 $INSTALL_DIR/hexagent-gui
 Icon=$ICON
 Terminal=false
 Categories=Development;Security;

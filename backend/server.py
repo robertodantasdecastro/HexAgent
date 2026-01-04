@@ -495,11 +495,12 @@ def init_agent():
         api_key = os.getenv(Config.API_KEY_NAME)
     
     if not api_key:
-        return jsonify({"success": False, "error": "API Key not found. Please configure it in Settings."}), 400
+        return jsonify({"success": False, "error": "API Key not found. Please configure it in Settings."}), 200
         
     try:
         if not core:
-            return jsonify({"success": False, "error": f"Agent Core not loaded: {init_error}"}), 400
+            return jsonify({"success": False, "error": f"Agent Core not loaded: {init_error}"}), 200
+
 
         if core.initialize(api_key):
             # Auto-start HexStrike logic
@@ -529,10 +530,19 @@ def init_agent():
 
             return jsonify({"success": True, "message": message})
         else:
-            return jsonify({"success": False, "error": "Failed to initialize Agent Core (Check API Key / Logs)"}), 400
+            return jsonify({"success": False, "error": "Failed to initialize Agent Core (Check API Key / Logs)"}), 200
     except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
         print(f"[Init] Exception: {e}")
-        return jsonify({"success": False, "error": f"Brain Init Exception: {str(e)}"}), 400
+        print(f"[Init] Traceback:\n{error_trace}")
+        
+        # Return detailed error for debugging
+        return jsonify({
+            "success": False, 
+            "error": f"Brain Init Exception: {str(e)}",
+            "details": error_trace if app.debug else "Enable debug mode for details"
+        }), 200  # Changed to 200 so frontend can parse JSON properly
 
 @app.route('/config', methods=['GET', 'POST'])
 def config_endpoint():
