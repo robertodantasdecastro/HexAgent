@@ -26,7 +26,12 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
     }
   });
 
-  const [activeTab, setActiveTab] = useState('general'); // general, api, models, terminal, appearance, features, brain, services, system
+  const [activeTab, setActiveTab] = useState('general'); // general, api, models, terminal, features, brain, services, appearance, system
+
+  // Loading/saving state / Estado de carregamento/salvamento
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [message, setMessage] = useState({ type: '', text: '' }); // success, error
 
   useEffect(() => {
     if (config) {
@@ -41,6 +46,34 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
         }));
     }
   }, [config]);
+
+  // Load configs from backend / Carregar configs do backend
+  useEffect(() => {
+    const loadAllConfigs = async () => {
+      setIsLoading(true);
+      try {
+        // Load basic configs needed for existing functionality
+        const generalConfig = await loadConfig('core/general');
+        const modelsConfig = await loadConfig('ai/models');
+        
+        // Update state if configs loaded
+        if (generalConfig) {
+          console.log('[Settings] Loaded general config:', generalConfig);
+        }
+        if (modelsConfig) {
+          console.log('[Settings] Loaded models config:', modelsConfig);
+        }
+      } catch (error) {
+        console.error('[Settings] Failed to load configs:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (isOpen) {
+      loadAllConfigs();
+    }
+  }, [isOpen]);
 
   const handleSave = () => {
     onSave(localConfig);
@@ -373,7 +406,130 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
                     </div>
                 </div>
             )}
+            
+            {/* TERMINAL TAB */}
+            {activeTab === 'terminal' && (
+                <div className="space-y-5 animate-in fade-in zoom-in-95 duration-200">
+                    <div className="text-sm text-gray-400 mb-4">
+                        Terminal and shell configuration
+                    </div>
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-xs text-gray-400 mb-1.5 font-mono">Shell Type</label>
+                            <select className="w-full bg-black border border-[#333] rounded px-3 py-2 text-white text-sm focus:border-green-500 focus:outline-none">
+                                <option value="auto">Auto-detect</option>
+                                <option value="bash">Bash</option>
+                                <option value="zsh">Zsh</option>
+                                <option value="fish">Fish</option>
+                                <option value="powershell">PowerShell</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-xs text-gray-400 mb-1.5 font-mono">Color Scheme</label>
+                            <select className="w-full bg-black border border-[#333] rounded px-3 py-2 text-white text-sm focus:border-green-500 focus:outline-none">
+                                <option value="kali-zsh">Kali Linux (zsh)</option>
+                                <option value="ubuntu">Ubuntu</option>
+                                <option value="dracula">Dracula</option>
+                                <option value="monokai">Monokai</option>
+                                <option value="custom">Custom</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-xs text-gray-400 mb-1.5 font-mono">Font Size</label>
+                            <input 
+                                type="number" 
+                                min="10" 
+                                max="24" 
+                                defaultValue="14"
+                                className="w-full bg-black border border-[#333] rounded px-3 py-2 text-white text-sm focus:border-green-500 focus:outline-none"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs text-gray-400 mb-1.5 font-mono">Command History</label>
+                            <div className="flex items-center gap-2 mb-2">
+                                <input type="checkbox" defaultChecked className="w-4 h-4"/>
+                                <span className="text-sm text-gray-300">Enable history</span>
+                            </div>
+                            <input 
+                                type="number" 
+                                placeholder="Max history size" 
+                                defaultValue="1000"
+                                className="w-full bg-black border border-[#333] rounded px-3 py-2 text-white text-sm focus:border-green-500 focus:outline-none"
+                            />
+                        </div>
+                        <div className="text-xs text-green-500 mt-4">
+                            🖥️ Config in ~/.hexagent-gui/config/terminal/
+                        </div>
+                    </div>
+                </div>
+            )}
 
+            {/* FEATURES TAB */}
+            {activeTab === 'features' && (
+                <div className="space-y-5 animate-in fade-in zoom-in-95 duration-200">
+                    <div className="text-sm text-gray-400 mb-4">
+                        Application features and capabilities
+                    </div>
+                    <div className="space-y-4">
+                        <div className="border border-[#333] rounded p-4">
+                            <div className="flex items-center justify-between mb-2">
+                                <div>
+                                    <div className="text-sm font-bold text-white">Web Search</div>
+                                    <div className="text-xs text-gray-400">Enable AI to search the web for information</div>
+                                </div>
+                                <div className="relative inline-block w-12 h-6">
+                                    <input type="checkbox" className="sr-only peer"/>
+                                    <div className="w-12 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-6 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div className="border border-[#333] rounded p-4">
+                            <div className="flex items-center justify-between mb-2">
+                                <div>
+                                    <div className="text-sm font-bold text-white">Auto-Execute</div>
+                                    <div className="text-xs text-gray-400">Automatically run safe commands</div>
+                                </div>
+                                <div className="relative inline-block w-12 h-6">
+                                    <input type="checkbox" className="sr-only peer"/>
+                                    <div className="w-12 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-6 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-500"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="border border-[#333] rounded p-4">
+                            <label className="block text-sm font-bold text-white mb-2">Max Iterations</label>
+                            <div className="text-xs text-gray-400 mb-3">Maximum number of AI reasoning iterations</div>
+                            <input 
+                                type="range" 
+                                min="1" 
+                                max="20" 
+                                defaultValue="6"
+                                className="w-full"
+                            />
+                            <div className="text-xs text-gray-300 mt-1">Current: 6</div>
+                        </div>
+
+                        <div className="border border-[#333] rounded p-4">
+                            <div className="flex items-center justify-between mb-2">
+                                <div>
+                                    <div className="text-sm font-bold text-white">Auto-Save Sessions</div>
+                                    <div className="text-xs text-gray-400">Automatically save chat sessions</div>
+                                </div>
+                                <div className="relative inline-block w-12 h-6">
+                                    <input type="checkbox" defaultChecked className="sr-only peer"/>
+                                    <div className="w-12 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-6 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="text-xs text-purple-500 mt-4">
+                            ⚡ Config in ~/.hexagent-gui/config/features/
+                        </div>
+                    </div>
+                </div>
+            )}
+            
             {/* APPEARANCE TAB */}
             {activeTab === 'appearance' && (
                 <div className="space-y-6 animate-in fade-in zoom-in-95 duration-200">
