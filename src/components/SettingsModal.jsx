@@ -2,6 +2,7 @@ import { Activity, Cpu, Database, Globe, Key, Save, Server, Settings, X } from '
 import { useEffect, useState } from 'react';
 import Draggable from 'react-draggable';
 import { loadConfig } from '../utils/configManager';
+import BrainSelector from './BrainSelector';
 
 const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
   const [localConfig, setLocalConfig] = useState(config || {
@@ -293,132 +294,13 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
                 </div>
             )}
             
-            {/* BRAIN TAB */}
+            {/* BRAIN TAB - AI Engine Selector */}
             {activeTab === 'brain' && (
                 <div className="space-y-5 animate-in fade-in zoom-in-95 duration-200">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="col-span-2">
-                             <label className="block text-xs text-gray-400 mb-1.5 font-mono">{t ? t('brain.provider') : 'AI Provider'}</label>
-                             <select
-                                value={localConfig.ai?.provider || 'openai'}
-                                onChange={(e) => updateAI('provider', e.target.value)}
-                                className="w-full bg-black border border-[#333] rounded px-3 py-2 text-white text-sm focus:border-[#00ff00] focus:outline-none mb-3"
-                             >
-                                <option value="openai">OpenAI</option>
-                                <option value="openrouter">OpenRouter</option>
-                                <option value="anthropic">Anthropic</option>
-                                <option value="deepseek">DeepSeek</option>
-                                <option value="local">Local (Ollama/LM Studio)</option>
-                                <option value="custom">Custom (Generic)</option>
-                             </select>
-                        </div>
-
-                        <div className="col-span-2">
-                             <label className="block text-xs text-gray-400 mb-1.5 font-mono">{t ? t('brain.model') : 'AI Model'}</label>
-                             <input 
-                                type="text" 
-                                value={localConfig.ai?.model || ''}
-                                onChange={(e) => updateAI('model', e.target.value)}
-                                placeholder="e.g., openai/gpt-4-turbo, llama3"
-                                className="w-full bg-black border border-[#333] rounded px-3 py-2 text-white text-sm focus:border-[#00ff00] focus:outline-none font-mono"
-                             />
-                        </div>
-
-                        <div className="col-span-2">
-                             <label className="block text-xs text-gray-400 mb-1.5 font-mono flex items-center gap-2">
-                                <Key size={12} /> {t ? t('brain.api_key') : 'API Key'}
-                             </label>
-                             <input 
-                                type="password" 
-                                value={localConfig.ai?.api_key || ''}
-                                onChange={(e) => updateAI('api_key', e.target.value)}
-                                placeholder="sk-..."
-                                className="w-full bg-black border border-[#333] rounded px-3 py-2 text-white text-sm focus:border-[#00ff00] focus:outline-none font-mono"
-                             />
-                        </div>
-                        
-                        {(localConfig.ai?.provider === 'local' || localConfig.ai?.provider === 'custom') && (
-                            <div className="col-span-2 animate-in fade-in slide-in-from-top-2">
-                                 <label className="block text-xs text-gray-400 mb-1.5 font-mono">{t ? t('brain.base_url') : 'Base URL'}</label>
-                                 <input 
-                                    type="text" 
-                                    value={localConfig.ai?.base_url || ''}
-                                    onChange={(e) => updateAI('base_url', e.target.value)}
-                                    placeholder="http://localhost:11434/v1"
-                                    className="w-full bg-black border border-[#333] rounded px-3 py-2 text-white text-sm focus:border-[#00ff00] focus:outline-none font-mono"
-                                 />
-                            </div>
-                        )}
-
-                        <div>
-                            <label className="block text-xs text-gray-400 mb-1.5 font-mono">{t ? t('settings.language') : 'Language'}</label>
-                            <select
-                                value={localConfig.ai?.language || 'auto'}
-                                onChange={(e) => updateAI('language', e.target.value)}
-                                className="w-full bg-black border border-[#333] rounded px-3 py-2 text-white text-sm focus:border-[#00ff00] focus:outline-none"
-                            >
-                                <option value="auto">{t ? t('settings.language_auto') : 'Auto-detect'}</option>
-                                <option value="pt">Português</option>
-                                <option value="es">Español</option>
-                                <option value="en">English</option>
-                            </select>
-                        </div>
-                        <div>
-                             <label className="block text-xs text-gray-400 mb-1.5 font-mono">Temperature: {localConfig.ai?.temperature}</label>
-                             <input
-                                type="range"
-                                min="0" max="1" step="0.1"
-                                value={localConfig.ai?.temperature || 0.7}
-                                onChange={(e) => updateAI('temperature', parseFloat(e.target.value))}
-                                className="w-full accent-[#00ff00]"
-                             />
-                        </div>
-                    </div>
-
-                    <div className="border-t border-[#333] pt-4 space-y-3">
-                         <div className="flex items-center justify-between">
-                            <label className="text-sm font-mono text-gray-300 flex items-center gap-2">
-                                <Activity size={14} className="text-[#00ff00]" />
-                                {t ? t('brain.max_iterations') : 'Max Iterations'}
-                                <span className="text-xs text-gray-500">({localConfig.ai?.unlimited_iterations ? '∞' : localConfig.ai?.max_iterations})</span>
-                            </label>
-                            <div className="flex items-center gap-2">
-                                <span className="text-[10px] text-gray-500">UNLIMITED</span>
-                                <button 
-                                    onClick={() => updateAI('unlimited_iterations', !localConfig.ai?.unlimited_iterations)}
-                                    className={`w-8 h-4 rounded-full relative transition-colors ${localConfig.ai?.unlimited_iterations ? 'bg-[#00ff00]' : 'bg-gray-700'}`}
-                                >
-                                    <div className={`w-3 h-3 bg-white rounded-full absolute top-0.5 left-0.5 transition-transform ${localConfig.ai?.unlimited_iterations ? 'translate-x-4' : 'translate-x-0'}`} />
-                                </button>
-                            </div>
-                         </div>
-                         {!localConfig.ai?.unlimited_iterations && (
-                            <input
-                                type="range" min="1" max="50"
-                                value={localConfig.ai?.max_iterations || 10}
-                                onChange={(e) => updateAI('max_iterations', parseInt(e.target.value))}
-                                className="w-full accent-[#00ff00]"
-                            />
-                         )}
-                    </div>
-
-                    <div className="border border-[#333] rounded p-3 bg-[#111] flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <Globe size={18} className="text-blue-400" />
-                            <div>
-                                <div className="text-sm font-bold text-gray-200">{t ? t('brain.browser_search') : 'Web Search Access'}</div>
-                            </div>
-                        </div>
-                        <button 
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                updateAI('web_search_enabled', !localConfig.ai?.web_search_enabled);
-                            }}
-                            className={`w-10 h-5 rounded-full relative transition-colors ${localConfig.ai?.web_search_enabled ? 'bg-blue-500' : 'bg-gray-700'}`}
-                        >
-                            <div className={`w-4 h-4 bg-white rounded-full absolute top-0.5 left-0.5 transition-transform ${localConfig.ai?.web_search_enabled ? 'translate-x-5' : 'translate-x-0'}`} />
-                        </button>
-                    </div>
+                    <BrainSelector 
+                        currentBrain={localConfig.ai?.provider || 'openai'}
+                        onBrainChange={(brainKey) => updateAI('provider', brainKey)}
+                    />
                 </div>
             )}
             
