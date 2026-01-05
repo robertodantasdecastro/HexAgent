@@ -34,6 +34,12 @@ import subprocess
 import signal
 import atexit
 import threading
+# Import command splitter for heredoc handling
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "utils"))
+from command_splitter import split_commands_smart
+
+# Import hex_logger for debug mode logging
+from hex_logger import HexAgentLogger
 
 # Add parent directories to sys.path to find HexAgent and its dependencies
 # Add path logic
@@ -424,6 +430,12 @@ def detect_language(text):
 # Load configuration on startup / Carrega configuração na inicialização
 config = load_config()
 print(f"[Config] Loaded: {config}")
+
+# Initialize logger / Inicializa logger
+hex_logger = HexAgentLogger()
+if config.get('system', {}).get('debug_mode', False):
+    hex_logger.enable()
+    print("[Logger] Debug mode enabled - structured logging activated")
 
 @app.route('/init_status', methods=['GET'])
 def init_status():
