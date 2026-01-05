@@ -217,7 +217,7 @@ const SmartBlock = ({
           </SyntaxHighlighter>
         ) : (blockInfo.type === BlockType.LOG || 
             blockInfo.type === BlockType.SHELL ||
-            metadata.type === 'output') && hasAnsiCodes(content) ? (
+            metadata.type === 'output') ? (
           <div className="p-3 bg-black/30 rounded font-mono text-sm text-gray-200 leading-relaxed">
             <AnsiRenderer text={content} />
           </div>
