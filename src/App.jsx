@@ -187,16 +187,34 @@ const Block = ({ type, content, result, timestamp, onExecute, executed, onContin
         )}
         
         {result && (
-          <SmartBlock 
-            content={result}
-            metadata={{ type: 'output', source: 'command_execution' }}
-            autoExecuteEnabled={false}
-            onAction={(action, content) => {
-              if (action === 'save') {
-                tempFileManager.trackFile(`output_${Date.now()}.log`, content);
-              }
-            }}
-          />
+          <div className="mt-2 p-3 bg-black/30 rounded-lg border border-gray-700">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-gray-500 font-mono">Output:</span>
+              <div className="flex gap-1">
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(result);
+                  }}
+                  className="px-2 py-0.5 text-[10px] rounded bg-gray-700/50 hover:bg-gray-700 text-gray-300 transition"
+                  title="Copy output"
+                >
+                  Copy
+                </button>
+                <button
+                  onClick={() => {
+                    tempFileManager.trackFile(`output_${Date.now()}.log`, result);
+                  }}
+                  className="px-2 py-0.5 text-[10px] rounded bg-gray-700/50 hover:bg-gray-700 text-gray-300 transition"
+                  title="Save output"
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+            <div className="font-mono text-sm text-gray-200 leading-relaxed whitespace-pre-wrap">
+              <AnsiRenderer text={result} customColors={colors?.custom_ansi} />
+            </div>
+          </div>
         )}
       </div>
     </div>
