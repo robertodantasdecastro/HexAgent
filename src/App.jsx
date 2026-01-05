@@ -61,13 +61,19 @@ const parseAgentContent = (content) => {
     }
   }
   
-  // If no code blocks were found, return whole content as ai section
+  // If no code blocks were found, check if whole content is an output or normal text
   if (sections.length === 0) {
-    sections.push({ type: 'ai', content });
+    if (content.includes('[Output]:') || content.match(/Command Executed/i)) {
+      sections.push({ type: 'output', content });
+    } else {
+      sections.push({ type: 'ai', content });
+    }
   }
   
   return sections;
 };
+
+// Advanced ANSI to React Parser
 
 // Block Component with enhanced formatting / Componente de Bloco com formatação aprimorada
 const Block = ({ type, content, result, timestamp, onExecute, executed, onContinue, isLast, isLoading, t, colors }) => {
