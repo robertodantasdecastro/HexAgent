@@ -15,6 +15,8 @@ import SmartBlock from './components/SmartBlock';
 import { useTranslation } from './hooks/useTranslation';
 import { tempFileManager } from './utils/tempFileManager';
 
+import { AnsiRenderer } from './utils/ansiRenderer';
+
 // Parse agent content into formatted sections / Analisa conteúdo do agente em seções formatadas
 const parseAgentContent = (content) => {
   const sections = [];
@@ -56,47 +58,6 @@ const parseAgentContent = (content) => {
   
   return sections;
 };
-
-// Advanced ANSI to React Parser
-const AnsiRenderer = ({ text, customColors }) => {
-  if (!text) return null;
-  // Regex matches ESC[...m
-  const parts = text.split(/(\u001b\[(?:\d{1,3}(?:;\d{1,3})*)?m)/g);
-  
-  const spans = [];
-  let style = { color: 'inherit', fontWeight: 'normal', textDecoration: 'none' };
-  let key = 0;
-
-  // Custom Kali-like Palette (can be overridden by styles.json passed via customColors)
-  const defaultColors = {
-      30: '#000000', 31: '#ef4444', 32: '#22c55e', 33: '#eab308', 34: '#3b82f6', 35: '#d946ef', 36: '#06b6d4', 37: '#e5e7eb',
-      90: '#6b7280', 91: '#f87171', 92: '#4ade80', 93: '#facc15', 94: '#60a5fa', 95: '#e879f9', 96: '#22d3ee', 97: '#ffffff'
-  };
-  
-  const colors = { ...defaultColors, ...customColors };
-
-  for (let i = 0; i < parts.length; i++) {
-      const part = parts[i];
-      if (part.startsWith('\u001b[')) {
-          const codes = part.match(/\d+/g);
-          if (codes) {
-              for (const codeStr of codes) {
-                  const code = parseInt(codeStr, 10);
-                  if (code === 0) style = { color: 'inherit', fontWeight: 'normal' }; // Reset
-                  else if (code === 1) style.fontWeight = 'bold';
-                  else if (code === 4) style.textDecoration = 'underline';
-                  else if (code >= 30 && code <= 37) style.color = colors[code];
-                  else if (code >= 90 && code <= 97) style.color = colors[code];
-                  else if (code === 39) style.color = 'inherit';
-              }
-          }
-      } else if (part) {
-          spans.push(<span key={key++} style={{...style}}>{part}</span>);
-      }
-  }
-  return <>{spans}</>;
-};
-
 
 // Block Component with enhanced formatting / Componente de Bloco com formatação aprimorada
 const Block = ({ type, content, result, timestamp, onExecute, executed, onContinue, isLast, isLoading, t, colors }) => {

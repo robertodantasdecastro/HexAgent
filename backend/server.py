@@ -568,7 +568,7 @@ def get_ui_config(filename):
     """Serve UI config files from user dir or templates / Serve arquivos de config da UI"""
     try:
         # Try user config first
-        user_path = os.path.join(config_dir, 'ui', filename)
+        user_path = os.path.join(WORKSPACE_DIR, 'config', 'ui', filename)
         if os.path.exists(user_path):
             with open(user_path, 'r') as f:
                 config_data = json.load(f)
@@ -584,6 +584,8 @@ def get_ui_config(filename):
         return jsonify({'error': f'Config file {filename} not found'}), 404
     except Exception as e:
         print(f"[ConfigAPI] Error loading UI config {filename}: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 @app.route('/config/user/<config_type>', methods=['GET', 'POST'])
@@ -691,6 +693,136 @@ def list_backups():
         return jsonify({"backups": backups})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route('/files/temp', methods=['GET'])
+def temp_files():
+    """Return untracked temp files / Retornar arquivos temporários não rastreados"""
+    try:
+        temp_files = []
+        if os.path.exists(tmp_dir):
+            for filename in os.listdir(tmp_dir):
+                filepath = os.path.join(tmp_dir, filename)
+                if os.path.isfile(filepath):
+                    temp_files.append({
+                        'name': filename,
+                        'path': filepath,
+                        'size': os.path.getsize(filepath),
+                        'modified': os.path.getmtime(filepath)
+                    })
+        return jsonify(temp_files), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/script/save', methods=['POST'])
+def save_script():
+    """Save script to file system / Salvar script no sistema de arquivos"""
+    try:
+        data = request.json
+        path = os.path.expanduser(data['path'])
+        content = data['content']
+        make_executable = data.get('make_executable', False)
+        
+        # Security: prevent path traversal
+        if '..' in path or path.startswith('/'):
+            if not path.startswith(os.path.expanduser('~')):
+                return jsonify({'error': 'Invalid path'}), 400
+        
+        # Create directory if doesn't exist
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        
+        # Write file
+        with open(path, 'w') as f:
+            f.write(content)
+        
+        # Make executable if shebang present
+        if make_executable:
+            os.chmod(path, 0o755)
+        
+        return jsonify({
+            'success': True,
+            'path': path,
+            'message': f'Script saved to {path}'
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/script/execute', methods=['POST'])
+def execute_script():
+    """Execute script and return output / Executar script e retornar saída"""
+    try:
+        data = request.json
+        path = os.path.expanduser(data['path'])
+        args = data.get('args', [])
+        working_dir = data.get('working_dir', os.path.dirname(path))
+        
+        if not os.path.exists(path):
+            return jsonify({'error': f'Script not found: {path}'}), 404
+        
+        # Execute script
+        result = subprocess.run(
+            [path] + args,
+            cwd=working_dir,
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        
+        return jsonify({
+            'stdout': result.stdout,
+            'stderr': result.stderr,
+            'exit_code': result.returncode
+        }), 200
+    except subprocess.TimeoutExpired:
+        return jsonify({'error': 'Script execution timeout (30s)'}), 408
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/script/debug', methods=['POST'])
+def debug_script():
+    """Execute script in debug mode / Executar script em modo de depuração"""
+    try:
+        data = request.json
+        path = os.path.expanduser(data['path'])
+        args = data.get('args', [])
+        
+        if not os.path.exists(path):
+            return jsonify({'error': f'Script not found: {path}'}), 404
+        
+        # Determine debug flag based on script type
+        ext = os.path.splitext(path)[1]
+        debug_flags = []
+        
+        if ext == '.py':
+            debug_flags = ['-v']  # Python verbose
+        elif ext in ['.sh', '.bash']:
+            debug_flags = ['-x']  # Bash debug mode
+        
+        # Execute with debug flags
+        result = subprocess.run(
+            [path] + debug_flags + args,
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        
+        return jsonify({
+            'stdout': result.stdout,
+            'stderr': result.stderr,
+            'exit_code': result.returncode
+        }), 200
+    except subprocess.TimeoutExpired:
+        return jsonify({'error': 'Script execution timeout (30s)'}), 408
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/shutdown', methods=['POST'])
+def shutdown():
+    """Shut down the server / Desligar o servidor"""
+    func = request.environ.get('werkzeug.server.shutdown')
+    if func is None:
+        raise RuntimeError('Not running with the Werkzeug Server')
+    func()
+    return jsonify({"success": True, "message": "Server shutting down..."})
 
 @app.route('/config/merge', methods=['POST'])
 def merge_configs():

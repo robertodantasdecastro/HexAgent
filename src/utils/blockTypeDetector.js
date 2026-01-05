@@ -1,11 +1,6 @@
 /**
- * Block Type Detector
- * Automatically detects the type of content block for intelligent rendering
- * 
- * Detector de Tipo de Bloco
- * Detecta automaticamente o tipo de bloco de conteúdo para renderização inteligente
+ * Block Types / Tipos de Blocos
  */
-
 export const BlockType = {
   TEXT: 'text',
   CODE: 'code',
@@ -13,7 +8,8 @@ export const BlockType = {
   THINKING: 'thinking',
   README: 'readme',
   LOG: 'log',
-  ERROR: 'error'
+  ERROR: 'error',
+  SCRIPT: 'script'  // Scripts with save/execute capabilities
 };
 
 /**
