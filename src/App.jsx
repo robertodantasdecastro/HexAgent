@@ -247,7 +247,7 @@ const Block = ({ type, content, result, timestamp, onExecute, executed, onContin
                 </button>
               </div>
             </div>
-            <div className="font-mono text-sm text-gray-200 leading-relaxed whitespace-pre-wrap">
+            <div className="font-mono text-sm text-gray-200 leading-relaxed whitespace-pre-wrap break-words">
               <AnsiRenderer text={result} customColors={colors?.custom_ansi} />
             </div>
           </div>

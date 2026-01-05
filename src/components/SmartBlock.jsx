@@ -220,7 +220,7 @@ const SmartBlock = ({
             blockInfo.type === BlockType.SHELL ||
             metadata.type === 'output' ||
             hasAnsiCodes(content)) ? (
-          <div className="p-3 bg-black/30 rounded font-mono text-sm text-gray-200 leading-relaxed overflow-x-auto">
+          <div className="p-3 bg-black/30 rounded font-mono text-sm text-gray-200 leading-relaxed whitespace-pre-wrap break-words overflow-x-auto">
             <AnsiRenderer text={content} />
           </div>
         ) : (
