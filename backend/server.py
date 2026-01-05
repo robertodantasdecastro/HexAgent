@@ -545,30 +545,46 @@ def init_agent():
         }), 200  # Changed to 200 so frontend can parse JSON properly
 
 @app.route('/config', methods=['GET', 'POST'])
-def config_endpoint():
-    """
-    Get or update configuration / Obter ou atualizar configuração
-    GET: Returns current config
-    POST: Updates config with request body
-    """
-    global config
-    
+def handle_config():
+    """Load and save configuration / Carrega e salva configuração"""
     if request.method == 'GET':
-        return jsonify(config)
-    
+        try:
+            config = load_config()
+            return jsonify(config), 200
+        except Exception as e:
+            print(f"[ConfigAPI] Error loading config: {e}")
+            return jsonify({"error": str(e)}), 500
     elif request.method == 'POST':
         try:
             new_config = request.json
-            # Merge with existing config / Mescla com config existente
-            config.update(new_config)
-            
-            # Save to file / Salva no arquivo
-            if save_config(config):
-                return jsonify({"success": True, "config": config})
-            else:
-                return jsonify({"success": False, "error": "Failed to save config"}), 500
+            save_config(new_config)
+            return jsonify({"success": True, "message": "Config saved successfully"}), 200
         except Exception as e:
-            return jsonify({"success": False, "error": str(e)}), 400
+            print(f"[ConfigAPI] Error saving config: {e}")
+            return jsonify({"error": str(e)}), 500
+
+@app.route('/config/user/ui/<filename>')
+def get_ui_config(filename):
+    """Serve UI config files from user dir or templates / Serve arquivos de config da UI"""
+    try:
+        # Try user config first
+        user_path = os.path.join(config_dir, 'ui', filename)
+        if os.path.exists(user_path):
+            with open(user_path, 'r') as f:
+                config_data = json.load(f)
+            return jsonify(config_data), 200
+        
+        # Fallback to template
+        template_path = os.path.join(base_dir, '..', 'config_templates', 'ui', filename)
+        if os.path.exists(template_path):
+            with open(template_path, 'r') as f:
+                config_data = json.load(f)
+            return jsonify(config_data), 200
+        
+        return jsonify({'error': f'Config file {filename} not found'}), 404
+    except Exception as e:
+        print(f"[ConfigAPI] Error loading UI config {filename}: {e}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/config/user/<config_type>', methods=['GET', 'POST'])
 def user_config_endpoint(config_type):

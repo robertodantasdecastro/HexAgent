@@ -11,7 +11,9 @@ import LoadingScreen from './components/LoadingScreen';
 import SessionModal from './components/SessionModal';
 import SettingsModal from './components/SettingsModal';
 import ShutdownModal from './components/ShutdownModal';
+import SmartBlock from './components/SmartBlock';
 import { useTranslation } from './hooks/useTranslation';
+import { tempFileManager } from './utils/tempFileManager';
 
 // Parse agent content into formatted sections / Analisa conteúdo do agente em seções formatadas
 const parseAgentContent = (content) => {

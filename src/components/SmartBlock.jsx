@@ -200,7 +200,7 @@ const SmartBlock = ({
       
       {/* Content */}
       <div className="overflow-x-auto">
-        {rules.syntax_highlight && blockInfo.language ? (
+        {rules.syntax_highlight && blockInfo.language && blockInfo.type === BlockType.CODE ? (
           <SyntaxHighlighter
             language={blockInfo.language}
             style={vscDarkPlus}
@@ -211,10 +211,16 @@ const SmartBlock = ({
               fontSize: '0.85rem',
               background: 'rgba(0, 0, 0, 0.3)'
             }}
-            showLineNumbers={blockInfo.type === BlockType.CODE}
+            showLineNumbers={true}
           >
             {content}
           </SyntaxHighlighter>
+        ) : (blockInfo.type === BlockType.LOG || 
+            blockInfo.type === BlockType.SHELL ||
+            metadata.type === 'output') && hasAnsiCodes(content) ? (
+          <div className="p-3 bg-black/30 rounded font-mono text-sm text-gray-200 leading-relaxed">
+            <AnsiRenderer text={content} />
+          </div>
         ) : (
           <pre className="whitespace-pre-wrap font-mono text-sm text-gray-200 leading-relaxed">
             {content}
