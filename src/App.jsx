@@ -376,6 +376,8 @@ const App = () => {
   
   // UI Enhancements State / Estados de Melhorias de UI
   const [autoExecute, setAutoExecute] = useState(false); // Default false for safety
+  const [maxIterations, setMaxIterations] = useState(10); // Max AI iterations
+  const [currentIteration, setCurrentIteration] = useState(0); // Current iteration count
   const abortControllerRef = useRef(null);
   const bottomRef = useRef(null);
   
@@ -1329,6 +1331,26 @@ const App = () => {
                     {autoExecute ? <Play size={10} /> : <Pause size={10} />}
                     <span>Auto-Exec: {autoExecute ? 'ON' : 'OFF'}</span>
                 </button>
+                
+                {/* Iteration Counter */}
+                <div className="flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-mono border text-gray-400 bg-gray-500/10 border-gray-500/20">
+                  <Infinity size={10} />
+                  <button 
+                    onClick={() => setMaxIterations(Math.max(1, maxIterations - 1))}
+                    className="px-1 hover:text-cyan-400 transition"
+                    title="Decrease max iterations"
+                  >
+                    -
+                  </button>
+                  <span className="px-1 font-bold text-cyan-400">{currentIteration}/{maxIterations}</span>
+                  <button 
+                    onClick={() => setMaxIterations(Math.min(50, maxIterations + 1))}
+                    className="px-1 hover:text-cyan-400 transition"
+                    title="Increase max iterations"
+                  >
+                    +
+                  </button>
+                </div>
 
                 <button
                     onClick={() => setInputMode(inputMode === 'prompt' ? 'command' : 'prompt')}
