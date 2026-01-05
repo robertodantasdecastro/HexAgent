@@ -17,6 +17,8 @@ import { tempFileManager } from './utils/tempFileManager';
 
 import { AnsiRenderer } from './utils/ansiRenderer';
 
+// Modular architecture imports / Imports de arquitetura modular
+
 // Parse agent content into formatted sections / Analisa conteúdo do agente em seções formatadas
 const parseAgentContent = (content) => {
   const sections = [];
