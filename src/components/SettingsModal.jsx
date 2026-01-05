@@ -22,7 +22,11 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
         backend_host: '127.0.0.1'
     },
     system: {
-        theme: 'dark'
+        theme: 'dark',
+        auto_save_session: true,
+        debug_mode: false,
+        cleanup_on_exit: false,
+        shell_type: 'auto'
     },
     ui: {
         custom_colors: {}
@@ -212,14 +216,24 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
                         <div>
                             <label className="block text-xs text-gray-400 mb-1.5 font-mono">Auto Save Sessions</label>
                             <div className="flex items-center gap-2">
-                                <input type="checkbox" defaultChecked className="w-4 h-4"/>
+                                <input 
+                                    type="checkbox" 
+                                    checked={localConfig.system?.auto_save_session ?? true}
+                                    onChange={(e) => updateSystem('auto_save_session', e.target.checked)}
+                                    className="w-4 h-4"
+                                />
                                 <span className="text-sm text-gray-300">Automatically save chat sessions</span>
                             </div>
                         </div>
                         <div>
                             <label className="block text-xs text-gray-400 mb-1.5 font-mono">Debug Mode</label>
                             <div className="flex items-center gap-2">
-                                <input type="checkbox" className="w-4 h-4"/>
+                                <input 
+                                    type="checkbox" 
+                                    checked={localConfig.system?.debug_mode ?? false}
+                                    onChange={(e) => updateSystem('debug_mode', e.target.checked)}
+                                    className="w-4 h-4"
+                                />
                                 <span className="text-sm text-gray-300">Enable debug logging</span>
                             </div>
                         </div>
