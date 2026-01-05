@@ -10,7 +10,7 @@ import { ChevronDown, ChevronUp, Copy, Download, Edit, FileText, Play, Save } fr
 import { useEffect, useState } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { AnsiRenderer } from '../utils/ansiRenderer';
+import { AnsiRenderer, hasAnsiCodes } from '../utils/ansiRenderer';
 import { BlockType, detectBlockType, getBlockTypeName } from '../utils/blockTypeDetector';
 
 const SmartBlock = ({ 
