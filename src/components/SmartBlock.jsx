@@ -27,7 +27,7 @@
  * @returns {JSX.Element} Rendered smart block / Bloco inteligente renderizado
  */
 
-import { ChevronDown, ChevronUp, Copy, Download, Edit, FileText, Play, Save } from 'lucide-react';
+import { ChevronDown, Copy, Download, Edit, FileText, Play, Save } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -185,17 +185,16 @@ const SmartBlock = ({
   if (blockInfo.type === BlockType.THINKING) {
     return (
       <details 
-        className={getBlockClassName()}
+        className="my-2 border border-gray-700/10 rounded-lg p-2 bg-gray-900/5"
         open={!collapsed}
-        style={{ fontSize: rules.font_size || '0.7rem' }}
       >
-        <summary className="cursor-pointer flex items-center gap-2 text-gray-500 hover:text-gray-400 select-none">
-          {collapsed ? <ChevronDown size={12} /> : <ChevronUp size={12} />}
-          <span className="text-xs font-mono">⚙️ AI está processando...</span>
+        <summary className="cursor-pointer flex items-center gap-2 text-[9px] text-gray-500 opacity-60 hover:opacity-90 transition-opacity select-none">
+          <ChevronDown className="group-open:rotate-180 transition-transform" size={9} />
+          <span className="italic">💭 AI Thinking / Pensamento da IA</span>
         </summary>
-        <div className="mt-2 pl-4 text-gray-600 text-xs border-l-2 border-gray-700">
+        <pre className="mt-2 pl-4 text-[9px] text-gray-400 opacity-70 font-mono whitespace-pre-wrap leading-relaxed border-l border-gray-700/30">
           {content}
-        </div>
+        </pre>
       </details>
     );
   }
