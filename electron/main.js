@@ -88,6 +88,24 @@ ipcMain.on('app-ready-to-quit', () => {
     app.quit(); // This will trigger window-all-closed -> quit -> will-quit
 });
 
+// IPC handler for save file dialog (for chat export)
+ipcMain.handle('save-file', async (event, options) => {
+    const { dialog } = await import('electron');
+    const { content, defaultName, filters } = options;
+    
+    const result = await dialog.showSaveDialog(mainWindow, {
+        defaultPath: defaultName,
+        filters: filters || [{ name: 'All Files', extensions: ['*'] }]
+    });
+    
+    if (!result.canceled && result.filePath) {
+        fs.writeFileSync(result.filePath, content, 'utf-8');
+        return { success: true, path: result.filePath };
+    }
+    
+    return { success: false };
+});
+
 function startPythonBackend() {
 
     let scriptPath;

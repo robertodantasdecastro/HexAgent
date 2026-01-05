@@ -415,7 +415,9 @@ const App = () => {
   // UI Enhancements State / Estados de Melhorias de UI
   const [autoExecute, setAutoExecute] = useState(false); // Default false for safety
   const [maxIterations, setMaxIterations] = useState(10); // Max AI iterations
+  const [unlimitedIterations, setUnlimitedIterations] = useState(false); // Unlimited mode toggle
   const [currentIteration, setCurrentIteration] = useState(0); // Current iteration count
+  const [showIterationLimitReached, setShowIterationLimitReached] = useState(false);
   const abortControllerRef = useRef(null);
   const bottomRef = useRef(null);
   
@@ -656,6 +658,68 @@ const App = () => {
           } catch(e) { console.log('Non-electron env'); }
       }
   }, []);
+
+  // Save settings handler
+  const handleSettingsSave = async (newConfig) => {
+    console.log('[DEBUG] Saving settings:', newConfig);
+    try {
+      const response = await fetch('http://localhost:5000/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newConfig)
+      });
+      if (response.ok) {
+        setConfig(newConfig);
+        console.log('[DEBUG] Settings saved successfully');
+      }
+    } catch (error) {
+      console.error('[DEBUG] Failed to save settings:', error);
+    }
+  };
+
+  // Export chat handler (debug mode only)
+  const handleExportChat = async () => {
+    try {
+      // Prepare export data
+      const exportData = {
+        session_id: Date.now().toString(),
+        blocks: blocks, // Changed from 'messages' to 'blocks' to match context
+        metadata: {
+          date: new Date().toISOString(),
+          config: config
+        }
+      };
+
+      // Request backend to format
+      const response = await fetch('http://localhost:5000/export/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(exportData)
+      });
+
+      const data = await response.json();
+
+      if (data.success && window.require) {
+        // Use Electron IPC to save file
+        const { ipcRenderer } = window.require('electron');
+        const result = await ipcRenderer.invoke('save-file', {
+          content: data.markdown,
+          defaultName: `hexagent_chat_${new Date().toISOString().split('T')[0]}.md`,
+          filters: [
+            { name: 'Markdown Files', extensions: ['md'] },
+            { name: 'Text Files', extensions: ['txt'] },
+            { name: 'All Files', extensions: ['*'] }
+          ]
+        });
+
+        if (result.success) {
+          console.log('✅ Chat exported to:', result.path);
+        }
+      }
+    } catch (error) {
+      console.error('❌ Export failed:', error);
+    }
+  };
 
   // Save configuration handler / Handler para salvar configuração
   const saveConfig = async (newConfig) => {
@@ -1081,11 +1145,13 @@ const App = () => {
         const response = await fetch('http://localhost:5000/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                message: cmd, 
-                language: 'pt',
-                web_search: false,
-                auto_execute: autoExecute 
+            body: JSON.stringify({
+              message: cmd,
+              context: {
+                messages: blocks.slice(-5),
+                auto_execute: autoExecute,
+                max_iterations: unlimitedIterations ? 0 : maxIterations  // 0 = unlimited
+              }
             }),
             signal: abortControllerRef.current.signal
         });
@@ -1299,6 +1365,20 @@ const App = () => {
               </div>
 
               <div className="flex items-center gap-2 border-l border-[#333] pl-3 ml-2">
+                   {/* Export Chat Button (debug mode only) */}
+                   {config?.system?.debug_mode && (
+                     <button
+                       onClick={handleExportChat}
+                       className="p-0 bg-transparent border-0 cursor-pointer flex items-center"
+                       title="Export Chat (Debug Mode)"
+                     >
+                       <Download 
+                         size={14} 
+                         className="text-purple-400 hover:text-purple-300 transition-colors" 
+                       />
+                     </button>
+                   )}
+                   
                    <button
                      onClick={() => {
                        console.log('[DEBUG] Settings button clicked!');
@@ -1370,21 +1450,27 @@ const App = () => {
                     <span>Auto-Exec: {autoExecute ? 'ON' : 'OFF'}</span>
                 </button>
                 
-                {/* Iteration Counter */}
-                <div className="flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-mono border text-gray-400 bg-gray-500/10 border-gray-500/20">
-                  <Infinity size={10} />
+                {/* Iteration Control */}
+                <div className="flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-mono border border-gray-600/30 bg-gray-800/20">
+                  <button
+                    onClick={() => setUnlimitedIterations(!unlimitedIterations)}
+                    className={`transition-all ${unlimitedIterations ? 'text-yellow-400' : 'text-gray-500'}`}
+                    title={unlimitedIterations ? "Iterações ilimitadas ATIVAS" : "Ativar iterações ilimitadas"}
+                  >
+                    <Infinity size={10} />
+                  </button>
                   <button 
                     onClick={() => setMaxIterations(Math.max(1, maxIterations - 1))}
-                    className="px-1 hover:text-cyan-400 transition"
-                    title="Decrease max iterations"
+                    className="text-gray-400 hover:text-white px-1 transition-colors"
+                    disabled={unlimitedIterations}
                   >
                     -
                   </button>
-                  <span className="px-1 font-bold text-cyan-400">{currentIteration}/{maxIterations}</span>
+                  <span className="px-1 font-bold text-cyan-400">{unlimitedIterations ? '∞' : `${currentIteration}/${maxIterations}`}</span>
                   <button 
                     onClick={() => setMaxIterations(Math.min(50, maxIterations + 1))}
-                    className="px-1 hover:text-cyan-400 transition"
-                    title="Increase max iterations"
+                    className="text-gray-400 hover:text-white px-1 transition-colors"
+                    disabled={unlimitedIterations}
                   >
                     +
                   </button>

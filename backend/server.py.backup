@@ -38,9 +38,6 @@ import threading
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "utils"))
 from command_splitter import split_commands_smart
 
-# Import hex_logger for debug mode logging
-from hex_logger import HexAgentLogger
-
 # Add parent directories to sys.path to find HexAgent and its dependencies
 # Add path logic
 if getattr(sys, 'frozen', False):
@@ -430,12 +427,6 @@ def detect_language(text):
 # Load configuration on startup / Carrega configuração na inicialização
 config = load_config()
 print(f"[Config] Loaded: {config}")
-
-# Initialize logger / Inicializa logger
-hex_logger = HexAgentLogger()
-if config.get('system', {}).get('debug_mode', False):
-    hex_logger.enable()
-    print("[Logger] Debug mode enabled - structured logging activated")
 
 @app.route('/init_status', methods=['GET'])
 def init_status():
@@ -1080,14 +1071,6 @@ def chat():
                     for cmd in commands:
                         yield json.dumps({"chunk": f"🔧 Executando: {cmd}\n"}) + "\n"
                         result = core.execute_tool(cmd)
-                        
-                        # Log command execution if debug mode active
-                        hex_logger.log_command(
-                            command=cmd,
-                            output=result,
-                            exit_code=0 if result and 'error' not in result.lower() else 1
-                        )
-                        
                         yield json.dumps({"chunk": f"{result}\n\n"}) + "\n"
                         
                         # Add to execution summary for AI feedback
@@ -1289,82 +1272,9 @@ def execute_command():
         
     if not core:
         return jsonify({"error": f"Agent Core not loaded: {init_error}"}), 400
-      # Execute command
+        
     result = core.execute_tool(cmd)
-    
-    # Log command execution if debug mode active
-    hex_logger.log_command(
-        command=cmd,
-        output=result,
-        exit_code=0 if result and 'error' not in result.lower() else 1
-    )
-    
-    return jsonify({'output': result}), 200
-
-@app.route('/export/chat', methods=['POST'])
-def export_chat():
-    """
-    Export full conversation in structured markdown format
-    Exportar conversa completa em formato markdown estruturado
-    """
-    try:
-        data = request.json
-        blocks = data.get('blocks', [])
-        session_id = data.get('session_id', 'unknown')
-        metadata = data.get('metadata', {})
-        
-        # Generate markdown export
-        output_lines = []
-        output_lines.append("# HexAgent Chat Export\n")
-        output_lines.append(f"**Export Date:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-        output_lines.append(f"**Session ID:** {session_id}\n")
-        output_lines.append(f"**Total Blocks:** {len(blocks)}\n")
-        output_lines.append("\n---\n\n")
-        
-        # Process each block
-        for idx, block in enumerate(blocks, 1):
-            block_type = block.get('type', 'UNKNOWN')
-            timestamp = block.get('timestamp', 'N/A')
-            content = block.get('content', '')
-            
-            output_lines.append(f"## [BLOCK {idx}] {block_type}\n")
-            output_lines.append(f"**Timestamp:** {timestamp}\n\n")
-            
-            # Format based on block type
-            if block_type == 'SHELL':
-                command = block.get('command', content)
-                result = block.get('output', block.get('result', ''))
-                output_lines.append(f"**Command:**\n```bash\n{command}\n```\n\n")
-                if result:
-                    output_lines.append(f"**Output:**\n```\n{result}\n```\n")
-            elif block_type == 'THINKING':
-                output_lines.append(f"```text\n{content}\n```\n")
-            elif block_type in ['CODE', 'SCRIPT']:
-                language = block.get('language', 'bash')
-                output_lines.append(f"```{language}\n{content}\n```\n")
-            else:
-                output_lines.append(f"{content}\n")
-            
-            output_lines.append("\n---\n\n")
-        
-        markdown_content = "".join(output_lines)
-        
-        # Log export event
-        hex_logger.log_system_event('chat_export', {
-            'session_id': session_id,
-            'blocks_count': len(blocks),
-            'export_size': len(markdown_content)
-        })
-        
-        return jsonify({
-            'success': True,
-            'markdown': markdown_content,
-            'blocks_count': len(blocks)
-        }), 200
-        
-    except Exception as e:
-        hex_logger.log_system_event('chat_export_error', {'error': str(e)})
-        return jsonify({'success': False, 'error': str(e)}), 500
+    return jsonify({"result": result})
 
 @app.route('/status', methods=['GET'])
 def status():

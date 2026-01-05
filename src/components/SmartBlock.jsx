@@ -186,13 +186,14 @@ const SmartBlock = ({
     return (
       <details 
         className="my-2 border border-gray-700/10 rounded-lg p-2 bg-gray-900/5"
-        open={!collapsed}
+        open={false}  // Start collapsed by default
       >
-        <summary className="cursor-pointer flex items-center gap-2 text-[9px] text-gray-500 opacity-60 hover:opacity-90 transition-opacity select-none">
-          <ChevronDown className="group-open:rotate-180 transition-transform" size={9} />
+        <summary className="cursor-pointer flex items-center gap-2 text-[7px] text-gray-500 opacity-60 hover:opacity-90 transition-opacity select-none">
+          <ChevronDown className="group-open:rotate-180 transition-transform" size={7} />
           <span className="italic">💭 AI Thinking / Pensamento da IA</span>
+          <span className="ml-2 text-[6px] opacity-40">(não conta como ação)</span>
         </summary>
-        <pre className="mt-2 pl-4 text-[9px] text-gray-400 opacity-70 font-mono whitespace-pre-wrap leading-relaxed border-l border-gray-700/30">
+        <pre className="mt-2 pl-4 text-[7px] text-gray-400 opacity-70 font-mono whitespace-pre-wrap leading-relaxed border-l border-gray-700/30">
           {content}
         </pre>
       </details>

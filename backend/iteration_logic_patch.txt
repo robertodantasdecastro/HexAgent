@@ -1,0 +1,110 @@
+# Patch for iteration logic in server.py
+# Apply from line 1027 to 1094
+
+# Replace this section with action-based counting
+
+# OLD CODE:
+iteration = 0
+conversation_history = user_input
+
+while iteration < actual_limit:
+    iteration += 1
+    # ... rest of old code
+
+# NEW CODE:
+action_count = 0  # Actual commands executed
+loop_count = 0    # Internal safety counter  
+max_actions = actual_limit
+max_loops = actual_limit * 3
+conversation_history = user_input
+
+while action_count < max_actions and loop_count < max_loops:
+    loop_count += 1
+    
+    # Step 1: Get AI response
+    full_response = ""
+    for chunk in core.chat_step(conversation_history):
+        full_response += chunk
+        yield json.dumps({"chunk": chunk}) + "\n"
+    
+    # Step 2: Parse bash code blocks
+    code_blocks = re.findall(r'```(?:bash)?\\n(.*?)\\n```', full_response, re.DOTALL)
+    
+    # If no commands, AI decided task is complete
+    if not code_blocks:
+        if any(phrase in full_response.lower() for phrase in ['tarefa concluída', 'completed', 'finalizado', 'pronto', 'done']):
+            yield json.dumps({"chunk": "\\n✅ Tarefa completada pelo agente!\\n"}) + "\\n"
+        break
+    
+    # CHECK AUTO-EXECUTE
+    if not auto_execute:
+         for cmd_block in code_blocks:
+             yield json.dumps({"proposal": cmd_block}) + "\\n"
+         break
+
+    # Step 3: Execute commands
+    execution_summary = ""
+    
+    if core.body and code_blocks:
+        for cmd_block in code_blocks:
+            commands = split_commands_smart(cmd_block)
+            
+            for cmd in commands:
+                action_count += 1
+                
+                # Command header with context
+                cmd_header = f"\\n{'='*70}\\n"
+                cmd_header += f"📌 AÇÃO {action_count}/{max_actions} (Loop {loop_count})\\n"
+                cmd_header += f"{'='*70}\\n"
+                cmd_header += f"🔧 Executando: {cmd}\\n"
+                cmd_header += f"{'-'*70}\\n"
+                
+                yield json.dumps({"chunk": cmd_header}) + "\\n"
+                
+                # Execute
+                result = core.execute_tool(cmd)
+                
+                # Output with attribution
+                output_block = f"\\n📤 SAÍDA:\\n{result}\\n"
+                output_block += f"{'='*70}\\n\\n"
+                
+                yield json.dumps({"chunk": output_block}) + "\\n"
+                
+                # Summary for AI (truncated)
+                execution_summary += f"\\n[Ação {action_count}]: {cmd}\\n"
+                execution_summary += f"[Resultado]: {result[:200]}{'...' if len(result) > 200 else ''}\\n"
+                
+                if action_count >= max_actions:
+                    break
+            
+            if action_count >= max_actions:
+                break
+    elif not code_blocks:
+        yield json.dumps({"chunk": "\\n💭 [Thinking - não conta como ação]\\n\\n"}) + "\\n"
+    
+    # Step 4: Prepare feedback
+    if execution_summary:
+        conversation_history = f"""{user_input}
+
+[Histórico - Loop {loop_count}, Ações: {action_count}/{max_actions}]:
+{execution_summary}
+
+Analise os resultados acima. Se a tarefa ainda não está completa, sugira o PRÓXIMO comando. Se completa, responda 'Tarefa concluída'."""
+
+# Loop ended - check why
+if action_count >= max_actions:
+    yield json.dumps({"chunk": f"\\n⚠️ Limite de {max_actions} ações atingido.\\n"}) + "\\n"
+    yield json.dumps({
+        "limit_reached": True, 
+        "actions_used": action_count,
+        "loops_used": loop_count,
+        "max_actions": max_actions
+    }) + "\\n"
+elif loop_count >= max_loops:
+    yield json.dumps({"chunk": f"\\n⚠️ Limite de segurança de {max_loops} loops atingido.\\n"}) + "\\n"
+    yield json.dumps({
+        "limit_reached": True,
+        "actions_used": action_count, 
+        "loops_used": loop_count,
+        "reason": "safety_limit"
+    }) + "\\n"
