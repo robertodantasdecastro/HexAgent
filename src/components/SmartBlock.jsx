@@ -1,9 +1,30 @@
 /**
  * SmartBlock Component
- * Intelligent block rendering with context-aware buttons and styling
- * 
  * Componente de Bloco Inteligente
- * Renderização inteligente com botões sensive ao contexto
+ * 
+ * Intelligent block rendering with context-aware buttons and styling
+ * Renderização inteligente de blocos com botões e estilização sensível ao contexto
+ * 
+ * This component automatically detects block types (CODE, SHELL, LOG, ERROR, etc.)
+ * and renders them with appropriate:
+ * - Syntax highlighting
+ * - Action buttons (Copy, Execute, Save, etc.)
+ * - Styling and icons
+ * - ANSI color rendering for terminal output
+ * 
+ * Este componente detecta automaticamente tipos de blocos (CODE, SHELL, LOG, ERROR, etc.)
+ * e os renderiza com:
+ * - Destaque de sintaxe
+ * - Botões de ação (Copiar, Executar, Salvar, etc.)
+ * - Estilização e ícones
+ * - Renderização de cores ANSI para saída de terminal
+ * 
+ * @param {Object} props - Component props / Propriedades do componente
+ * @param {string} props.content - Block content to render / Conteúdo do bloco para renderizar
+ * @param {Object} [props.metadata={}] - Block metadata (type, language, etc.) / Metadados do bloco
+ * @param {Function} [props.onAction] - Callback for action buttons / Callback para botões de ação
+ * @param {boolean} [props.autoExecuteEnabled=false] - Enable auto-execution / Habilitar auto-execução
+ * @returns {JSX.Element} Rendered smart block / Bloco inteligente renderizado
  */
 
 import { ChevronDown, ChevronUp, Copy, Download, Edit, FileText, Play, Save } from 'lucide-react';
