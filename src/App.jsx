@@ -1261,6 +1261,25 @@ const App = () => {
                 if (!line.trim()) continue;
                 try {
                     const json = JSON.parse(line);
+                    
+                    // Handle SHELL output block (NEW - from backend type:'shell_output')
+                    if (json.type === 'shell_output') {
+                        setBlocks(prev => [...prev, {
+                            id: Date.now() + Math.random(), // Ensure unique ID
+                            type: 'SHELL',
+                            content: json.stdout,
+                            command: json.command,
+                            exitCode: json.exit_code,
+                            result: {
+                                iteration: json.iteration,
+                                maxIterations: json.max_iterations
+                            },
+                            timestamp: new Date().toLocaleTimeString()
+                        }]);
+                        continue; // Skip to next line
+                    }
+                    
+                    // Handle AI text chunks (existing behavior)
                     if (json.chunk) {
                         agentText += json.chunk;
                         setBlocks(prev => {

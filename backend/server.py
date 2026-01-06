@@ -1021,6 +1021,96 @@ def config_tree():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
+def parse_ai_response_blocks(full_response, iteration, max_iterations):
+    """
+    Parse AI response to separate shell output from feedback
+    Analisa resposta da IA para separar output shell do feedback
+    
+    Args:
+        full_response (str): Complete AI response text
+        iteration (int): Current iteration number
+        max_iterations (int): Maximum iterations allowed
+    
+    Returns:
+        list: Blocks with type ('shell_output' or 'ai_feedback')
+    """
+    import re
+    
+    blocks = []
+    
+    # Pattern to detect command execution block
+    # Matches: 🔧 Executando: <command>\n<output>
+    cmd_pattern = r'🔧 Executando: (.+?)\\n(.+?)(?=\\n\\n|$)'
+    
+    # Find all command executions
+    matches = list(re.finditer(cmd_pattern, full_response, re.DOTALL))
+    
+    if matches:
+        # Extract shell outputs
+        for match in matches:
+            command = match.group(1).strip()
+            # Get everything after the command until double newline or end
+            start_pos = match.end()
+            # Find next command or end of string
+            next_match = None
+            for m in matches:
+                if m.start() > start_pos:
+                    next_match = m
+                    break
+            
+            if next_match:
+                output = full_response[start_pos:next_match.start()].strip()
+            else:
+                # Last command - get until iteration marker or end
+                remaining = full_response[start_pos:]
+                # Stop at iteration marker
+                iter_marker = re.search(r'\\n={50,}', remaining)
+                if iter_marker:
+                    output = remaining[:iter_marker.start()].strip()
+                else:
+                    output = remaining.strip()
+            
+            blocks.append({
+                'type': 'shell_output',
+                'command': command,
+                'stdout': output,
+                'exit_code': 0,
+                'iteration': iteration,
+                'max_iterations': max_iterations
+            })
+        
+        # Extract AI feedback (everything after last shell output)
+        last_match = matches[-1]
+        feedback_start = last_match.end()
+        
+        # Skip to after the last output
+        remaining_text = full_response[feedback_start:]
+        
+        # Remove iteration markers
+        feedback = re.sub(r'\\n={50,}\\n🔄 Iteração \\d+/\\d+\\n={50,}\\n', '', remaining_text)
+        feedback = feedback.strip()
+        
+        # Only add AI feedback if there's actual content
+        if feedback and len(feedback) > 10:
+            blocks.append({
+                'type': 'ai_feedback',
+                'content': feedback
+            })
+    else:
+        # No command execution detected, treat as pure AI feedback
+        # Remove iteration markers if present
+        clean_response = re.sub(r'\\n={50,}\\n🔄 Iteração \\d+/\\d+\\n={50,}\\n', '', full_response)
+        clean_response = clean_response.strip()
+        
+        if clean_response:
+            blocks.append({
+                'type': 'ai_feedback',
+                'content': clean_response
+            })
+    
+    return blocks
+
 @app.route('/chat', methods=['POST'])
 def chat():
     """
@@ -1122,17 +1212,16 @@ def chat():
                  # Stop the loop here, waiting for user action on frontend
                  break
 
-            # Step 3: Execute commands and collect results
+            # Step 3: Execute commands and send as separate SHELL blocks
             execution_summary = ""
             
             if core.body:
-                yield json.dumps({"chunk": "\n\n"}) + "\n"
                 for cmd_block in code_blocks:
                     commands = [line.strip() for line in cmd_block.split('\n') 
                                if line.strip() and not line.strip().startswith('#')]
                     
                     for cmd in commands:
-                        yield json.dumps({"chunk": f"🔧 Executando: {cmd}\n"}) + "\n"
+                        # Execute command
                         result = core.execute_tool(cmd)
                         
                         # Log command execution if debug mode active
@@ -1142,7 +1231,15 @@ def chat():
                             exit_code=0 if result and 'error' not in result.lower() else 1
                         )
                         
-                        yield json.dumps({"chunk": f"{result}\n\n"}) + "\n"
+                        # Send as SHELL output block (NEW - separate from AI feedback)
+                        yield json.dumps({
+                            "type": "shell_output",
+                            "command": cmd,
+                            "stdout": result,
+                            "exit_code": 0 if result and 'error' not in result.lower() else 1,
+                            "iteration": iteration,
+                            "max_iterations": actual_limit if not unlimited else 0
+                        }) + "\n"
                         
                         # Add to execution summary for AI feedback
                         execution_summary += f"\nComando: {cmd}\nResultado: {result}\n"
