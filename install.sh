@@ -26,6 +26,7 @@ INSTALL_DIR="$HOME/.hexagent-gui/app"
 CONFIG_DIR="$HOME/.hexagent-gui/config"
 LOCAL_BIN="$HOME/.local/bin"
 DESKTOP_DIR=$(xdg-user-dir DESKTOP 2>/dev/null || echo "$HOME/Desktop")
+npm run build
 
 print_header() {
     echo -e "${BLUE}"

@@ -86,15 +86,16 @@ const WorkspacePanel = ({ isOpen, onClose, onFileSelect }) => {
   
   return (
     <div className={`
-      fixed top-0 left-0 h-full bg-gray-900 border-r border-gray-700 
-      transition-all duration-300 z-40 flex
-      ${isCollapsed ? 'w-12' : 'w-80'}
+      h-full bg-gray-900 border-r border-gray-700 
+      transition-all duration-300 flex flex-col
+      ${isCollapsed ? 'w-16' : 'w-80'}
     `}>
       {/* Collapse/Expand Button */}
       <button
         onClick={() => setIsCollapsed(!isCollapsed)}
-        className="absolute -right-3 top-20 bg-gray-800 border border-gray-600 rounded-full p-1 hover:bg-gray-700 transition z-50"
+        className="absolute right-0 top-20 bg-gray-800 border border-gray-600 rounded-r-md p-1 hover:bg-gray-700 transition z-10"
         title={isCollapsed ? "Expand workspace" : "Collapse workspace"}
+        style={{ transform: 'translateX(100%)' }}
       >
         {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
       </button>
