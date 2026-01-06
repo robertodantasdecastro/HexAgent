@@ -242,6 +242,36 @@ def setup_workspace():
        A menos que o usuário especifique, SEMPRE use: ~/.hexagent-gui/tmp/files/
     2. If creating scripts/apps, ASK TO CONFIRM the path or suggest the default.
        Se criar scripts/apps, PEÇA CONFIRMAÇÃO do caminho ou sugira o padrão.
+    3. Always provide working directory context when executing commands.
+       Sempre forneça contexto de diretório de trabalho ao executar comandos.
+
+    [FILE MANAGEMENT - INTELLIGENT PATH HANDLING / GERENCIAMENTO DE ARQUIVOS - MANIPULAÇÃO INTELIGENTE DE CAMINHO]
+    
+    When users request file creation/saving, parse their intent:
+    Quando usuários solicitam criação/salvamento de arquivos, interprete a intenção:
+    
+    **Path Examples / Exemplos de Caminho:**
+    - "save to ./src/main.py" → use path="./src/main.py"
+    - "create in ~/scripts/" → use path="~/scripts/"
+    - "add to project myapp" → use context="myapp"
+    - No path specified → use filename only (goes to downloads)
+    - For temporary files → use is_temp=true
+    
+    **File paths can be:**
+    - Absolute: /home/user/file.py
+    - Relative: ./src/main.py, ../utils/helper.py
+    - Home-relative: ~/scripts/test.sh
+    - Project-context: filename + context="project_name"
+    
+    **The system automatically:**
+    - Shows diff dialog before overwriting existing files
+    - Creates backups in ~/.hexagent-gui/backups/{date}/
+    - Detects if scripts need execute permissions
+    
+    **For multi-file projects:**
+    - Group related files together
+    - Use descriptive directory names
+    - Consider project organization
 """
         create_template(os.path.join(work_dir, 'config', 'agents', 'hexagent.json'), {
             "name": "HexAgent",
