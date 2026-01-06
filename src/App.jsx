@@ -685,7 +685,16 @@ const App = () => {
 
   // Export chat handler (debug mode only)
   const handleExportChat = async () => {
+    console.log('[Export Chat] Button clicked');
     try {
+      // Check if Electron is available
+      if (!window.require) {
+        console.error('[Export Chat] window.require not available');
+        alert('Export feature only works in Electron app');
+        return;
+      }
+      
+      console.log('[Export Chat] Preparing export data...');
       // Prepare export data
       const exportData = {
         session_id: Date.now().toString(),
@@ -696,6 +705,7 @@ const App = () => {
         }
       };
 
+      console.log('[Export Chat] Sending to backend...');
       // Request backend to format
       const response = await fetch('http://localhost:5000/export/chat', {
         method: 'POST',
@@ -704,8 +714,10 @@ const App = () => {
       });
 
       const data = await response.json();
+      console.log('[Export Chat] Backend response:', data);
 
-      if (data.success && window.require) {
+      if (data.success) {
+        console.log('[Export Chat] Requesting save dialog...');
         // Use Electron IPC to save file
         const { ipcRenderer } = window.require('electron');
         const result = await ipcRenderer.invoke('save-file', {
@@ -720,10 +732,16 @@ const App = () => {
 
         if (result.success) {
           console.log('✅ Chat exported to:', result.path);
+          alert(`Chat exported successfully to:\n${result.path}`);
+        } else {
+          console.log('Export canceled by user');
         }
+      } else {
+        throw new Error(data.message || 'Export failed');
       }
     } catch (error) {
       console.error('❌ Export failed:', error);
+      alert(`Export failed: ${error.message}`);
     }
   };
 

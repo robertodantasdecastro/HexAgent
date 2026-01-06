@@ -28,34 +28,42 @@ const ScriptBlock = ({
   const [showOverwriteDialog, setShowOverwriteDialog] = useState(false);
   
   const handleSave = async (forceOverwrite = false) => {
+    console.log('[ScriptBlock] Save clicked:', { savePath, filename, forceOverwrite });
     setIsSaving(true);
     try {
       const needsExec = ScriptManager.needsExecutePermission(content);
+      console.log('[ScriptBlock] Needs exec permission:', needsExec);
       
       // Use new file management API / Usar nova API de gerenciamento de arquivos
+      const payload = {
+        content: content,
+        filename: filename,
+        path: savePath,
+        make_executable: needsExec,
+        overwrite: forceOverwrite,
+        is_temp: false
+      };
+      console.log('[ScriptBlock] Sending to /file/write:', payload);
+      
       const result = await fetch('http://localhost:5000/file/write', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          content: content,
-          filename: filename,
-          path: savePath,
-          make_executable: needsExec,
-          overwrite: forceOverwrite,
-          is_temp: false
-        })
+        body: JSON.stringify(payload)
       });
       
       const data = await result.json();
+      console.log('[ScriptBlock] Response from /file/write:', data);
       
       if (!data.success && data.error === 'file_exists') {
         // File exists, show overwrite confirmation / Arquivo existe, mostrar confirmação
+        console.log('[ScriptBlock] File exists, showing overwrite dialog');
         setShowOverwriteDialog(true);
         setIsSaving(false);
         return;
       }
       
       if (data.success) {
+        console.log('[ScriptBlock] ✅ File saved successfully');
         setSaved(true);
         setTimeout(() => setSaved(false), 2000);
         
@@ -64,7 +72,7 @@ const ScriptBlock = ({
         throw new Error(data.message || 'Failed to save file');
       }
     } catch (error) {
-      console.error('[ScriptBlock] Save failed:', error);
+      console.error('[ScriptBlock] ❌ Save failed:', error);
       alert(`Erro ao salvar: ${error.message}`);
     } finally {
       setIsSaving(false);
