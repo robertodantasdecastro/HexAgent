@@ -25,22 +25,54 @@ const ScriptBlock = ({
   const [executionResult, setExecutionResult] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [showOverwriteDialog, setShowOverwriteDialog] = useState(false);
   
-  const handleSave = async () => {
+  const handleSave = async (forceOverwrite = false) => {
     setIsSaving(true);
     try {
       const needsExec = ScriptManager.needsExecutePermission(content);
-      const result = await ScriptManager.saveScript(savePath, content, needsExec);
       
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
+      // Use new file management API / Usar nova API de gerenciamento de arquivos
+      const result = await fetch('http://localhost:5000/file/write', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: content,
+          filename: filename,
+          path: savePath,
+          make_executable: needsExec,
+          overwrite: forceOverwrite,
+          is_temp: false
+        })
+      });
       
-      if (onSaved) onSaved(result);
+      const data = await result.json();
+      
+      if (!data.success && data.error === 'file_exists') {
+        // File exists, show overwrite confirmation / Arquivo existe, mostrar confirmação
+        setShowOverwriteDialog(true);
+        setIsSaving(false);
+        return;
+      }
+      
+      if (data.success) {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+        
+        if (onSaved) onSaved(data);
+      } else {
+        throw new Error(data.message || 'Failed to save file');
+      }
     } catch (error) {
+      console.error('[ScriptBlock] Save failed:', error);
       alert(`Erro ao salvar: ${error.message}`);
     } finally {
       setIsSaving(false);
     }
+  };
+  
+  const handleConfirmOverwrite = () => {
+    handleSave(true); // Force overwrite / Forçar sobrescrita
   };
   
   const handleExecute = async () => {
@@ -197,6 +229,15 @@ const ScriptBlock = ({
           </div>
         </div>
       )}
+      
+      {/* Overwrite Confirmation Dialog / Diálogo de Confirmação de Sobrescrita */}
+      <OverwriteConfirmDialog
+        isOpen={showOverwriteDialog}
+        onClose={() => setShowOverwriteDialog(false)}
+        filePath={savePath}
+        newContent={content}
+        onConfirm={handleConfirmOverwrite}
+      />
     </div>
   );
 };
