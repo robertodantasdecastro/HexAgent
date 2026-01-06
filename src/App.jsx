@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowDown, CheckCircle, Code, Copy, Cpu, Download, Edit, FileText, Hash, HelpCircle, History, Infinity, Pause, Play, Power, Send, Settings, Square, Terminal } from 'lucide-react';
+import { AlertTriangle, ArrowDown, CheckCircle, Code, Copy, Cpu, Download, Edit, FileText, Folder, Hash, HelpCircle, History, Infinity, Pause, Play, Power, Send, Settings, Square, Terminal } from 'lucide-react';
 import Prism from 'prismjs';
 import 'prismjs/components/prism-bash';
 import 'prismjs/components/prism-javascript';
@@ -12,6 +12,7 @@ import SessionModal from './components/SessionModal';
 import SettingsModal from './components/SettingsModal';
 import ShutdownModal from './components/ShutdownModal';
 import SmartBlock from './components/SmartBlock';
+import WorkspacePanel from './components/WorkspacePanel';
 import { useTranslation } from './hooks/useTranslation';
 import { tempFileManager } from './utils/tempFileManager';
 
