@@ -34,6 +34,7 @@ import subprocess
 import signal
 import atexit
 import threading
+from datetime import datetime
 # Import command splitter for heredoc handling
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "utils"))
 from command_splitter import split_commands_smart
