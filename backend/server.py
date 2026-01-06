@@ -1361,10 +1361,15 @@ def export_chat():
     Exportar conversa completa em formato markdown estruturado
     """
     try:
+        print("[export_chat] Endpoint called")
         data = request.json
+        print(f"[export_chat] Received data keys: {list(data.keys()) if data else 'None'}")
+        
         blocks = data.get('blocks', [])
         session_id = data.get('session_id', 'unknown')
         metadata = data.get('metadata', {})
+        
+        print(f"[export_chat] Processing {len(blocks)} blocks")
         
         # Generate markdown export
         output_lines = []
@@ -1376,39 +1381,50 @@ def export_chat():
         
         # Process each block
         for idx, block in enumerate(blocks, 1):
-            block_type = block.get('type', 'UNKNOWN')
-            timestamp = block.get('timestamp', 'N/A')
-            content = block.get('content', '')
-            
-            output_lines.append(f"## [BLOCK {idx}] {block_type}\n")
-            output_lines.append(f"**Timestamp:** {timestamp}\n\n")
-            
-            # Format based on block type
-            if block_type == 'SHELL':
-                command = block.get('command', content)
-                result = block.get('output', block.get('result', ''))
-                output_lines.append(f"**Command:**\n```bash\n{command}\n```\n\n")
-                if result:
-                    output_lines.append(f"**Output:**\n```\n{result}\n```\n")
-            elif block_type == 'THINKING':
-                output_lines.append(f"```text\n{content}\n```\n")
-            elif block_type in ['CODE', 'SCRIPT']:
-                language = block.get('language', 'bash')
-                output_lines.append(f"```{language}\n{content}\n```\n")
-            else:
-                output_lines.append(f"{content}\n")
-            
-            output_lines.append("\n---\n\n")
+            try:
+                block_type = block.get('type', 'UNKNOWN')
+                timestamp = block.get('timestamp', 'N/A')
+                content = block.get('content', '')
+                
+                output_lines.append(f"## [BLOCK {idx}] {block_type}\n")
+                output_lines.append(f"**Timestamp:** {timestamp}\n\n")
+                
+                # Format based on block type
+                if block_type == 'SHELL':
+                    command = block.get('command', content)
+                    result = block.get('output', block.get('result', ''))
+                    output_lines.append(f"**Command:**\n```bash\n{command}\n```\n\n")
+                    if result:
+                        output_lines.append(f"**Output:**\n```\n{result}\n```\n")
+                elif block_type == 'THINKING':
+                    output_lines.append(f"```text\n{content}\n```\n")
+                elif block_type in ['CODE', 'SCRIPT']:
+                    language = block.get('language', 'bash')
+                    output_lines.append(f"```{language}\n{content}\n```\n")
+                else:
+                    output_lines.append(f"{content}\n")
+                
+                output_lines.append("\n---\n\n")
+            except Exception as block_error:
+                print(f"[export_chat] Error processing block {idx}: {str(block_error)}")
+                # Continue processing other blocks
+                output_lines.append(f"## [BLOCK {idx}] ERROR\n")
+                output_lines.append(f"Error processing block: {str(block_error)}\n\n---\n\n")
         
         markdown_content = "".join(output_lines)
+        print(f"[export_chat] Generated markdown: {len(markdown_content)} chars")
         
-        # Log export event
-        hex_logger.log_system_event('chat_export', {
-            'session_id': session_id,
-            'blocks_count': len(blocks),
-            'export_size': len(markdown_content)
-        })
+        # Log export event (safe logging - won't fail if logger is disabled)
+        try:
+            hex_logger.log_system_event('chat_export', {
+                'session_id': session_id,
+                'blocks_count': len(blocks),
+                'export_size': len(markdown_content)
+            })
+        except Exception as log_error:
+            print(f"[export_chat] Logger error (non-critical): {str(log_error)}")
         
+        print("[export_chat] Returning success response")
         return jsonify({
             'success': True,
             'markdown': markdown_content,
@@ -1416,8 +1432,21 @@ def export_chat():
         }), 200
         
     except Exception as e:
-        hex_logger.log_system_event('chat_export_error', {'error': str(e)})
-        return jsonify({'success': False, 'error': str(e)}), 500
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"[export_chat] ERROR: {str(e)}")
+        print(f"[export_chat] Traceback:\n{error_trace}")
+        
+        # Try to log error (safe)
+        try:
+            hex_logger.log_system_event('chat_export_error', {
+                'error': str(e),
+                'traceback': error_trace
+            })
+        except:
+            pass
+            
+        return jsonify({'success': False, 'error': str(e), 'traceback': error_trace}), 500
 
 # =============================================================================
 # File and Project Management Endpoints / Endpoints de Gerenciamento de Arquivos e Projetos
