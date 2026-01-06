@@ -1325,7 +1325,18 @@ const App = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-[#050505] text-white relative overflow-hidden">
+    <div className="flex h-screen w-screen overflow-hidden bg-[#050505]">
+      {/* Workspace Panel */}
+      <WorkspacePanel
+        isOpen={showWorkspace}
+        onClose={() => setShowWorkspace(false)}
+        onFileSelect={(file) => {
+          console.log('[App] File selected from workspace:', file);
+        }}
+      />
+      
+      {/* Main Content */}
+      <div className="flex flex-col flex-1 min-w-0 text-white relative overflow-hidden">
       {/* Background Watermark */}
       <div className="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none z-0">
           <img src="logo.png" className="w-[60vh] h-[60vh] object-contain filter grayscale" alt="watermark" />
@@ -1556,16 +1567,6 @@ const App = () => {
       {/* Modals */}
       {console.log('[DEBUG] About to render SettingsModal, showSettings=', showSettings, 'config=', config)}
       
-      {/* Workspace Panel / Painel de Workspace */}
-      <WorkspacePanel
-        isOpen={showWorkspace}
-        onClose={() => setShowWorkspace(false)}
-        onFileSelect={(file) => {
-          console.log('[App] File selected from workspace:', file);
-          // Future: open file in editor panel
-        }}
-      />
-      
       <SettingsModal
         isOpen={showSettings}
         onClose={() => {
@@ -1602,6 +1603,7 @@ const App = () => {
           }
         }}
       />
+    </div>
     </div>
   );
 };

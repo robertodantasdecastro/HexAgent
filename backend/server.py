@@ -113,12 +113,15 @@ except ImportError as e:
     # Don't exit, allow debugging endpoints if possible, or just fail hard.
     # sys.exit(1)
 
-# Import file and project managers / Importar gerenciadores de arquivo e projeto
+# Import File and Project Managers / Importar Gerenciadores de Arquivo e Projeto
+FileManager = None
+ProjectManager = None
 try:
     from managers.file_manager import FileManager
     from managers.project_manager import ProjectManager
+    print("[Import] FileManager and ProjectManager imported successfully")
 except ImportError as e:
-    print(f"Warning: Failed to import managers: {e}")
+    print(f"[Import] Failed to import managers: {e}")
     FileManager = None
     ProjectManager = None
 
