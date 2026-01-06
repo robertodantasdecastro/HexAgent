@@ -409,9 +409,10 @@ const App = () => {
   // UI State
   const [showSettings, setShowSettings] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
-  const [showShutdown, setShowShutdown] = useState(false);
   const [showSessionModal, setShowSessionModal] = useState(false);
   const [showWorkspace, setShowWorkspace] = useState(false);
+  const [showServices, setShowServices] = useState(false);
+  const [showShutdown, setShowShutdown] = useState(false);
   const [currentSessionName, setCurrentSessionName] = useState('');
   
   // UI Enhancements State / Estados de Melhorias de UI
@@ -1392,20 +1393,26 @@ const App = () => {
                      </button>
                    )}
                    
-                   {/* Workspace Button */}
-                   <button
-                     onClick={() => setShowWorkspace(!showWorkspace)}
-                     className="p-0 bg-transparent border-0 cursor-pointer flex items-center"
-                     title="Workspace / Espaço de Trabalho"
-                   >
-                     <Folder 
-                       size={14} 
-                       className={`transition-colors ${
-                         showWorkspace ? 'text-yellow-500' : 'text-gray-400 hover:text-white'
-                       }`}
-                     />
-                   </button>
-                   
+                   {/* Workspace Button / Botão Workspace */}
+              <button
+                onClick={() => setShowWorkspace(!showWorkspace)}
+                className="flex items-center gap-1 text-gray-400 hover:text-purple-400 transition-colors"
+                title="Workspace"
+              >
+                <Folder size={14} />
+                <span className="hidden sm:inline">Workspace</span>
+              </button>
+              
+              {/* Services Button / Botão Serviços */}
+              <button
+                onClick={() => setShowServices(true)}
+                className="flex items-center gap-1 text-gray-400 hover:text-blue-400 transition-colors"
+                title="Services / Serviços"
+              >
+                <Server size={14} />
+                <span className="hidden sm:inline">Services</span>
+              </button>
+              
                    <button
                      onClick={() => {
                        console.log('[DEBUG] Settings button clicked!');
@@ -1583,6 +1590,10 @@ const App = () => {
         onLoadSession={handleLoadSession}
         onSaveSession={handleSaveSession}
         currentSessionName={currentSessionName}
+      />
+      <ServiceManagerModal 
+        isOpen={showServices}
+        onClose={() => setShowServices(false)}
       />
       <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} />
       <ShutdownModal 
