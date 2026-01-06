@@ -154,7 +154,44 @@ const Block = ({ type, content, result, timestamp, onExecute, executed, onContin
                  </div>
             </div>
         </div>
-      );
+       );
+  }
+  
+  // SHELL Output Block - Terminal command result / Bloco de Saída SHELL - Resultado de comando terminal
+  if (type === 'SHELL') {
+    return (
+      <div className="mb-4 rounded-lg bg-[#0a0a0a] border border-green-500/20 overflow-hidden shadow-lg">
+        {/* Header with command */}
+        <div className="flex items-center justify-between px-4 py-2 bg-green-500/5 border-b border-green-500/10">
+          <div className="flex items-center gap-2">
+            <Terminal size={14} className="text-green-500" />
+            <span className="text-xs text-green-400 font-mono">Shell Output</span>
+          </div>
+          <span className="text-xs text-gray-500 font-mono">{timestamp}</span>
+        </div>
+        
+        {/* Terminal output content */}
+        <div className="p-4 bg-black/30 font-mono text-sm">
+          <AnsiRenderer text={content} colors={colors} />
+        </div>
+        
+        {/* Discrete footer with iteration badge */}
+        {(result?.iteration || result?.maxIterations) && (
+          <div className="flex justify-between items-center px-4 py-2 bg-[#0a0a0a] border-t border-green-500/10">
+            <span className="text-[10px] text-gray-600 font-mono">
+              Iteration {result.iteration}/{result.maxIterations}
+            </span>
+            {result.iteration >= result.maxIterations && isLast && (
+              <button 
+                onClick={() => onContinue(result.maxIterations)}
+                className="text-[11px] px-2 py-1 bg-green-500/10 border border-green-500/30 text-green-400 rounded hover:bg-green-500/20 transition">
+                Continue
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    );
   }
   
   return (
@@ -1039,8 +1076,26 @@ const App = () => {
         return;
     }
     
-    if (lowerCmd === 'exit') {
+    if (lowerCmd === 'exit' || lowerCmd === 'quit') {
         setShowShutdown(true);
+        setLoading(false);
+        return;
+    }
+
+    if (lowerCmd === 'save' || cmd.trim() === '/save') {
+        handleSaveSession();
+        setLoading(false);
+        return;
+    }
+
+    if (lowerCmd.startsWith('open session') || cmd.trim().startsWith('/open session')) {
+        setShowSessionModal(true);
+        setLoading(false);
+        return;
+    }
+
+    if (lowerCmd.startsWith('open history') || cmd.trim().startsWith('/open history')) {
+        setShowHelp(true);
         setLoading(false);
         return;
     }
@@ -1141,13 +1196,18 @@ const App = () => {
                 body: JSON.stringify({ command: cmd })
             });
             const data = await response.json();
+            console.log('[Command Mode] Response:', data);
             
-            // Show terminal-style output wrapped in bash code block
-            const output = data.result || data.error || "(No output)";
+            // Try multiple possible response formats
+            const output = data.stdout || data.output || data.result || data.error || "(No output)";
+            
+            // Create SHELL block type for terminal output
             setBlocks(prev => [...prev, {
                 id: Date.now(),
-                type: 'agent',
-                content: `\`\`\`bash\n${output}\n\`\`\``,
+                type: 'SHELL',
+                content: output,
+                command: cmd,
+                exitCode: data.exit_code || data.exitCode || 0,
                 timestamp: new Date().toLocaleTimeString()
             }]);
         } catch (e) {
