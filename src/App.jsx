@@ -1554,6 +1554,17 @@ const App = () => {
       
       {/* Modals */}
       {console.log('[DEBUG] About to render SettingsModal, showSettings=', showSettings, 'config=', config)}
+      
+      {/* Workspace Panel / Painel de Workspace */}
+      <WorkspacePanel
+        isOpen={showWorkspace}
+        onClose={() => setShowWorkspace(false)}
+        onFileSelect={(file) => {
+          console.log('[App] File selected from workspace:', file);
+          // Future: open file in editor panel
+        }}
+      />
+      
       <SettingsModal
         isOpen={showSettings}
         onClose={() => {
