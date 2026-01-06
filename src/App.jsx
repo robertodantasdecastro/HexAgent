@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowDown, CheckCircle, Code, Copy, Cpu, Download, Edit, FileText, Folder, Hash, HelpCircle, History, Infinity, Pause, Play, Power, Send, Settings, Square, Terminal } from 'lucide-react';
+import { AlertTriangle, ArrowDown, CheckCircle, Code, Copy, Cpu, Download, Edit, FileText, Folder, Hash, HelpCircle, History, Infinity, Pause, Play, Power, Send, Server, Settings, Square, Terminal } from 'lucide-react';
 import Prism from 'prismjs';
 import 'prismjs/components/prism-bash';
 import 'prismjs/components/prism-javascript';
