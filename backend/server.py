@@ -113,6 +113,15 @@ except ImportError as e:
     # Don't exit, allow debugging endpoints if possible, or just fail hard.
     # sys.exit(1)
 
+# Import file and project managers / Importar gerenciadores de arquivo e projeto
+try:
+    from managers.file_manager import FileManager
+    from managers.project_manager import ProjectManager
+except ImportError as e:
+    print(f"Warning: Failed to import managers: {e}")
+    FileManager = None
+    ProjectManager = None
+
 app = Flask(__name__)
 CORS(app) # Enable CORS for Electron
 
@@ -436,6 +445,17 @@ hex_logger = HexAgentLogger()
 if config.get('system', {}).get('debug_mode', False):
     hex_logger.enable()
     print("[Logger] Debug mode enabled - structured logging activated")
+
+# Initialize file and project managers / Inicializar gerenciadores de arquivo e projeto
+file_manager = None
+project_manager = None
+if FileManager and ProjectManager:
+    try:
+        file_manager = FileManager()
+        project_manager = ProjectManager(file_manager)
+        print("[Managers] FileManager and ProjectManager initialized")
+    except Exception as e:
+        print(f"[Managers] Failed to initialize managers: {e}")
 
 @app.route('/init_status', methods=['GET'])
 def init_status():
@@ -1365,6 +1385,227 @@ def export_chat():
     except Exception as e:
         hex_logger.log_system_event('chat_export_error', {'error': str(e)})
         return jsonify({'success': False, 'error': str(e)}), 500
+
+# =============================================================================
+# File and Project Management Endpoints / Endpoints de Gerenciamento de Arquivos e Projetos
+# =============================================================================
+
+@app.route('/file/write', methods=['POST'])
+def write_file_endpoint():
+    """
+    Write content to file with intelligent path resolution
+    Escrever conteúdo em arquivo com resolução inteligente de caminho
+    
+    Body: {
+        "content": "file content",
+        "filename": "script.py",
+        "path": "./src/main.py" (optional),
+        "overwrite": false (optional),
+        "make_executable": false (optional),
+        "is_temp": false (optional),
+        "context": "project_name" (optional)
+    }
+    """
+    if not file_manager:
+        return jsonify({"error": "FileManager not available"}), 503
+    
+    try:
+        data = request.json
+        
+        result = file_manager.write_file(
+            content=data['content'],
+            filename=data['filename'],
+            user_path=data.get('path'),
+            overwrite=data.get('overwrite', False),
+            make_executable=data.get('make_executable', False),
+            is_temp=data.get('is_temp', False),
+            context=data.get('context')
+        )
+        
+        # Log file write if debug mode / Registrar escrita de arquivo se modo debug
+        if result['success']:
+            hex_logger.log_system_event('file_write', {
+                'path': result['path'],
+                'size': result['size'],
+                'is_temp': result.get('is_temp', False)
+            })
+        
+        return jsonify(result), 200 if result['success'] else 400
+        
+    except KeyError as e:
+        return jsonify({"error": f"Missing required field: {str(e)}"}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/file/diff', methods=['POST'])
+def get_file_diff_endpoint():
+    """
+    Get diff between existing file and new content
+    Obter diff entre arquivo existente e novo conteúdo
+    
+    Body: {
+        "path": "/path/to/file",
+        "content": "new content"
+    }
+    """
+    if not file_manager:
+        return jsonify({"error": "FileManager not available"}), 503
+    
+    try:
+        data = request.json
+        diff_result = file_manager.get_diff(data['path'], data['content'])
+        
+        if diff_result is None:
+            return jsonify({
+                "file_exists": False,
+                "message": "File does not exist"
+            }), 200
+        
+        return jsonify(diff_result), 200
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/file/read', methods=['POST'])
+def read_file_endpoint():
+    """
+    Read file content with metadata
+    Ler conteúdo de arquivo com metadados
+    """
+    if not file_manager:
+        return jsonify({"error": "FileManager not available"}), 503
+    
+    try:
+        data = request.json
+        result = file_manager.read_file(data['path'])
+        return jsonify(result), 200 if result['success'] else 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/file/backups', methods=['GET'])
+def list_backups_endpoint():
+    """
+    List available file backups
+    Listar backups de arquivos disponíveis
+    """
+    if not file_manager:
+        return jsonify({"error": "FileManager not available"}), 503
+    
+    try:
+        filename = request.args.get('filename')
+        backups = file_manager.list_backups(filename)
+        return jsonify({"backups": backups, "count": len(backups)}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/project/create', methods=['POST'])
+def create_project_endpoint():
+    """
+    Create multi-file project with structure
+    Criar projeto com múltiplos arquivos com estrutura
+    
+    Body: {
+        "name": "my_project",
+        "description": "Project description" (optional),
+        "files": [
+            {"path": "main.py", "content": "...", "executable": false},
+            {"path": "utils/helper.py", "content": "..."}
+        ]
+    }
+    """
+    if not project_manager:
+        return jsonify({"error": "ProjectManager not available"}), 503
+    
+    try:
+        data = request.json
+        
+        result = project_manager.create_project(
+            name=data['name'],
+            files=data['files'],
+            description=data.get('description')
+        )
+        
+        # Log project creation / Registrar criação de projeto
+        if result['success']:
+            hex_logger.log_system_event('project_create', {
+                'project_name': result['project_name'],
+                'file_count': len(result['files'])
+            })
+        
+        return jsonify(result), 200 if result['success'] else 400
+        
+    except KeyError as e:
+        return jsonify({"error": f"Missing required field: {str(e)}"}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/project/<project_name>/tree', methods=['GET'])
+def get_project_tree_endpoint(project_name):
+    """
+    Get file tree structure for project
+    Obter estrutura de árvore de arquivos do projeto
+    """
+    if not project_manager:
+        return jsonify({"error": "ProjectManager not available"}), 503
+    
+    try:
+        tree = project_manager.get_file_tree(
+            str(project_manager.projects_root / project_name)
+        )
+        
+        if not tree:
+            return jsonify({"error": "Project not found or empty"}), 404
+        
+        return jsonify({"project": project_name, "tree": tree}), 200
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/project/list', methods=['GET'])
+def list_projects_endpoint():
+    """
+    List all projects
+    Listar todos os projetos
+    """
+    if not project_manager:
+        return jsonify({"error": "ProjectManager not available"}), 503
+    
+    try:
+        projects = project_manager.list_projects()
+        return jsonify({"projects": projects, "count": len(projects)}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/project/<project_name>', methods=['DELETE'])
+def delete_project_endpoint(project_name):
+    """
+    Delete a project (with backup)
+    Deletar um projeto (com backup)
+    """
+    if not project_manager:
+        return jsonify({"error": "ProjectManager not available"}), 503
+    
+    try:
+        create_backup = request.args.get('backup', 'true').lower() == 'true'
+        result = project_manager.delete_project(project_name, create_backup)
+        
+        if result['success']:
+            hex_logger.log_system_event('project_delete', {
+                'project_name': project_name,
+                'backup_created': create_backup
+            })
+        
+        return jsonify(result), 200 if result['success'] else 400
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/status', methods=['GET'])
 def status():
