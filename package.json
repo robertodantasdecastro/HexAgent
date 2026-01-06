@@ -23,6 +23,7 @@
     "build:all": "vite build && electron-builder --linux --mac --win"
   },
   "dependencies": {
+    "@monaco-editor/react": "^4.7.0",
     "clsx": "^2.1.1",
     "lucide-react": "^0.436.0",
     "prismjs": "^1.30.0",

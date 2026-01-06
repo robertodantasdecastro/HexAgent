@@ -8,6 +8,7 @@ import 'prismjs/themes/prism-tomorrow.css';
 import { useEffect, useRef, useState } from 'react';
 import HelpModal from './components/HelpModal';
 import LoadingScreen from './components/LoadingScreen';
+import ServiceManagerModal from './components/ServiceManagerModal';
 import SessionModal from './components/SessionModal';
 import SettingsModal from './components/SettingsModal';
 import ShutdownModal from './components/ShutdownModal';
@@ -413,6 +414,8 @@ const App = () => {
   const [showWorkspace, setShowWorkspace] = useState(false);
   const [showServices, setShowServices] = useState(false);
   const [showShutdown, setShowShutdown] = useState(false);
+  const [openFiles, setOpenFiles] = useState([]);
+  const [activeFileIndex, setActiveFileIndex] = useState(0);
   const [currentSessionName, setCurrentSessionName] = useState('');
   
   // UI Enhancements State / Estados de Melhorias de UI
@@ -1331,8 +1334,35 @@ const App = () => {
       <WorkspacePanel
         isOpen={showWorkspace}
         onClose={() => setShowWorkspace(false)}
-        onFileSelect={(file) => {
+        onFileSelect={async (file) => {
           console.log('[App] File selected from workspace:', file);
+          
+          // Check if file already open
+          const existingIndex = openFiles.findIndex(f => f.path === file.path);
+          if (existingIndex !== -1) {
+            setActiveFileIndex(existingIndex);
+            return;
+          }
+          
+          // Fetch file content
+          try {
+            const response = await fetch('http://localhost:5000/file/read', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ path: file.path })
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+              setOpenFiles(prev => [...prev, {
+                ...file,
+                content: data.content
+              }]);
+              setActiveFileIndex(openFiles.length);
+            }
+          } catch (error) {
+            console.error('[App] Failed to read file:', error);
+          }
         }}
       />
       
@@ -1436,7 +1466,55 @@ const App = () => {
           </div>
       </header>
 
-      {/* Main Content */}
+      {/* Content Area - Split between Editor and Chat */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* File Editor Panel (conditionally shown when files are open) */}
+        {openFiles.length > 0 && (
+          <div className="flex-1 min-w-0 border-r border-[#333]">
+            <FileEditorPanel
+              openFiles={openFiles}
+              activeFileIndex={activeFileIndex}
+              onTabChange={setActiveFileIndex}
+              onClose={(index) => {
+                setOpenFiles(prev => prev.filter((_, i) => i !== index));
+                if (activeFileIndex >= openFiles.length - 1) {
+                  setActiveFileIndex(Math.max(0, openFiles.length - 2));
+                }
+              }}
+              onSave={async (path, content) => {
+                try {
+                  const response = await fetch('http://localhost:5000/file/write', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      content,
+                      filename: path.split('/').pop(),
+                      path,
+                      overwrite: true,
+                      make_executable: false,
+                      is_temp: false
+                    })
+                  });
+                  const data = await response.json();
+                  if (!data.success) {
+                    throw new Error(data.error || 'Save failed');
+                  }
+                  // Update file content in openFiles
+                  setOpenFiles(prev => prev.map(f => 
+                    f.path === path ? { ...f, content } : f
+                  ));
+                } catch (error) {
+                  console.error('[App] File save failed:', error);
+                  alert(`Failed to save file: ${error.message}`);
+                }
+              }}
+            />
+          </div>
+        )}
+        
+        {/* Conversation Area */}
+        <div className={`flex flex-col ${openFiles.length > 0 ? 'flex-1' : 'flex-1'} min-w-0`}>
+      {/* Conversation Area */}
       <main className="flex-1 overflow-y-auto p-4 custom-scrollbar z-10" ref={scrollRef}>
            {/* Blocks Rendering */}
            {blocks.map((block, index) => (
@@ -1570,7 +1648,8 @@ const App = () => {
               <span>HexSecGPT v2.0</span>
           </div>
       </div>
-      
+      </div> {/* End conversationArea flex-col */}
+    </div> {/* End Content Area flex split */}      
       {/* Modals */}
       {console.log('[DEBUG] About to render SettingsModal, showSettings=', showSettings, 'config=', config)}
       
