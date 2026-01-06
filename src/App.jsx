@@ -410,6 +410,7 @@ const App = () => {
   const [showHelp, setShowHelp] = useState(false);
   const [showShutdown, setShowShutdown] = useState(false);
   const [showSessionModal, setShowSessionModal] = useState(false);
+  const [showWorkspace, setShowWorkspace] = useState(false);
   const [currentSessionName, setCurrentSessionName] = useState('');
   
   // UI Enhancements State / Estados de Melhorias de UI
@@ -1378,6 +1379,20 @@ const App = () => {
                        />
                      </button>
                    )}
+                   
+                   {/* Workspace Button */}
+                   <button
+                     onClick={() => setShowWorkspace(!showWorkspace)}
+                     className="p-0 bg-transparent border-0 cursor-pointer flex items-center"
+                     title="Workspace / Espaço de Trabalho"
+                   >
+                     <Folder 
+                       size={14} 
+                       className={`transition-colors ${
+                         showWorkspace ? 'text-yellow-500' : 'text-gray-400 hover:text-white'
+                       }`}
+                     />
+                   </button>
                    
                    <button
                      onClick={() => {
