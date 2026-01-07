@@ -11,7 +11,10 @@
         "copy_text": "COPIAR TEXTO",
         "copy_command": "COPIAR COMANDO",
         "execute": "EJECUTAR",
-        "executed": "Ejecutado"
+        "executed": "Ejecutado",
+        "cancel": "Cancelar",
+        "save": "Guardar",
+        "close": "Cerrar"
     },
     "block": {
         "hexagent": "HEXAGENT",
@@ -38,11 +41,50 @@
     },
     "settings": {
         "title": "Configuración",
-        "tab_general": "General",
-        "tab_appearance": "Apariencia",
-        "tab_brain": "Cerebro / IA",
+        "configuration": "CONFIGURACIÓN",
+        "tabs": {
+            "general": "GENERAL",
+            "api_keys": "CLAVES API",
+            "models": "MODELOS",
+            "services": "SERVICIOS",
+            "appearance": "Apariencia",
+            "brain": "Cerebro / IA",
+            "geral": "General"
+        },
+        "general": {
+            "description": "Configuración y preferencias principales de la aplicación",
+            "auto_save": "Guardar Sesiones Automáticamente",
+            "auto_save_desc": "Guardar sesiones de chat automáticamente",
+            "debug_mode": "Modo Debug",
+            "debug_desc": "Activar registro de depuración",
+            "more_coming": "Más configuraciones pronto en ~/.hexagent-gui/config/"
+        },
+        "api_keys": {
+            "description": "Configurar claves API para proveedores de IA",
+            "openai": "Clave API OpenAI",
+            "openrouter": "Clave API OpenRouter",
+            "storage_info": "Claves almacenadas en ~/.hexagent-gui/config/core/api_keys.json"
+        },
+        "models": {
+            "description": "Configurar preferencias del modelo de IA",
+            "provider": "Proveedor de IA Activo",
+            "select_brain": "Seleccionar Configuración del Cerebro"
+        },
+        "services": {
+            "description": "Configuración del Backend",
+            "flask_port": "Puerto Flask",
+            "host": "Host",
+            "hexstrike_config": "Configuración HexStrike",
+            "hexstrike_port": "Puerto HexStrike",
+            "shell_history": "Historial del Shell",
+            "shell_type": "Tipo de Shell",
+            "auto_detect": "Auto Detectar",
+            "history_path": "Ruta del Archivo de Historial",
+            "leave_empty": "Dejar vacío para auto-detectar"
+        },
         "language": "Idioma",
         "language_auto": "Auto Detectar",
+        "language_updates": "Idioma actualiza instantáneamente",
         "theme": "Tema",
         "theme_dark": "Oscuro",
         "theme_light": "Claro",
@@ -59,13 +101,29 @@
         "terminal_bg": "Fondo Terminal",
         "reset": "Restaurar Predeterminado"
     },
-     "brain": {
+    "brain": {
         "provider": "Proveedor IA",
         "model": "Nombre del Modelo",
         "api_key": "Clave API",
         "base_url": "URL Base (Opcional)",
         "max_iterations": "Máx Iteraciones",
         "browser_search": "Búsqueda Web"
+    },
+    "workflow": {
+        "title": "Gestor de Flujos",
+        "subtitle": "Estrategias inteligentes de workflow",
+        "select": "Seleccione un workflow y defina un objetivo para comenzar",
+        "execute_with": "Ejecutar con MCP",
+        "reconnaissance": "Reconocimiento",
+        "reconnaissance_desc": "Enumeración exhaustiva de subdominios, análisis DNS, escaneo de puertos y descubrimiento de contenido",
+        "vulnerability_hunt": "Búsqueda de Vulnerabilidades",
+        "vulnerability_desc": "Descubrir vulnerabilidades conocidas a través de detección de versión, enumeración de servicios y coincidencia de exploits",
+        "osint_gathering": "Recopilación OSINT",
+        "osint_desc": "Recopilación de Inteligencia de Fuentes Abiertas de fuentes públicas, redes sociales y análisis de documentos",
+        "business_logic": "Lógica de Negocio",
+        "business_logic_desc": "Analizar flujo de Lógica de API y bypass de autenticación",
+        "full_assessment": "Evaluación Completa",
+        "full_assessment_desc": "Evaluación de seguridad completa de extremo a extremo con todos los módulos combinados"
     },
     "loading": {
         "initializing": "Inicializando Sistema...",

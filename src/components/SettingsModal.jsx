@@ -210,11 +210,11 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
             {activeTab === 'general' && (
                 <div className="space-y-5 animate-in fade-in zoom-in-95 duration-200">
                     <div className="text-sm text-gray-400 mb-4">
-                        Core application settings and preferences
+                        {t ? t('settings.general.description') : 'Core application settings and preferences'}
                     </div>
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-xs text-gray-400 mb-1.5 font-mono">Auto Save Sessions</label>
+                            <label className="block text-xs text-gray-400 mb-1.5 font-mono">{t ? t('settings.general.auto_save') : 'Auto Save Sessions'}</label>
                             <div className="flex items-center gap-2">
                                 <input 
                                     type="checkbox" 
@@ -222,11 +222,11 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
                                     onChange={(e) => updateSystem('auto_save_session', e.target.checked)}
                                     className="w-4 h-4"
                                 />
-                                <span className="text-sm text-gray-300">Automatically save chat sessions</span>
+                                <span className="text-sm text-gray-300">{t ? t('settings.general.auto_save_desc') : 'Automatically save chat sessions'}</span>
                             </div>
                         </div>
                         <div>
-                            <label className="block text-xs text-gray-400 mb-1.5 font-mono">Debug Mode</label>
+                            <label className="block text-xs text-gray-400 mb-1.5 font-mono">{t ? t('settings.general.debug_mode') : 'Debug Mode'}</label>
                             <div className="flex items-center gap-2">
                                 <input 
                                     type="checkbox" 
@@ -234,7 +234,7 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
                                     onChange={(e) => updateSystem('debug_mode', e.target.checked)}
                                     className="w-4 h-4"
                                 />
-                                <span className="text-sm text-gray-300">Enable debug logging</span>
+                                <span className="text-sm text-gray-300">{t ? t('settings.general.debug_desc') : 'Enable debug logging'}</span>
                             </div>
                         </div>
                         
@@ -245,10 +245,14 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
                             </label>
                             <select
                                 value={localConfig.ai?.language || 'auto'}
-                                onChange={(e) => {
-                                    updateAI('language', e.target.value);
-                                    // Force re-render by updating state
-                                    window.location.reload();
+                                onChange={async (e) => {
+                                    const newLang = e.target.value;
+                                    updateAI('language', newLang);
+                                    
+                                    // Use TranslationManager for real-time update / Usar TranslationManager para atualização em tempo real
+                                    const { default: TranslationManager } = await import('../utils/TranslationManager');
+                                    const tm = TranslationManager.getInstance();
+                                    tm.setLanguage(newLang);
                                 }}
                                 className="w-full bg-black border border-[#333] rounded px-3 py-2 text-white text-sm focus:border-blue-500 focus:outline-none"
                             >
@@ -258,12 +262,12 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
                                 <option value="es">🇪🇸 Español</option>
                             </select>
                             <p className="text-xs text-gray-500 mt-1">
-                                Interface language will update after save / Idioma da interface será atualizado após salvar
+                                Language updates instantly / Idioma atualiza instantaneamente
                             </p>
                         </div>
                         
                         <div className="text-xs text-yellow-500 mt-4">
-                            💡 More general settings coming soon in ~/.hexagent-gui/config/
+                            💡 {t ? t('settings.general.more_coming') : 'More general settings coming soon in ~/.hexagent-gui/config/'}
                         </div>
                     </div>
                 </div>
@@ -273,11 +277,11 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
             {activeTab === 'api' && (
                 <div className="space-y-5 animate-in fade-in zoom-in-95 duration-200">
                     <div className="text-sm text-gray-400 mb-4">
-                        Configure API keys for AI providers
+                        {t ? t('settings.api_keys.description') : 'Configure API keys for AI providers'}
                     </div>
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-xs text-gray-400 mb-1.5 font-mono">OpenAI API Key</label>
+                            <label className="block text-xs text-gray-400 mb-1.5 font-mono">{t ? t('settings.api_keys.openai') : 'OpenAI API Key'}</label>
                             <input 
                                 type="password"
                                 placeholder="sk-..."

@@ -11,7 +11,10 @@
         "copy_text": "COPIAR TEXTO",
         "copy_command": "COPIAR COMANDO",
         "execute": "EXECUTAR",
-        "executed": "Executado"
+        "executed": "Executado",
+        "cancel": "Cancelar",
+        "save": "Salvar",
+        "close": "Fechar"
     },
     "block": {
         "hexagent": "HEXAGENT",
@@ -38,11 +41,50 @@
     },
     "settings": {
         "title": "Configurações",
-        "tab_general": "Geral",
-        "tab_appearance": "Aparência",
-        "tab_brain": "Cérebro / IA",
+        "configuration": "CONFIGURAÇÃO",
+        "tabs": {
+            "general": "GERAL",
+            "api_keys": "CHAVES API",
+            "models": "MODELOS",
+            "services": "SERVIÇOS",
+            "appearance": "Aparência",
+            "brain": "Cérebro / IA",
+            "geral": "Geral"
+        },
+        "general": {
+            "description": "Configurações e preferências principais da aplicação",
+            "auto_save": "Salvar Sessões Automaticamente",
+            "auto_save_desc": "Salvar sessões de chat automaticamente",
+            "debug_mode": "Modo Debug",
+            "debug_desc": "Ativar registro de debug",
+            "more_coming": "Mais configurações em breve em ~/.hexagent-gui/config/"
+        },
+        "api_keys": {
+            "description": "Configure chaves API para provedores de IA",
+            "openai": "Chave API OpenAI",
+            "openrouter": "Chave API OpenRouter",
+            "storage_info": "Chaves armazenadas em ~/.hexagent-gui/config/core/api_keys.json"
+        },
+        "models": {
+            "description": "Configure preferências do modelo de IA",
+            "provider": "Provedor de IA Ativo",
+            "select_brain": "Selecionar Configuração do Cérebro"
+        },
+        "services": {
+            "description": "Configuração do Backend",
+            "flask_port": "Porta Flask",
+            "host": "Host",
+            "hexstrike_config": "Configuração HexStrike",
+            "hexstrike_port": "Porta HexStrike",
+            "shell_history": "Histórico do Shell",
+            "shell_type": "Tipo de Shell",
+            "auto_detect": "Auto Detectar",
+            "history_path": "Caminho do Arquivo de Histórico",
+            "leave_empty": "Deixe vazio para auto-detectar"
+        },
         "language": "Idioma",
         "language_auto": "Auto Detectar",
+        "language_updates": "Idioma atualiza instantaneamente",
         "theme": "Tema",
         "theme_dark": "Escuro",
         "theme_light": "Claro",
@@ -59,13 +101,29 @@
         "terminal_bg": "Fundo Terminal",
         "reset": "Restaurar Padrão"
     },
-     "brain": {
+    "brain": {
         "provider": "Provedor IA",
         "model": "Nome do Modelo",
         "api_key": "Chave API",
         "base_url": "URL Base (Opcional)",
         "max_iterations": "Máx Iterações",
         "browser_search": "Busca Web"
+    },
+    "workflow": {
+        "title": "Gerenciador de Fluxos",
+        "subtitle": "Estratégias inteligentes de workflow",
+        "select": "Selecione um workflow e defina um alvo para começar",
+        "execute_with": "Executar com MCP",
+        "reconnaissance": "Reconhecimento",
+        "reconnaissance_desc": "Enumeração abrangente de subdomínios, análise DNS, varredura de portas e descoberta de conteúdo",
+        "vulnerability_hunt": "Caça a Vulnerabilidades",
+        "vulnerability_desc": "Descobrir vulnerabilidades conhecidas através de detecção de versão, enumeração de serviços e correspondência de exploits",
+        "osint_gathering": "Coleta OSINT",
+        "osint_desc": "Coleta de Inteligência de Fontes Abertas de fontes públicas, mídias sociais e análise de documentos",
+        "business_logic": "Lógica de Negócio",
+        "business_logic_desc": "Analisar fluxo de Lógica de API e bypass de autenticação",
+        "full_assessment": "Avaliação Completa",
+        "full_assessment_desc": "Avaliação de segurança completa de ponta a ponta com todos os módulos combinados"
     },
     "loading": {
         "initializing": "Inicializando Sistema...",

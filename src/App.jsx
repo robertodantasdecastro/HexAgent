@@ -432,8 +432,8 @@ const App = () => {
   const scrollRef = useRef(null);
   
 
-  // Translation Hook
-  const { t } = useTranslation(config);
+  // Translation Hook / Hook de Tradução
+  const { t, language } = useTranslation();
   
   // History State
   const [promptHistory, setPromptHistory] = useState([]); // Local Prompt History
