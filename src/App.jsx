@@ -171,7 +171,7 @@ const Block = ({ type, content, result, timestamp, onExecute, executed, onContin
         </div>
         
         {/* Terminal output content */}
-        <div className="p-4 bg-black/30 font-mono text-sm">
+        <div className="p-4 bg-black/30 font-mono text-sm whitespace-pre-wrap overflow-x-auto">
           <AnsiRenderer text={content} colors={colors} />
         </div>
         
@@ -1121,108 +1121,10 @@ const App = () => {
     }
 
     
-    // COMMAND MODE - Direct Execution / MODO COMANDO - Execução Direta
-    if (inputMode === 'command') {
-        // Check if it's an @llm request / Verificar se é solicitação @llm
-        if (cmd.trim().startsWith('@')) {
-            // Strip @ and send to AI / Remover @ e enviar para IA
-            const llmPrompt = cmd.trim().substring(1);
-            
-            try {
-                const response = await fetch('http://localhost:5000/chat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        message: llmPrompt, 
-                        language: 'auto',
-                        auto_execute: autoExecute 
-                    }),
-                    signal: abortControllerRef.current.signal
-                });
-                
-                if (!response.body) throw new Error('No body');
-                const reader = response.body.getReader();
-                const decoder = new TextDecoder();
-                let agentText = '';
+    // COMMAND MODE - Handled by Chat Logic for consistency & AI Feedback
+    // MODO COMANDO - Gerenciado pela lógica de Chat para consistência e feedback da IA
+    // Falls through to PROMPT MODE LOGIC below...
 
-                setBlocks(prev => [...prev, {
-                    id: Date.now() + 1,
-                    type: 'agent',
-                    content: '',
-                    timestamp: new Date().toLocaleTimeString()
-                }]);
-
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-                    const chunk = decoder.decode(value);
-                    const lines = chunk.split('\n');
-                    for (const line of lines) {
-                        if (!line.trim()) continue;
-                        try {
-                            const json = JSON.parse(line);
-                            if (json.chunk) {
-                                agentText += json.chunk;
-                                setBlocks(prev => {
-                                    const newBlocks = [...prev];
-                                    newBlocks[newBlocks.length - 1].content = agentText;
-                                    return newBlocks;
-                                });
-                            } else if (json.proposal) {
-                                setBlocks(prev => [...prev, {
-                                    id: Date.now() + 2,
-                                    type: 'proposal',
-                                    content: json.proposal.trim(),
-                                    timestamp: new Date().toLocaleTimeString(),
-                                    executed: false
-                                }]);
-                            }
-                        } catch (e) {}
-                    }
-                }
-            } catch(e) {
-                if(e.name !== 'AbortError') console.error(e);
-            } finally {
-                setLoading(false);
-            }
-            return;
-        }
-        
-        // Direct command execution / Execução direta de comando
-        try {
-            const response = await fetch('http://localhost:5000/execute', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ command: cmd })
-            });
-            const data = await response.json();
-            console.log('[Command Mode] Response:', data);
-            
-            // Try multiple possible response formats
-            const output = data.stdout || data.output || data.result || data.error || "(No output)";
-            
-            // Create SHELL block type for terminal output
-            setBlocks(prev => [...prev, {
-                id: Date.now(),
-                type: 'SHELL',
-                content: output,
-                command: cmd,
-                exitCode: data.exit_code || data.exitCode || 0,
-                timestamp: new Date().toLocaleTimeString()
-            }]);
-        } catch (e) {
-            console.error("Command execution failed", e);
-            setBlocks(prev => [...prev, {
-                id: Date.now(),
-                type: 'agent',
-                content: `❌ Error: ${e.message}`,
-                timestamp: new Date().toLocaleTimeString()
-            }]);
-        } finally {
-            setLoading(false);
-        }
-        return;
-    }
 
     // PROMPT MODE LOGIC (Fallback for chat/AI)
     try {
@@ -1265,7 +1167,7 @@ const App = () => {
                     // Handle SHELL output block (NEW - from backend type:'shell_output')
                     if (json.type === 'shell_output') {
                         setBlocks(prev => [...prev, {
-                            id: Date.now() + Math.random(), // Ensure unique ID
+                            id: Date.now() + Math.random(), 
                             type: 'SHELL',
                             content: json.stdout,
                             command: json.command,
@@ -1276,16 +1178,34 @@ const App = () => {
                             },
                             timestamp: new Date().toLocaleTimeString()
                         }]);
-                        continue; // Skip to next line
+                        // CRITICAL FIX: Reset agent text accumulator so we start fresh for next AI block
+                        // CRÍTICO: Reiniciar acumulador de texto para começar novo bloco de IA limpo
+                        agentText = '';
+                        continue; 
                     }
                     
-                    // Handle AI text chunks (existing behavior)
+                    // Handle AI text chunks
                     if (json.chunk) {
                         agentText += json.chunk;
+                        const currentTextSnapshot = agentText; // Snapshot for closure safety
+                        
                         setBlocks(prev => {
-                            const newBlocks = [...prev];
-                            newBlocks[newBlocks.length - 1].content = agentText;
-                            return newBlocks;
+                            const lastBlock = prev[prev.length - 1];
+                            
+                            // If lastBlock is Agent (and not shell), update it
+                            if (lastBlock && lastBlock.type === 'agent') {
+                                const newBlocks = [...prev];
+                                newBlocks[newBlocks.length - 1].content = currentTextSnapshot;
+                                return newBlocks;
+                            } 
+                            
+                            // If last block is NOT Agent, create NEW Agent block
+                            return [...prev, {
+                                id: Date.now() + 1,
+                                type: 'agent',
+                                content: currentTextSnapshot,
+                                timestamp: new Date().toLocaleTimeString()
+                            }];
                         });
                     } else if (json.proposal) {
                          setBlocks(prev => [...prev, {
@@ -1322,16 +1242,28 @@ const App = () => {
           });
           const data = await response.json();
           
-          // Show result
-          const resultText = data.result || "(No output)";
+          // Show result using SHELL block (Uniformity)
+          const output = data.output || data.stdout || data.result || "(No output)";
+          
           setBlocks(prev => [...prev, {
                 id: Date.now(),
-                type: 'agent',
-                content: `Command Executed / Comando Executado:\n\`\`\`bash\n${cmd}\n\`\`\`\n\n[Output]:\n\`\`\`bash\n${resultText}\n\`\`\``,
+                type: 'SHELL',
+                content: output,
+                command: cmd,
                 timestamp: new Date().toLocaleTimeString()
           }]);
+          
+          // Optional: Trigger AI analysis of the output?
+          // For now, let's keep it simple. User sees the shell output.
+          // If they want explanation, they can ask.
       } catch (e) {
           console.error("Manual execution failed", e);
+          setBlocks(prev => [...prev, {
+              id: Date.now(),
+              type: 'agent',
+              content: `❌ Error executing proposal: ${e.message}`,
+              timestamp: new Date().toLocaleTimeString()
+          }]);
       } finally {
           setLoading(false);
       }

@@ -1,201 +1,151 @@
-/**
- * FileEditorPanel Component
- * Inline file editor with Monaco integration
- * 
- * Componente de Painel de Editor de Arquivos
- * Editor inline com integração Monaco
- */
 
 import Editor from '@monaco-editor/react';
-import { Save, X } from 'lucide-react';
-import { useState } from 'react';
+import { Circle, FileCode, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 
-const FileEditorPanel = ({ openFiles = [], onClose, onSave, activeFileIndex = 0, onTabChange }) => {
-  const [editedContent, setEditedContent] = useState({});
-  const [saving, setSaving] = useState(false);
+/**
+ * FileEditorPanel Component
+ * Monaco Editor integration with multi-tab support
+ * 
+ * Componente FileEditorPanel
+ * Integração do Monaco Editor com suporte a múltiplas abas
+ */
+const FileEditorPanel = ({ files, activeFile, onCloseFile, onSaveFile, onSwitchFile, className }) => {
+  const [content, setContent] = useState('');
+  const [isDirty, setIsDirty] = useState(false);
+  const editorRef = useRef(null);
 
-  if (openFiles.length === 0) {
+  // Update content when active file changes
+  useEffect(() => {
+    if (activeFile && files[activeFile]) {
+      setContent(files[activeFile].content || '');
+      setIsDirty(files[activeFile].isDirty || false);
+    } else {
+      setContent('');
+    }
+  }, [activeFile, files]);
+
+  // Handle editor mount
+  const handleEditorDidMount = (editor, monaco) => {
+    editorRef.current = editor;
+    
+    // Add Ctrl+S keybinding
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
+      handleSave();
+    });
+  };
+
+  // Handle content change
+  const handleChange = (value) => {
+    setContent(value);
+    if (!isDirty && activeFile) {
+      setIsDirty(true);
+      // Notify parent about dirty state if needed
+      // Here we assume local state handling for UI feedback first
+    }
+  };
+
+  // Handle save action
+  const handleSave = () => {
+    if (activeFile && onSaveFile) {
+        onSaveFile(activeFile, content);
+        setIsDirty(false);
+    }
+  };
+
+  // Determine language capabilities based on extension
+  const getLanguage = (filename) => {
+    if (!filename) return 'text';
+    const ext = filename.split('.').pop().toLowerCase();
+    const map = {
+      js: 'javascript', jsx: 'javascript', ts: 'typescript', tsx: 'typescript',
+      py: 'python', html: 'html', css: 'css', json: 'json', md: 'markdown',
+      sh: 'shell', bash: 'shell', sql: 'sql', java: 'java', cpp: 'cpp', c: 'c',
+      go: 'go', rust: 'rust', php: 'php', rb: 'ruby', xml: 'xml', yaml: 'yaml', yml: 'yaml'
+    };
+    return map[ext] || 'text';
+  };
+
+  // Get filename from path
+  const getBasename = (path) => path?.split('/').pop() || 'Untitled';
+
+  if (!activeFile && Object.keys(files).length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-gray-900 text-gray-500">
-        <div className="text-center">
-          <div className="text-6xl mb-4">📝</div>
-          <p className="text-lg">No files open</p>
-          <p className="text-sm">Select a file from workspace to edit</p>
-          <p className="text-sm mt-2 text-gray-600">Nenhum arquivo aberto</p>
-          <p className="text-xs text-gray-600">Selecione um arquivo do workspace para editar</p>
-        </div>
+      <div className={`flex flex-col items-center justify-center h-full bg-[#1e1e1e] text-gray-500 space-y-4 ${className}`}>
+        <FileCode size={48} className="opacity-20" />
+        <p className="text-sm">No file open / Nenhum arquivo aberto</p>
+        <p className="text-xs text-gray-600">Select a file from the sidebar to edit</p>
       </div>
     );
   }
 
-  const activeFile = openFiles[activeFileIndex] || openFiles[0];
-  const currentContent = editedContent[activeFile.path] ?? activeFile.content;
-  const hasUnsavedChanges = editedContent[activeFile.path] !== undefined;
-
-  const handleEditorChange = (value) => {
-    setEditedContent(prev => ({
-      ...prev,
-      [activeFile.path]: value
-    }));
-  };
-
-  const handleSave = async () => {
-    if (!hasUnsavedChanges) return;
-    
-    setSaving(true);
-    try {
-      await onSave(activeFile.path, currentContent);
-      // Clear edited state after successful save
-      setEditedContent(prev => {
-        const newState = { ...prev };
-        delete newState[activeFile.path];
-        return newState;
-      });
-    } catch (error) {
-      console.error('[FileEditorPanel] Save failed:', error);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleCloseTab = (index) => {
-    const fileToClose = openFiles[index];
-    const hasChanges = editedContent[fileToClose.path] !== undefined;
-    
-    if (hasChanges) {
-      const confirm = window.confirm(
-        `You have unsaved changes in ${fileToClose.name}. Close anyway?\n\n` +
-        `Você tem alterações não salvas em ${fileToClose.name}. Fechar mesmo assim?`
-      );
-      if (!confirm) return;
-    }
-    
-    onClose(index);
-  };
-
-  const getLanguageFromPath = (path) => {
-    const ext = path.split('.').pop()?.toLowerCase();
-    const langMap = {
-      'js': 'javascript',
-      'jsx': 'javascript',
-      'ts': 'typescript',
-      'tsx': 'typescript',
-      'py': 'python',
-      'sh': 'shell',
-      'bash': 'shell',
-      'json': 'json',
-      'md': 'markdown',
-      'html': 'html',
-      'css': 'css',
-      'xml': 'xml',
-      'yaml': 'yaml',
-      'yml': 'yaml'
-    };
-    return langMap[ext] || 'plaintext';
-  };
-
   return (
-    <div className="flex-1 flex flex-col bg-gray-900 min-w-0">
-      {/* Tab Bar */}
-      <div className="flex items-center bg-gray-800 border-b border-gray-700 overflow-x-auto">
-        {openFiles.map((file, index) => {
-          const isActive = index === activeFileIndex;
-          const hasChanges = editedContent[file.path] !== undefined;
-          
-          return (
-            <div
-              key={file.path}
-              className={`
-                flex items-center gap-2 px-4 py-2 border-r border-gray-700 cursor-pointer
-                transition-colors min-w-0 max-w-xs
-                ${isActive 
-                  ? 'bg-gray-900 text-white' 
-                  : 'bg-gray-800 text-gray-400 hover:bg-gray-750 hover:text-white'
-                }
-              `}
-              onClick={() => onTabChange(index)}
-            >
-              <span className="truncate text-sm font-mono">
-                {file.name}
-                {hasChanges && <span className="text-yellow-500 ml-1">●</span>}
-              </span>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleCloseTab(index);
-                }}
-                className="hover:bg-gray-600 rounded p-0.5 transition"
-                title="Close / Fechar"
-              >
-                <X size={14} />
-              </button>
-            </div>
-          );
+    <div className={`flex flex-col h-full bg-[#1e1e1e] ${className}`}>
+      {/* Tabs Header */}
+      <div className="flex bg-[#252526] overflow-x-auto scrollbar-hide">
+        {Object.keys(files).map((path) => {
+            const isActive = path === activeFile;
+            const file = files[path];
+            return (
+                <div 
+                    key={path}
+                    onClick={() => onSwitchFile(path)}
+                    className={`
+                        group flex items-center gap-2 px-3 py-2 min-w-[120px] max-w-[200px]
+                        border-r border-[#1e1e1e]/50 cursor-pointer select-none text-xs font-mono
+                        ${isActive ? 'bg-[#1e1e1e] text-white border-t-2 border-t-yellow-500' : 'bg-[#2d2d2d] text-gray-400 hover:bg-[#2a2d2e]'}
+                    `}
+                >
+                    <span className="truncate flex-1" title={path}>{getBasename(path)}</span>
+                    <span className="flex items-center gap-1 flex-shrink-0">
+                        {file.isDirty || (isActive && isDirty) ? (
+                            <Circle size={8} className="fill-white text-white" />
+                        ) : (
+                            <button 
+                                onClick={(e) => { e.stopPropagation(); onCloseFile(path); }}
+                                className={`opacity-0 group-hover:opacity-100 hover:text-white p-0.5 rounded ${isActive ? 'opacity-100' : ''}`}
+                            >
+                                <X size={12} />
+                            </button>
+                        )}
+                    </span>
+                </div>
+            );
         })}
       </div>
 
-      {/* Editor */}
-      <div className="flex-1 relative">
-        <Editor
-          height="100%"
-          language={getLanguageFromPath(activeFile.path)}
-          value={currentContent}
-          onChange={handleEditorChange}
-          theme="vs-dark"
-          options={{
-            minimap: { enabled: true },
-            fontSize: 14,
-            lineNumbers: 'on',
-            rulers: [80, 120],
-            wordWrap: 'on',
-            automaticLayout: true,
-            scrollBeyondLastLine: false,
-            fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
-            fontLigatures: true,
-            tabSize: 2,
-            insertSpaces: true
-          }}
-        />
-        
-        {/* Save Button (Floating) */}
-        {hasUnsavedChanges && (
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className={`
-              absolute bottom-4 right-4 z-10
-              flex items-center gap-2 px-4 py-2 rounded-lg
-              transition-all shadow-lg
-              ${saving 
-                ? 'bg-gray-600 cursor-not-allowed' 
-                : 'bg-green-600 hover:bg-green-500'
-              }
-              text-white font-medium
-            `}
-            title="Save (Ctrl+S) / Salvar (Ctrl+S)"
-          >
-            <Save size={16} className={saving ? 'animate-spin' : ''} />
-            {saving ? 'Saving...' : 'Save'}
-          </button>
+      {/* Editor Toolbar (Optional, e.g. Path breadcrumbs) */}
+      <div className="flex items-center justify-between px-4 py-1 bg-[#1e1e1e] border-b border-[#333]">
+        <span className="text-xs text-gray-500 truncate font-mono">{activeFile}</span>
+        {isDirty && (
+            <span className="text-[10px] text-yellow-500 flex items-center gap-1">
+                <Circle size={6} fill="currentColor" /> Unsaved
+            </span>
         )}
       </div>
 
-      {/* Status Bar */}
-      <div className="flex items-center justify-between px-4 py-1 bg-gray-800 border-t border-gray-700 text-xs text-gray-400">
-        <div className="flex items-center gap-4">
-          <span>{activeFile.path}</span>
-          <span>•</span>
-          <span>{getLanguageFromPath(activeFile.path).toUpperCase()}</span>
-        </div>
-        <div className="flex items-center gap-4">
-          {hasUnsavedChanges && (
-            <>
-              <span className="text-yellow-500">● Unsaved changes</span>
-              <span>•</span>
-            </>
-          )}
-          <span>UTF-8</span>
-        </div>
+      {/* Monaco Editor */}
+      <div className="flex-1 relative">
+         {activeFile && (
+             <Editor
+                height="100%"
+                defaultLanguage="text"
+                language={getLanguage(activeFile)}
+                value={content}
+                theme="vs-dark"
+                onChange={handleChange}
+                onMount={handleEditorDidMount}
+                options={{
+                    minimap: { enabled: true },
+                    fontSize: 14,
+                    wordWrap: 'on',
+                    automaticLayout: true,
+                    scrollBeyondLastLine: false,
+                    fontFamily: "'JetBrains Mono', 'Fira Code', Consolas, monospace",
+                    fontLigatures: true
+                }}
+             />
+         )}
       </div>
     </div>
   );

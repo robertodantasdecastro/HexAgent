@@ -12,8 +12,9 @@
  * - Project selection / Seleção de projetos
  */
 
-import { ChevronLeft, ChevronRight, Folder, FolderPlus, RefreshCw, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Folder, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import FileEditorPanel from './FileEditorPanel';
 import FileTreeView from './FileTreeView';
 
 const WorkspacePanel = ({ isOpen, onClose, onFileSelect }) => {
@@ -23,6 +24,10 @@ const WorkspacePanel = ({ isOpen, onClose, onFileSelect }) => {
   const [loading, setLoading] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   
+  // File Editor State
+  const [openFiles, setOpenFiles] = useState({});
+  const [activeFile, setActiveFile] = useState(null);
+
   /**
    * Load projects list on mount
    * Carregar lista de projetos ao montar
@@ -49,9 +54,7 @@ const WorkspacePanel = ({ isOpen, onClose, onFileSelect }) => {
       const response = await fetch('http://localhost:5000/project/list');
       const data = await response.json();
       
-      if (data.projects) {
-        setProjects(data.projects);
-      }
+      if (data.projects) setProjects(data.projects);
     } catch (error) {
       console.error('[WorkspacePanel] Failed to load projects:', error);
     } finally {
@@ -65,9 +68,7 @@ const WorkspacePanel = ({ isOpen, onClose, onFileSelect }) => {
       const response = await fetch(`http://localhost:5000/project/${projectName}/tree`);
       const data = await response.json();
       
-      if (data.tree) {
-        setFileTree(data.tree);
-      }
+      if (data.tree) setFileTree(data.tree);
     } catch (error) {
       console.error('[WorkspacePanel] Failed to load file tree:', error);
       setFileTree([]);
@@ -76,9 +77,70 @@ const WorkspacePanel = ({ isOpen, onClose, onFileSelect }) => {
     }
   };
   
-  const handleFileSelect = (file) => {
-    if (onFileSelect) {
-      onFileSelect(file);
+  const handleFileClick = async (file) => {
+    if (!file || !file.path) return;
+    
+    // Check if already open
+    if (openFiles[file.path]) {
+        setActiveFile(file.path);
+        return;
+    }
+
+    // Load file content
+    try {
+        const response = await fetch('http://localhost:5000/file/read', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: file.path })
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            setOpenFiles(prev => ({
+                ...prev,
+                [file.path]: { ...file, content: data.content, isDirty: false }
+            }));
+            setActiveFile(file.path);
+            
+            // Notify parent if needed (optional)
+            if (onFileSelect) onFileSelect(file);
+        }
+    } catch (error) {
+        console.error('Failed to open file:', error);
+    }
+  };
+
+  const handleSaveFile = async (path, content) => {
+    try {
+        const response = await fetch('http://localhost:5000/file/write', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path, content, overwrite: true })
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            setOpenFiles(prev => ({
+                ...prev,
+                [path]: { ...prev[path], content, isDirty: false }
+            }));
+            // Show toast or status?
+        }
+    } catch (error) {
+        console.error('Failed to save file:', error);
+    }
+  };
+
+  const handleCloseFile = (path) => {
+    setOpenFiles(prev => {
+        const newFiles = { ...prev };
+        delete newFiles[path];
+        return newFiles;
+    });
+    
+    if (activeFile === path) {
+        const remaining = Object.keys(openFiles).filter(p => p !== path);
+        setActiveFile(remaining.length > 0 ? remaining[remaining.length - 1] : null);
     }
   };
   
@@ -86,135 +148,84 @@ const WorkspacePanel = ({ isOpen, onClose, onFileSelect }) => {
   
   return (
     <div className={`
-      h-full bg-gray-900 border-r border-gray-700 
-      transition-all duration-300 flex flex-col
-      ${isCollapsed ? 'w-16' : 'w-80'}
+      fixed inset-0 z-40 flex bg-black/50 backdrop-blur-sm
     `}>
-      {/* Collapse/Expand Button */}
-      <button
-        onClick={() => setIsCollapsed(!isCollapsed)}
-        className="absolute right-0 top-20 bg-gray-800 border border-gray-600 rounded-r-md p-1 hover:bg-gray-700 transition z-10"
-        title={isCollapsed ? "Expand workspace" : "Collapse workspace"}
-        style={{ transform: 'translateX(100%)' }}
-      >
-        {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-      </button>
-      
-      {!isCollapsed && (
-        <div className="flex-1 flex flex-col">
-          {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-gray-700 bg-gray-800">
-            <div className="flex items-center gap-2">
-              <Folder size={20} className="text-yellow-500" />
-              <h2 className="font-bold text-white">Workspace</h2>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={loadProjects}
-                disabled={loading}
-                className="p-1 hover:bg-gray-700 rounded transition"
-                title="Refresh / Atualizar"
-              >
-                <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-              </button>
-              <button
-                onClick={onClose}
-                className="p-1 hover:bg-gray-700 rounded transition"
-                title="Close / Fechar"
-              >
-                <X size={16} />
-              </button>
-            </div>
-          </div>
-          
-          {/* Projects List */}
-          <div className="flex-1 overflow-y-auto p-4">
-            <div className="mb-4">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-sm font-semibold text-gray-400">
-                  Projects / Projetos
-                </h3>
-                <button
-                  className="flex items-center gap-1 px-2 py-1 text-xs bg-green-600 hover:bg-green-500 rounded transition"
-                  title="Create new project / Criar novo projeto"
-                >
-                  <FolderPlus size={12} />
-                  New
-                </button>
-              </div>
-              
-              {loading && !projects.length ? (
-                <div className="text-center text-gray-500 py-8">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mx-auto mb-2"></div>
-                  <p className="text-xs">Loading...</p>
-                </div>
-              ) : projects.length === 0 ? (
-                <div className="text-center text-gray-500 py-8">
-                  <FolderPlus size={32} className="mx-auto mb-2 opacity-50" />
-                  <p className="text-xs">No projects yet</p>
-                  <p className="text-xs">Nenhum projeto ainda</p>
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  {projects.map((project, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setSelectedProject(project.name)}
-                      className={`
-                        w-full text-left px-3 py-2 rounded transition
-                        ${selectedProject === project.name 
-                          ? 'bg-purple-900/50 border-l-2 border-purple-500' 
-                          : 'hover:bg-gray-800'
-                        }
-                      `}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Folder size={14} className="text-yellow-500 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-mono text-sm text-white truncate">
-                            {project.name}
-                          </div>
-                          {project.description && (
-                            <div className="text-xs text-gray-500 truncate">
-                              {project.description}
-                            </div>
-                          )}
-                          <div className="text-xs text-gray-600 mt-1">
-                            {project.file_count || 0} files
-                          </div>
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+        {/* Main Workspace Container - Now full width modal-like or split */}
+        <div className={`
+            flex h-full bg-[#1e1e1e] border-r border-gray-700 shadow-2xl
+            transition-all duration-300
+            ${isCollapsed ? 'w-16' : 'w-full max-w-[90vw]'} 
+        `}>
             
-            {/* File Tree for Selected Project */}
-            {selectedProject && (
-              <div>
-                <h3 className="text-sm font-semibold text-gray-400 mb-2">
-                  Files / Arquivos
-                </h3>
-                <FileTreeView 
-                  tree={fileTree} 
-                  onFileSelect={handleFileSelect}
+            {/* Sidebar (Project/Files) */}
+            <div className={`
+                flex flex-col h-full bg-[#252526] border-r border-[#333]
+                ${isCollapsed ? 'w-16' : 'w-80'}
+                transition-all duration-300
+            `}>
+                {/* Header */}
+                <div className="flex items-center justify-between p-4 border-b border-[#333] bg-[#2d2d2d]">
+                    {!isCollapsed && (
+                        <div className="flex items-center gap-2">
+                            <Folder size={18} className="text-yellow-500" />
+                            <h2 className="font-bold text-gray-200 text-sm">EXPLORER</h2>
+                        </div>
+                    )}
+                    <div className="flex items-center gap-2">
+                        <button onClick={() => setIsCollapsed(!isCollapsed)} className="p-1 hover:bg-[#3e3e42] rounded text-gray-400">
+                            {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+                        </button>
+                        {!isCollapsed && (
+                             <button onClick={onClose} className="p-1 hover:bg-[#3e3e42] rounded text-gray-400">
+                                <X size={16} />
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                {!isCollapsed ? (
+                    <div className="flex-1 overflow-y-auto">
+                        {/* Projects List Selection */}
+                         <div className="p-2">
+                            <h3 className="text-xs font-bold text-gray-500 mb-2 px-2 uppercase">Projects</h3>
+                            {projects.map(p => (
+                                <button
+                                    key={p.name}
+                                    onClick={() => setSelectedProject(p.name)}
+                                    className={`w-full text-left px-3 py-1 text-sm rounded flex items-center gap-2 ${selectedProject === p.name ? 'bg-[#37373d] text-white' : 'text-gray-400 hover:bg-[#2a2d2e]'}`}
+                                >
+                                    <Folder size={14} className={selectedProject === p.name ? 'text-yellow-400' : 'text-gray-500'} />
+                                    <span className="truncate">{p.name}</span>
+                                </button>
+                            ))}
+                         </div>
+                        
+                        {/* File Tree */}
+                        {selectedProject && (
+                            <div className="mt-2">
+                                <h3 className="text-xs font-bold text-gray-500 mb-2 px-4 uppercase">{selectedProject}</h3>
+                                <FileTreeView tree={fileTree} onFileSelect={handleFileClick} />
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    <div className="flex flex-col items-center py-4 gap-4">
+                        <Folder size={24} className="text-gray-500" />
+                    </div>
+                )}
+            </div>
+
+            {/* Editor Area (Right side) - Only show if not collapsed/minimized, but here we want full IDE feel */}
+            <div className="flex-1 h-full overflow-hidden bg-[#1e1e1e]">
+                <FileEditorPanel 
+                    files={openFiles}
+                    activeFile={activeFile}
+                    onCloseFile={handleCloseFile}
+                    onSaveFile={handleSaveFile}
+                    onSwitchFile={setActiveFile}
                 />
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-      
-      {/* Collapsed State Icon */}
-      {isCollapsed && (
-        <div className="flex flex-col items-center py-4 gap-4">
-          <Folder size={20} className="text-yellow-500" />
-          <div className="text-xs text-gray-500 writing-mode-vertical transform rotate-180">
-            Workspace
-          </div>
-        </div>
-      )}
+            </div>
+      </div>
     </div>
   );
 };
