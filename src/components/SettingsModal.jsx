@@ -237,6 +237,31 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
                                 <span className="text-sm text-gray-300">Enable debug logging</span>
                             </div>
                         </div>
+                        
+                        {/* Language Selector / Seletor de Idioma */}
+                        <div>
+                            <label className="block text-xs text-gray-400 mb-1.5 font-mono">
+                                {t ? t('settings.language') : 'Language / Idioma'}
+                            </label>
+                            <select
+                                value={localConfig.ai?.language || 'auto'}
+                                onChange={(e) => {
+                                    updateAI('language', e.target.value);
+                                    // Force re-render by updating state
+                                    window.location.reload();
+                                }}
+                                className="w-full bg-black border border-[#333] rounded px-3 py-2 text-white text-sm focus:border-blue-500 focus:outline-none"
+                            >
+                                <option value="auto">🌍 Auto Detect / Auto Detectar</option>
+                                <option value="en">🇬🇧 English</option>
+                                <option value="pt">🇧🇷 Português</option>
+                                <option value="es">🇪🇸 Español</option>
+                            </select>
+                            <p className="text-xs text-gray-500 mt-1">
+                                Interface language will update after save / Idioma da interface será atualizado após salvar
+                            </p>
+                        </div>
+                        
                         <div className="text-xs text-yellow-500 mt-4">
                             💡 More general settings coming soon in ~/.hexagent-gui/config/
                         </div>

@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowDown, CheckCircle, Code, Copy, Cpu, Download, Edit, FileText, Folder, Hash, HelpCircle, History, Infinity, Pause, Play, Power, Send, Server, Settings, Square, Terminal } from 'lucide-react';
+import { AlertTriangle, ArrowDown, CheckCircle, Code, Copy, Cpu, Download, Edit, FileText, GitBranch, Hash, HelpCircle, History, Infinity, Pause, Play, Power, Send, Server, Settings, Square, Terminal } from 'lucide-react';
 import Prism from 'prismjs';
 import 'prismjs/components/prism-bash';
 import 'prismjs/components/prism-javascript';
@@ -13,11 +13,12 @@ import SessionModal from './components/SessionModal';
 import SettingsModal from './components/SettingsModal';
 import ShutdownModal from './components/ShutdownModal';
 import SmartBlock from './components/SmartBlock';
-import WorkspacePanel from './components/WorkspacePanel';
 import { useTranslation } from './hooks/useTranslation';
 import { tempFileManager } from './utils/tempFileManager';
 
+import WorkflowManagerModal from './components/WorkflowManagerModal';
 import { AnsiRenderer } from './utils/ansiRenderer';
+
 
 /**
  * Parse agent content into formatted sections
@@ -448,8 +449,8 @@ const App = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showSessionModal, setShowSessionModal] = useState(false);
-  const [showWorkspace, setShowWorkspace] = useState(false);
   const [showServices, setShowServices] = useState(false);
+  const [showWorkflow, setShowWorkflow] = useState(false);
   const [showShutdown, setShowShutdown] = useState(false);
   const [openFiles, setOpenFiles] = useState([]);
   const [activeFileIndex, setActiveFileIndex] = useState(0);
@@ -1359,41 +1360,6 @@ const App = () => {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-[#050505]">
-      {/* Workspace Panel */}
-      <WorkspacePanel
-        isOpen={showWorkspace}
-        onClose={() => setShowWorkspace(false)}
-        onFileSelect={async (file) => {
-          console.log('[App] File selected from workspace:', file);
-          
-          // Check if file already open
-          const existingIndex = openFiles.findIndex(f => f.path === file.path);
-          if (existingIndex !== -1) {
-            setActiveFileIndex(existingIndex);
-            return;
-          }
-          
-          // Fetch file content
-          try {
-            const response = await fetch('http://localhost:5000/file/read', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ path: file.path })
-            });
-            const data = await response.json();
-            
-            if (data.success) {
-              setOpenFiles(prev => [...prev, {
-                ...file,
-                content: data.content
-              }]);
-              setActiveFileIndex(openFiles.length);
-            }
-          } catch (error) {
-            console.error('[App] Failed to read file:', error);
-          }
-        }}
-      />
       
       {/* Main Content */}
       <div className="flex flex-col flex-1 min-w-0 text-white relative overflow-hidden">
@@ -1452,16 +1418,6 @@ const App = () => {
                      </button>
                    )}
                    
-                   {/* Workspace Button / Botão Workspace */}
-              <button
-                onClick={() => setShowWorkspace(!showWorkspace)}
-                className="flex items-center gap-1 text-gray-400 hover:text-purple-400 transition-colors"
-                title="Workspace"
-              >
-                <Folder size={14} />
-                <span className="hidden sm:inline">Workspace</span>
-              </button>
-              
               {/* Services Button / Botão Serviços */}
               <button
                 onClick={() => setShowServices(true)}
@@ -1470,6 +1426,16 @@ const App = () => {
               >
                 <Server size={14} />
                 <span className="hidden sm:inline">Services</span>
+              </button>
+              
+              {/* Workflows Button / Botão Workflows */}
+              <button
+                onClick={() => setShowWorkflow(true)}
+                className="flex items-center gap-1 text-gray-400 hover:text-purple-400 transition-colors"
+                title="Automated Workflows"
+              >
+                 <GitBranch size={14} />
+                 <span className="hidden sm:inline">Workflows</span>
               </button>
               
                    <button
@@ -1702,6 +1668,10 @@ const App = () => {
       <ServiceManagerModal 
         isOpen={showServices}
         onClose={() => setShowServices(false)}
+      />
+      <WorkflowManagerModal
+        isOpen={showWorkflow}
+        onClose={() => setShowWorkflow(false)}
       />
       <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} />
       <ShutdownModal 

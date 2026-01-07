@@ -24,9 +24,24 @@ const WorkspacePanel = ({ isOpen, onClose, onFileSelect }) => {
   const [loading, setLoading] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   
-  // File Editor State
   const [openFiles, setOpenFiles] = useState({});
   const [activeFile, setActiveFile] = useState(null);
+  const [error, setError] = useState(null);
+
+  /**
+   * Handle ESC key to close modal
+   * Lidar com tecla ESC para fechar modal
+   */
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+    
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [isOpen, onClose]);
 
   /**
    * Load projects list on mount
@@ -50,13 +65,20 @@ const WorkspacePanel = ({ isOpen, onClose, onFileSelect }) => {
   
   const loadProjects = async () => {
     setLoading(true);
+    setError(null);
     try {
       const response = await fetch('http://localhost:5000/project/list');
       const data = await response.json();
       
-      if (data.projects) setProjects(data.projects);
+      if (data.projects) {
+        setProjects(data.projects);
+      } else {
+        setProjects([]);
+      }
     } catch (error) {
       console.error('[WorkspacePanel] Failed to load projects:', error);
+      setError('Failed to load projects / Falha ao carregar projetos');
+      setProjects([]);
     } finally {
       setLoading(false);
     }
@@ -146,10 +168,21 @@ const WorkspacePanel = ({ isOpen, onClose, onFileSelect }) => {
   
   if (!isOpen) return null;
   
+  /**
+   * Handle backdrop click to close
+   * Lidar com clique no backdrop para fechar
+   */
+  const handleBackdropClick = (e) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+  
   return (
-    <div className={`
-      fixed inset-0 z-40 flex bg-black/50 backdrop-blur-sm
-    `}>
+    <div 
+      className="fixed inset-0 z-40 flex bg-black/50 backdrop-blur-sm"
+      onClick={handleBackdropClick}
+    >
         {/* Main Workspace Container - Now full width modal-like or split */}
         <div className={`
             flex h-full bg-[#1e1e1e] border-r border-gray-700 shadow-2xl
@@ -163,7 +196,6 @@ const WorkspacePanel = ({ isOpen, onClose, onFileSelect }) => {
                 ${isCollapsed ? 'w-16' : 'w-80'}
                 transition-all duration-300
             `}>
-                {/* Header */}
                 <div className="flex items-center justify-between p-4 border-b border-[#333] bg-[#2d2d2d]">
                     {!isCollapsed && (
                         <div className="flex items-center gap-2">
@@ -172,40 +204,71 @@ const WorkspacePanel = ({ isOpen, onClose, onFileSelect }) => {
                         </div>
                     )}
                     <div className="flex items-center gap-2">
-                        <button onClick={() => setIsCollapsed(!isCollapsed)} className="p-1 hover:bg-[#3e3e42] rounded text-gray-400">
+                        <button 
+                          onClick={() => setIsCollapsed(!isCollapsed)} 
+                          className="p-1 hover:bg-[#3e3e42] rounded text-gray-400 hover:text-white transition-colors"
+                          title={isCollapsed ? "Expand / Expandir" : "Collapse / Colapsar"}
+                        >
                             {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
                         </button>
-                        {!isCollapsed && (
-                             <button onClick={onClose} className="p-1 hover:bg-[#3e3e42] rounded text-gray-400">
-                                <X size={16} />
-                            </button>
-                        )}
+                        {/* Close button always visible / Botão fechar sempre visível */}
+                        <button 
+                          onClick={onClose} 
+                          className="p-1 hover:bg-red-500/20 rounded text-gray-400 hover:text-red-400 transition-colors"
+                          title="Close / Fechar (ESC)"
+                        >
+                            <X size={16} />
+                        </button>
                     </div>
                 </div>
 
                 {!isCollapsed ? (
                     <div className="flex-1 overflow-y-auto">
-                        {/* Projects List Selection */}
-                         <div className="p-2">
-                            <h3 className="text-xs font-bold text-gray-500 mb-2 px-2 uppercase">Projects</h3>
-                            {projects.map(p => (
-                                <button
-                                    key={p.name}
-                                    onClick={() => setSelectedProject(p.name)}
-                                    className={`w-full text-left px-3 py-1 text-sm rounded flex items-center gap-2 ${selectedProject === p.name ? 'bg-[#37373d] text-white' : 'text-gray-400 hover:bg-[#2a2d2e]'}`}
-                                >
-                                    <Folder size={14} className={selectedProject === p.name ? 'text-yellow-400' : 'text-gray-500'} />
-                                    <span className="truncate">{p.name}</span>
-                                </button>
-                            ))}
-                         </div>
-                        
-                        {/* File Tree */}
-                        {selectedProject && (
-                            <div className="mt-2">
-                                <h3 className="text-xs font-bold text-gray-500 mb-2 px-4 uppercase">{selectedProject}</h3>
-                                <FileTreeView tree={fileTree} onFileSelect={handleFileClick} />
+                        {/* Error State / Estado de erro */}
+                        {error && (
+                            <div className="p-4 m-2 bg-red-900/20 border border-red-500/30 rounded">
+                                <p className="text-xs text-red-400">{error}</p>
                             </div>
+                        )}
+                        
+                        {/* Loading State / Estado de carregamento */}
+                        {loading && (
+                            <div className="flex items-center justify-center p-8">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500"></div>
+                            </div>
+                        )}
+                        
+                        {!loading && !error && (
+                            <>
+                                {/* Projects List Selection */}
+                                <div className="p-2">
+                                    <h3 className="text-xs font-bold text-gray-500 mb-2 px-2 uppercase">Projects</h3>
+                                    {projects.length === 0 ? (
+                                        <div className="text-xs text-gray-500 text-center py-4">
+                                            No projects found / Nenhum projeto encontrado
+                                        </div>
+                                    ) : (
+                                        projects.map(p => (
+                                            <button
+                                                key={p.name}
+                                                onClick={() => setSelectedProject(p.name)}
+                                                className={`w-full text-left px-3 py-1 text-sm rounded flex items-center gap-2 transition-colors ${selectedProject === p.name ? 'bg-[#37373d] text-white' : 'text-gray-400 hover:bg-[#2a2d2e]'}`}
+                                            >
+                                                <Folder size={14} className={selectedProject === p.name ? 'text-yellow-400' : 'text-gray-500'} />
+                                                <span className="truncate">{p.name}</span>
+                                            </button>
+                                        ))
+                                    )}
+                                </div>
+                                
+                                {/* File Tree */}
+                                {selectedProject && (
+                                    <div className="mt-2">
+                                        <h3 className="text-xs font-bold text-gray-500 mb-2 px-4 uppercase">{selectedProject}</h3>
+                                        <FileTreeView tree={fileTree} onFileSelect={handleFileClick} />
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
                 ) : (
