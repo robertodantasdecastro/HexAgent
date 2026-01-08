@@ -10,21 +10,36 @@ class TempFileManager {
   constructor() {
     this.trackedFiles = new Map();
     this.sessionId = Date.now();
-    this.config = null;
-    this.loadConfig();
+    this.config = this.getDefaultConfig(); // Use default initially / Usar padrão inicialmente
+    this.initialized = false;
+  }
+  
+  /**
+   * Initialize manager (call after app mount) / Inicializar manager (chamar após montagem do app)
+   * Deve ser chamado pelo App.jsx no useEffect
+   */
+  async init() {
+    if (this.initialized) return;
+    await this.loadConfig();
+    this.initialized = true;
   }
   
   async loadConfig() {
     try {
-      const response = await fetch('http://localhost:5000/config/user/ui/temp_files');
+      const response = await fetch('http://localhost:5000/config/user/ui/temp_files', {
+        signal: AbortSignal.timeout(5000) // 5 second timeout / Timeout de 5 segundos
+      });
       if (response.ok) {
         this.config = await response.json();
+        console.log('[TempFileManager] ✅ Config loaded from backend');
       } else {
-        this.config = this.getDefaultConfig();
+        console.warn('[TempFileManager] ⚠️  Backend returned error, using defaults');
+        // Keep default config / Manter config padrão
       }
     } catch (error) {
-      console.warn('[TempFileManager] Failed to load config:', error);
-      this.config = this.getDefaultConfig();
+      // CRITICAL: Never throw - always use fallback / CRÍTICO: Nunca lançar exceção - sempre usar fallback
+      console.warn('[TempFileManager] ⚠️  Using default config (backend unavailable):', error.message);
+      // Config já está com defaults do constructor
     }
   }
   

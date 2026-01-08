@@ -104,15 +104,29 @@ elif os.path.exists(hexagent_path_dev):
     sys.path.append(os.path.join(grandparent_dir, "hexstrike-ai"))
     print(f"Dev Mode: Added {grandparent_dir} to sys.path")
 
+# ===========================================================================
+# STANDALONE MODE: HexAgent modules are NOT required for basic functionality
+# AgentCore will be None in standalone mode - app works with limited features
+# ===========================================================================
+
+# Set defaults / Definir padrões
+AgentCore = None
+Config = None
+KeyManager = None
+load_dotenv = None
+
+# Try to import HexAgent modules (optional) / Tentar importar módulos HexAgent (opcional)
 try:
     from HexAgent.core import AgentCore
     from HexAgent.config import Config
     from HexAgent.key_manager import KeyManager
     from dotenv import load_dotenv
+    print("[HexAgent] ✅ External HexAgent modules loaded successfully")
 except ImportError as e:
-    print(f"Critical Error: Failed to import HexAgent modules. {e}")
-    # Don't exit, allow debugging endpoints if possible, or just fail hard.
-    # sys.exit(1)
+    print(f"[HexAgent] ⚠️  Running in STANDALONE mode (HexAgent modules not available)")
+    print(f"[HexAgent] ℹ️  Basic functionality available. AI features require HexAgent integration.")
+    # Don't exit - backend can still serve config, files, sessions, etc.
+
 
 # Import File and Project Managers / Importar Gerenciadores de Arquivo e Projeto
 FileManager = None
@@ -339,11 +353,17 @@ WORKSPACE_DIR = setup_workspace()
 core = None
 init_error = None
 
-try:
-    core = AgentCore()
-except Exception as e:
-    init_error = str(e)
-    print(f"[HexAgentBackend] CRITICAL: Failed to initialize AgentCore: {e}")
+# Only try to init AgentCore if it was successfully imported
+# Somente tentar inicializar AgentCore se foi importado com sucesso
+if AgentCore is not None:
+    try:
+        core = AgentCore()
+        print("[HexAgent] ✅ AgentCore initialized successfully")
+    except Exception as e:
+        init_error = str(e)
+        print(f"[HexAgentBackend] ⚠️  Failed to initialize AgentCore: {e}")
+else:
+    print("[HexAgent] ℹ️  AgentCore not available (standalone mode)")
 
 # Configuration Management / Gerenciamento de Configuração
 def load_config():
@@ -549,25 +569,42 @@ def init_agent():
         api_key = config_key.strip()
         print("[Auth] Using API Key from configuration")
     else:
-        # Fallback to env file
-        env_path = Config.ENV_FILE
-        if not os.path.exists(env_path):
-            # Fallback to HexSecGPT-main/.HexSec
-            potential_path = os.path.join(parent_dir, "HexSecGPT-main", ".HexSec")
-            if os.path.exists(potential_path):
-                env_path = potential_path
-                
-        load_dotenv(dotenv_path=env_path)
-        api_key = os.getenv(Config.API_KEY_NAME)
+        # Fallback to env file (only if Config is available)
+        # Fallback para arquivo env (somente se Config estiver disponível)
+        if Config is not None:
+            env_path = Config.ENV_FILE
+            if not os.path.exists(env_path):
+                # Fallback to HexSecGPT-main/.HexSec
+                potential_path = os.path.join(parent_dir, "HexSecGPT-main", ".HexSec")
+                if os.path.exists(potential_path):
+                    env_path = potential_path
+                    
+            if load_dotenv:
+                load_dotenv(dotenv_path=env_path)
+            api_key = os.getenv(Config.API_KEY_NAME if Config else 'OPENROUTER_API_KEY')
+        else:
+            # Standalone mode: check for standard env var
+            # Modo standalone: verificar variável de ambiente padrão
+            api_key = os.getenv('OPENROUTER_API_KEY') or os.getenv('API_KEY')
     
+    # STANDALONE MODE: If AgentCore is None, init succeeds with limited features
+    # MODO STANDALONE: Se AgentCore é None, init sucede com recursos limitados
+    if core is None:
+        return jsonify({
+            "success": True,
+            "message": "Running in STANDALONE mode. AI features disabled. Configure API key in Settings to enable.",
+            "standalone": True,
+            "agent_initialized": False
+        }), 200
+    
+    # If we have core but no API key, that's an error
+    # Se temos core mas sem API key, isso é um erro
     if not api_key:
         return jsonify({"success": False, "error": "API Key not found. Please configure it in Settings."}), 200
         
     try:
-        if not core:
-            return jsonify({"success": False, "error": f"Agent Core not loaded: {init_error}"}), 200
-
-
+        # At this point, core is not None and we have API key
+        # Neste ponto, core não é None e temos API key
         if core.initialize(api_key):
             # Auto-start HexStrike logic
             started = False

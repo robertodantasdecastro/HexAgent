@@ -184,20 +184,24 @@ setup_configs() {
 
 # Build application / Compila aplicação
 build_app() {
-    print_info "Building optimized binary for $ARCH / Compilando binário otimizado..."
+    print_info "Building standalone application for $ARCH / Compilando aplicação standalone..."
+    print_info "Note: App is now fully self-contained / App é agora totalmente autônomo"
     
     # Install dependencies efficiently / Instala dependências eficientemente
     if [ ! -d "node_modules" ] || [ package.json -nt node_modules/.package-lock.json ]; then
+        print_info "Installing dependencies (including test framework) / Instalando dependências (incluindo framework de testes)..."
         npm install --prefer-offline --no-audit
+        print_success "Dependencies installed / Dependências instaladas"
     fi
     
     # Build frontend / Compila frontend
     echo -e "${BLUE}══════════════════════════════════════════════════════${NC}"
-    echo -e "${CYAN}Building frontend / Compilando frontend${NC}"
+    echo -e "${CYAN}Building frontend (with relative paths for Electron) / Compilando frontend${NC}"
     npm run build
     echo -e "${BLUE}══════════════════════════════════════════════════════${NC}"
     
     # Build electron package / Compila pacote electron
+    print_info "Packaging Electron app (standalone mode) / Empacotando app Electron..."
     npx electron-builder --linux --$ARCH --dir
     
     # Find build output / Encontra saída do build
@@ -210,11 +214,12 @@ build_app() {
     fi
     
     # Install to persistent storage / Instala em armazenamento persistente
-    print_info "Installing to persistent storage / Instalando..."
+    print_info "Installing standalone app to persistent storage / Instalando..."
     rm -rf "$INSTALL_DIR"
     mkdir -p "$INSTALL_DIR"
     cp -r "$SRC_DIR/"* "$INSTALL_DIR/"
     print_success "Installed to / Instalado em: $INSTALL_DIR"
+    print_success "App is STANDALONE (no external dependencies) / App é AUTÔNOMO"
 }
 
 # Create system links / Cria links do sistema

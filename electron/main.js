@@ -107,49 +107,101 @@ ipcMain.handle('save-file', async (event, options) => {
 });
 
 function startPythonBackend() {
+    // Determine app base path / Determinar caminho base do app
+    const appPath = app.isPackaged 
+        ? path.dirname(process.execPath)  // Packaged: use executable location
+        : path.join(__dirname, '..');      // Dev: use project root
 
-    let scriptPath;
-    let pythonCmd;
-
-    if (app.isPackaged) {
-        // In production, resources are unpacked to resources/backend and resources/venv
-        scriptPath = path.join(process.resourcesPath, 'backend', 'server.py');
-        // Try bundled venv first, but fallback to system python if needed
-        const bundledPython = path.join(process.resourcesPath, 'venv', 'bin', 'python');
-        if (fs.existsSync(bundledPython)) {
-             pythonCmd = bundledPython;
-        } else {
-             pythonCmd = 'python3'; // Fallback
+    console.log(`[Backend] App path: ${appPath}`);
+    
+    // Define backend script path / Definir caminho do script backend
+    let scriptPath = path.join(appPath, 'backend', 'server.py');
+    
+    // Check if backend exists / Verificar se backend existe
+    if (!fs.existsSync(scriptPath)) {
+        // Try alternative locations / Tentar localizações alternativas
+        const altPaths = [
+            path.join(appPath, 'resources', 'backend', 'server.py'),
+            path.join(__dirname, '../backend/server.py'),
+            path.join(process.cwd(), 'backend', 'server.py')
+        ];
+        
+        for (const altPath of altPaths) {
+            if (fs.existsSync(altPath)) {
+                scriptPath = altPath;
+                console.log(`[Backend] Found at alternative location: ${scriptPath}`);
+                break;
+            }
         }
-    } else {
-        // In dev
-        scriptPath = path.join(__dirname, '../backend/server.py');
-        pythonCmd = path.join(__dirname, '../venv/bin/python');
-    }
-
-    console.log(`Starting Python Backend: ${scriptPath} using ${pythonCmd}`);
-    
-    // Check if python exists (helpful for debugging ENOTDIR or ENOENT)
-    if (!fs.existsSync(pythonCmd)) {
-        console.error(`Python binary not found at: ${pythonCmd}`);
-        // Fallback to system python if venv fails (though venv is preferred)
-        pythonCmd = 'python3';
+        
+        if (!fs.existsSync(scriptPath)) {
+            console.error(`[Backend] ERROR: server.py not found!`);
+            console.error(`[Backend] Tried paths:`, [scriptPath, ...altPaths]);
+            // Don't crash app, let it run without backend
+            return;
+        }
     }
     
-    pythonProcess = spawn(pythonCmd, [scriptPath]);
+    // Determine Python command / Determinar comando Python
+    let pythonCmd;
+    const pythonPaths = [
+        path.join(appPath, 'venv', 'bin', 'python'),           // Local venv
+        path.join(__dirname, '../venv/bin/python'),             // Dev venv
+        'python3',                                               // System Python 3
+        'python'                                                 // System Python
+    ];
+    
+    for (const pyPath of pythonPaths) {
+        if (pyPath.startsWith('/') || pyPath.startsWith('.')) {
+            // Absolute or relative path / Caminho absoluto ou relativo
+            if (fs.existsSync(pyPath)) {
+                pythonCmd = pyPath;
+                console.log(`[Backend] Using Python at: ${pythonCmd}`);
+                break;
+            }
+        } else {
+            // System command / Comando do sistema
+            pythonCmd = pyPath;
+            console.log(`[Backend] Using system Python: ${pythonCmd}`);
+            break;
+        }
+    }
+    
+    if (!pythonCmd) {
+        console.error(`[Backend] ERROR: No Python interpreter found!`);
+        return;
+    }
 
-    pythonProcess.stdout.on('data', (data) => {
-        console.log(`[Python]: ${data}`);
-    });
+    console.log(`[Backend] Starting: ${scriptPath}`);
+    console.log(`[Backend] Python: ${pythonCmd}`);
+    
+    try {
+        pythonProcess = spawn(pythonCmd, [scriptPath], {
+            cwd: path.dirname(scriptPath) // Set working directory / Definir diretório de trabalho
+        });
 
-    pythonProcess.stderr.on('data', (data) => {
-        console.error(`[Python API]: ${data}`);
-    });
+        pythonProcess.stdout.on('data', (data) => {
+            console.log(`[Python]: ${data}`);
+        });
 
-    pythonProcess.on('close', (code) => {
-        console.log(`Python process exited with code ${code}`);
-    });
+        pythonProcess.stderr.on('data', (data) => {
+            console.error(`[Python API]: ${data}`);
+        });
+
+        pythonProcess.on('error', (error) => {
+            console.error(`[Backend] Failed to start:`, error);
+        });
+
+        pythonProcess.on('close', (code) => {
+            console.log(`[Backend] Process exited with code ${code}`);
+        });
+        
+        console.log(`[Backend] ✅ Started successfully`);
+    } catch (error) {
+        console.error(`[Backend] ERROR starting process:`, error);
+    }
 }
+
 
 
 

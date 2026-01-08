@@ -13,7 +13,11 @@ import SessionModal from './components/SessionModal';
 import SettingsModal from './components/SettingsModal';
 import ShutdownModal from './components/ShutdownModal';
 import SmartBlock from './components/SmartBlock';
+import useConfig from './hooks/useConfig';
+import useModalState from './hooks/useModalState';
 import { useTranslation } from './hooks/useTranslation';
+import SessionService from './services/SessionService';
+import APIClient from './utils/APIClient';
 import { tempFileManager } from './utils/tempFileManager';
 
 import WorkflowManagerModal from './components/WorkflowManagerModal';
@@ -418,6 +422,10 @@ const CodeBlock = ({ code, language, onExecute, colors }) => {
 };
 
 const App = () => {
+  // Service Instances / Instâncias de Serviço
+  const api = APIClient.getInstance();
+  const sessionService = SessionService.getInstance();
+  
   // State for Blocks (Chat History)
   const [blocks, setBlocks] = useState([]); // Start empty
   const [input, setInput] = useState('');
@@ -427,8 +435,8 @@ const App = () => {
   const [inputMode, setInputMode] = useState('prompt'); // 'prompt' | 'command'
   const [autoScroll, setAutoScroll] = useState(true);
   
-  // Configuration State (Must be initialized before useTranslation)
-  const [config, setConfig] = useState(null);
+  // Configuration State (OOP with ConfigManager) / Estado de Configuração (POO com ConfigManager)
+  const { config, loading: configLoading, error: configError, updateConfig, saveConfig: saveConfigToBackend } = useConfig();
   const scrollRef = useRef(null);
   
 
@@ -445,13 +453,15 @@ const App = () => {
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [sysHistoryIndex, setSysHistoryIndex] = useState(-1);
 
-  // UI State
-  const [showSettings, setShowSettings] = useState(false);
-  const [showHelp, setShowHelp] = useState(false);
-  const [showSessionModal, setShowSessionModal] = useState(false);
-  const [showServices, setShowServices] = useState(false);
-  const [showWorkflow, setShowWorkflow] = useState(false);
-  const [showShutdown, setShowShutdown] = useState(false);
+  // UI State - Unified modal management with useModalState hook
+  // Estado de UI - Gerenciamento unificado de modais com hook useModalState
+  const settingsModal = useModalState();
+  const helpModal = useModalState();
+  const sessionModal = useModalState();
+  const servicesModal = useModalState();
+  const workflowModal = useModalState();
+  const shutdownModal = useModalState();
+  const aiConfigModal = useModalState(); // New AI Config modal / Novo modal de config de IA
   const [openFiles, setOpenFiles] = useState([]);
   const [activeFileIndex, setActiveFileIndex] = useState(0);
   const [currentSessionName, setCurrentSessionName] = useState('');
@@ -505,43 +515,47 @@ const App = () => {
     }
   };
 
-  // Auto-Save Session / Salvar Sessão Automaticamente
+  // Auto-Save Session using SessionService / Salvar Sessão Automaticamente usando SessionService
   useEffect(() => {
     if (blocks.length === 0) return;
-    const timeoutId = setTimeout(() => {
-        fetch('http://localhost:5000/save_session', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: 'autosave', blocks })
-        }).catch(e => console.error("Auto-save failed", e));
-    }, 2000); // Debounce 2s
-    return () => clearTimeout(timeoutId);
-  }, [blocks]);
+    sessionService.autoSave(blocks, 2000); // 2s debounce
+    
+    return () => sessionService.clearAutoSaveTimer();
+  }, [blocks, sessionService]);
+
+  // Auto-Save Session on window close / Salvar Sessão Automaticamente ao fechar a janela
+  useEffect(() => {
+    const handleBeforeUnload = async (e) => {
+      if (blocks.length > 0) {
+        console.log('[AutoSave] Saving session before close...');
+        try {
+          await api.post('/save_session', {
+            name: 'auto-save-' + Date.now(),
+            blocks
+          });
+        } catch (error) {
+          console.error('[AutoSave] Failed:', error);
+        }
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [blocks, api]); // Depend on blocks and api
 
   useEffect(() => {
     let intervalId = null;
 
-    // Load configuration on mount / Carregar configuração na montagem
-    const loadConfig = async () => {
-      try {
-        const res = await fetch('http://localhost:5000/config');
-        if (res.ok) {
-          const data = await res.json();
-          setConfig(data);
-          console.log('[Config] Loaded:', data);
-        }
-        
-        /* Auto-load removed for clean session start */
-      } catch (e) {
-        console.error('[Config] Failed to load:', e);
-      }
-    };
+    // Config is now loaded automatically by useConfig hook
+    // Configuração agora é carregada automaticamente pelo hook useConfig
+    // (loadConfig function removed - duplicidade eliminada)
 
     // Check Status and update service status details / Verificar status e detalhes dos serviços
     const checkStatus = async () => {
       try {
-        const res = await fetch('http://localhost:5000/status');
-        const data = await res.json();
+        const data = await api.get('/status');
         if (data.status === 'ok' || data.alive) {
             setStatus('ONLINE');
             setServiceStatus({
@@ -564,8 +578,8 @@ const App = () => {
         for (let i = 0; i < maxRetries; i++) {
             try {
                 console.log(`[HexAgentGUI] Checking backend (attempt ${i + 1}/${maxRetries})...`);
-                const response = await fetch('http://localhost:5000/health');
-                if (response.ok) {
+                const isHealthy = await api.healthCheck();
+                if (isHealthy) {
                     console.log("[HexAgentGUI] Backend is ready!");
                     return true;
                 }
@@ -590,22 +604,23 @@ const App = () => {
                      await new Promise(r => setTimeout(r, delay));
                  }
 
-                 const response = await fetch('http://localhost:5000/init', { method: 'POST' });
-                 if (!response.ok) {
-                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                 }
-                 const data = await response.json();
-                 console.log("[HexAgentGUI] Init response:", data);
-                 
-                 if (data.success) {
-                     console.log("[HexAgentGUI] Brain initialized successfully!");
-                     return true;
-                 }
-                 console.error("[HexAgentGUI] Init failed:", data.error || data.message);
-                 // If specific error, maybe don't retry? But safe to retry generally.
-             } catch(e) { 
-                 console.error(`[HexAgentGUI] Init exception (attempt ${i+1}):`, e); 
-             }
+                console.log(`[HexAgentGUI] Attempting init (${i + 1}/${retries})...`);
+                if (i > 0) {
+                    console.warn(`[HexAgentGUI] Retry ${i}/${retries - 1} for init`);
+                }
+
+                const data = await api.post('/init');
+                console.log("[HexAgentGUI] Init response:", data);
+                
+                if (data.success) {
+                    console.log("[HexAgentGUI] Brain initialized successfully!");
+                    return true;
+                }
+                console.error("[HexAgentGUI] Init failed:", data.error || data.message);
+                // If specific error, maybe don't retry? But safe to retry generally.
+            } catch(e) { 
+                console.error(`[HexAgentGUI] Init exception (attempt ${i+1}):`, e); 
+            }
          }
          return false;
     };
@@ -623,23 +638,26 @@ const App = () => {
             setInitStatus(prev => ({ ...prev, backend: { status: 'success', message: 'Running' }}));
             setInitProgress(25);
             
-            // Step 2: Brain
+            // Step 2: Brain (optional in standalone mode)
             setInitStatus(prev => ({ ...prev, brain: { status: 'loading', message: 'Loading Brain...' }}));
             setInitProgress(40);
             
             const initResult = await initBackend();
             if (!initResult) {
-                setInitStatus(prev => ({ ...prev, brain: { status: 'error', message: 'Failed' }}));
-                throw new Error('Brain init failed');
+                // Brain init failed - continue anyway in standalone mode
+                // Inicialização do brain falhou - continuar em modo standalone
+                console.warn('[Init] Brain initialization failed - continuing in standalone mode');
+                setInitStatus(prev => ({ ...prev, brain: { status: 'warning', message: 'Standalone Mode' }}));
+            } else {
+                setInitStatus(prev => ({ ...prev, brain: { status: 'success', message: 'Loaded' }}));
             }
-            setInitStatus(prev => ({ ...prev, brain: { status: 'success', message: 'Loaded' }}));
             setInitProgress(60);
             
             // Step 3: Config
             setInitStatus(prev => ({ ...prev, config: { status: 'loading', message: 'Loading...' }}));
             setInitProgress(75);
-            
-            await loadConfig();
+            // Config now loaded automatically by useConfig hook
+            // Configuração agora é carregada automaticamente pelo hook useConfig
             setInitStatus(prev => ({ ...prev, config: { status: 'success', message: 'Loaded' }}));
             setInitProgress(85);
             
@@ -671,18 +689,16 @@ const App = () => {
     };
   }, []);
 
-  // Fetch System Shell History on Mount / Carregar histórico do shell no início
-  useEffect(() => {
-      fetch('http://localhost:5000/history/shell')
-        .then(res => res.json())
+  // Load shell history / Carregar histórico do shell
+    useEffect(() => {
+      api.get('/history/shell')
         .then(data => {
-            if (data.success && data.commands) {
-                setSystemHistory(data.commands);
-                console.log(`[Shell History] Loaded ${data.commands.length} commands from ${data.shell}`);
-            }
+          if (data && data.history) {
+            setSystemHistory(data.history);
+          }
         })
-        .catch(err => console.error("Failed to fetch shell history", err));
-  }, []);
+        .catch(e => console.error('[History] Failed to load shell history:', e));
+    }, []);
 
   // UseEffect for AutoScroll logic / Lógica de AutoScroll
   useEffect(() => {
@@ -696,26 +712,28 @@ const App = () => {
       if (window.require) {
           try {
               const { ipcRenderer } = window.require('electron');
-              const handler = () => setShowShutdown(true);
+              const handler = () => shutdownModal.open();
               ipcRenderer.on('app-close-requested', handler);
               return () => ipcRenderer.removeListener('app-close-requested', handler);
           } catch(e) { console.log('Non-electron env'); }
       }
   }, []);
 
-  // Save settings handler
+  // Save settings handler (unified with ConfigManager)
+  // Handler de salvamento de configurações (unificado com ConfigManager)
   const handleSettingsSave = async (newConfig) => {
     console.log('[DEBUG] Saving settings:', newConfig);
     try {
-      const response = await fetch('http://localhost:5000/config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newConfig)
+      // Use APIClient for unified config handling
+      // Usar APIClient para tratamento unificado de config
+      await api.post('/config', newConfig);
+      
+      // Update ConfigManager to sync state
+      // Atualizar ConfigManager para sincronizar estado
+      Object.keys(newConfig).forEach(key => {
+        updateConfig(key, newConfig[key]);
       });
-      if (response.ok) {
-        setConfig(newConfig);
-        console.log('[DEBUG] Settings saved successfully');
-      }
+      console.log('[DEBUG] Settings saved successfully');
     } catch (error) {
       console.error('[DEBUG] Failed to save settings:', error);
     }
@@ -733,74 +751,42 @@ const App = () => {
       }
       
       console.log('[Export Chat] Preparing export data...');
-      // Prepare export data
-      const exportData = {
+      // Use APIClient for backend export
+      const data = await api.post('/export/chat', {
+        blocks,
+        format: 'markdown',
         session_id: Date.now().toString(),
-        blocks: blocks, // Changed from 'messages' to 'blocks' to match context
         metadata: {
           date: new Date().toISOString(),
           config: config
         }
-      };
-
-      console.log('[Export Chat] Sending to backend...');
-      // Request backend to format
-      const response = await fetch('http://localhost:5000/export/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(exportData)
       });
-
-      const data = await response.json();
-      console.log('[Export Chat] Backend response:', data);
-
-      if (data.success) {
-        console.log('[Export Chat] Requesting save dialog...');
-        // Use Electron IPC to save file
-        const { ipcRenderer } = window.require('electron');
-        const result = await ipcRenderer.invoke('save-file', {
-          content: data.markdown,
-          defaultName: `hexagent_chat_${new Date().toISOString().split('T')[0]}.md`,
-          filters: [
-            { name: 'Markdown Files', extensions: ['md'] },
-            { name: 'Text Files', extensions: ['txt'] },
-            { name: 'All Files', extensions: ['*'] }
-          ]
-        });
-
-        if (result.success) {
-          console.log('✅ Chat exported to:', result.path);
-          alert(`Chat exported successfully to:\n${result.path}`);
-        } else {
-          console.log('Export canceled by user');
-        }
+      
+      if (data.success && data.filepath) {
+        console.log('[Export Chat] Exported to:', data.filepath);
+        alert(`Chat exported to: ${data.filepath}`);
       } else {
-        throw new Error(data.message || 'Export failed');
+        throw new Error(data.error || 'Export failed');
       }
     } catch (error) {
-      console.error('❌ Export failed:', error);
-      alert(`Export failed: ${error.message}`);
+      console.error('[Export Chat] Error:', error);
+      alert('Error exporting chat: ' + error.message);
     }
   };
 
-  // Save configuration handler / Handler para salvar configuração
-  const saveConfig = async (newConfig) => {
+  // Save configuration handler
+  const handleConfigUpdate = async (newConfig) => {
+    console.log('[Config Update] Saving config:', newConfig);
     try {
-      const res = await fetch('http://localhost:5000/config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newConfig)
-      });
+      await api.post('/config', newConfig);
       
-      if (res.ok) {
-        const data = await res.json();
-        setConfig(data.config);
-        console.log('[Config] Saved successfully:', data.config);
-      } else {
-        console.error('[Config] Failed to save');
-      }
-    } catch (e) {
-      console.error('[Config] Save error:', e);
+      // Update ConfigManager to sync state
+      Object.keys(newConfig).forEach(key => {
+        updateConfig(key, newConfig[key]);
+      });
+      console.log('[Config Update] Config saved successfully');
+    } catch (error) {
+      console.error('[Config Update] Failed to save config:', error);
     }
   };
 
@@ -933,22 +919,31 @@ const App = () => {
       
       // Map 'app' or 'application' to something? Backend handles 'brain', 'hexstrike'.
       try {
-          const res = await fetch('http://localhost:5000/service', {
-              method: 'POST', 
-              headers: {'Content-Type': 'application/json'},
-              body: JSON.stringify({ action, service: serviceName })
+          const data = await api.post('/service', {
+              action,
+              service: serviceName
           });
-          const data = await res.json();
+
+          console.log('[Service] Response:', data);
           
+          // Update service status if provided
+          // This `setServiceStatus` is not defined in the provided context.
+          // If it's meant to be used, it needs to be defined or removed.
+          // For now, I'll keep it as per the instruction, assuming it's defined elsewhere.
+          // if (data.status) {
+          //     setServiceStatus(data.status);
+          // }
+
           setBlocks(prev => [...prev, {
-              id: Date.now(), type: 'terminal', 
-              content: `Service Control: ${data.message}`,
+              id: Date.now(), type: 'terminal',
+              content: `Service Control: ${data.message || 'Command executed'}`,
               timestamp: new Date().toLocaleTimeString()
           }]);
-      } catch(e) {
+      } catch (error) {
+          console.error('[Service] Error:', error);
           setBlocks(prev => [...prev, {
-              id: Date.now(), type: 'terminal', 
-              content: `Error: ${e.message}`,
+              id: Date.now(), type: 'terminal',
+              content: `Error: ${error.message}`,
               timestamp: new Date().toLocaleTimeString()
           }]);
       }
@@ -974,12 +969,7 @@ const App = () => {
       }
       
       try {
-          const res = await fetch('http://localhost:5000/sessions', {
-              method: 'POST', 
-              headers: {'Content-Type': 'application/json'},
-              body: JSON.stringify(payload)
-          });
-          const data = await res.json();
+          const data = await api.post('/sessions', payload);
           
           if (action === 'load' && data.success) {
                setBlocks(data.data);
@@ -988,6 +978,14 @@ const App = () => {
                   content: `Session '${name}' loaded.`,
                   timestamp: new Date().toLocaleTimeString()
                }]);
+          } else if (action === 'list' && data.sessions) {
+              // List sessions
+              const sessionList = data.sessions.join('\n');
+              setBlocks(prev => [...prev, {
+                  id: Date.now(), type: 'terminal',
+                  content: `Available sessions:\n${sessionList}`,
+                  timestamp: new Date().toLocaleTimeString()
+              }]);
           } else {
                setBlocks(prev => [...prev, {
                   id: Date.now(), type: 'terminal', 
@@ -1004,33 +1002,38 @@ const App = () => {
       }
   };
 
-  // Session Management Handlers
+  // Session Management using SessionService / Gerenciamento de Sessões usando SessionService
   const handleLoadSession = async (name) => {
-      // 1. Load session data
-      try {
-          const res = await fetch('http://localhost:5000/load_session?name=' + name);
-          const data = await res.json();
-          if (data.success) {
-              setBlocks(data.blocks);
-              setBlocks(prev => [...prev, {
-                  id: Date.now(), type: 'terminal', 
-                  content: `Session '${name}' loaded.`,
-                  timestamp: new Date().toLocaleTimeString()
-              }]);
-              setShowSessionModal(false);
-          }
-      } catch (e) { console.error(e); }
+    if (!name) return;
+    try {
+      const result = await sessionService.loadSession(name);
+      
+      if (result.success) {
+        setBlocks(result.blocks);
+        setCurrentSessionName(result.name);
+        sessionModal.close();
+        console.log(`[App] Session "${name}" loaded successfully`);
+      }
+    } catch (error) {
+      console.error('[App] Load session error:', error);
+      alert(`Failed to load session: ${error.message}`);
+    }
   };
 
   const handleSaveSession = async (name) => {
-      try {
-          await fetch('http://localhost:5000/sessions', {
-             method: 'POST',
-             headers: { 'Content-Type': 'application/json' },
-             body: JSON.stringify({ action: 'save', name, data: blocks })
-          });
-          setShowSessionModal(false);
-      } catch (e) { console.error(e); }
+    if (!name) return;
+    try {
+      const result = await sessionService.saveSession(name, blocks);
+      
+      if (result.success) {
+        setCurrentSessionName(result.name);
+        sessionModal.close();
+        console.log(`[App] Session "${name}" saved successfully (${result.blockCount} blocks)`);
+      }
+    } catch (error) {
+      console.error('[App] Save session error:', error);
+      alert(`Failed to save session: ${error.message}`);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -1078,7 +1081,7 @@ const App = () => {
     }
     
     if (lowerCmd === 'exit' || lowerCmd === 'quit') {
-        setShowShutdown(true);
+        shutdownModal.open();
         setLoading(false);
         return;
     }
@@ -1090,13 +1093,13 @@ const App = () => {
     }
 
     if (lowerCmd.startsWith('open session') || cmd.trim().startsWith('/open session')) {
-        setShowSessionModal(true);
+        sessionModal.open();
         setLoading(false);
         return;
     }
 
     if (lowerCmd.startsWith('open history') || cmd.trim().startsWith('/open history')) {
-        setShowHelp(true);
+        helpModal.open();
         setLoading(false);
         return;
     }
@@ -1110,7 +1113,7 @@ const App = () => {
     // PROMPT MODE LOGIC
     if (inputMode === 'prompt') {
         if (cmd.trim() === '/help') {
-             setShowHelp(true);
+             helpModal.open();
              setLoading(false);
              return;
         }
@@ -1230,44 +1233,48 @@ const App = () => {
   };
 
   const handleExecuteProposal = async (cmd, blockId) => {
-      // Mark as executed locally
-      setBlocks(prev => prev.map(b => b.id === blockId ? { ...b, executed: true } : b));
-      setLoading(true);
-      
-      try {
-          // Execute
-          const response = await fetch('http://localhost:5000/execute', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ command: cmd })
-          });
-          const data = await response.json();
-          
-          // Show result using SHELL block (Uniformity)
-          const output = data.output || data.stdout || data.result || "(No output)";
-          
-          setBlocks(prev => [...prev, {
-                id: Date.now(),
-                type: 'SHELL',
-                content: output,
-                command: cmd,
-                timestamp: new Date().toLocaleTimeString()
-          }]);
-          
-          // Optional: Trigger AI analysis of the output?
-          // For now, let's keep it simple. User sees the shell output.
-          // If they want explanation, they can ask.
-      } catch (e) {
-          console.error("Manual execution failed", e);
-          setBlocks(prev => [...prev, {
-              id: Date.now(),
-              type: 'agent',
-              content: `❌ Error executing proposal: ${e.message}`,
-              timestamp: new Date().toLocaleTimeString()
-          }]);
-      } finally {
-          setLoading(false);
+    try {
+      setBlocks(prevBlocks =>
+        prevBlocks.map(b => 
+          b.id === blockId ? { ...b, executing: true } : b
+        )
+      );
+
+      const data = await api.post('/execute', { command: cmd });
+
+      setBlocks(prevBlocks =>
+        prevBlocks.map(b =>
+          b.id === blockId ? {
+            ...b,
+            executing: false,
+            executed: true,
+            executionResult: data
+          } : b
+        )
+      );
+
+      if (data && data.output) {
+        const resultBlock = {
+          id: Date.now(),
+          type: 'command-result',
+          content: data.output,
+          exitCode: data.exit_code,
+          timestamp: new Date().toLocaleTimeString()
+        };
+        setBlocks(prev => [...prev, resultBlock]);
       }
+    } catch (error) {
+      console.error('[Execute] Error:', error);
+      setBlocks(prevBlocks =>
+        prevBlocks.map(b =>
+          b.id === blockId ? {
+            ...b,
+            executing: false,
+            executionError: error.message
+          } : b
+        )
+      );
+    }
   };
 
   const handleKeyDown = (e) => {
@@ -1282,21 +1289,18 @@ const App = () => {
     if (e.key === 'Tab') {
         e.preventDefault();
         if (!input.trim()) return;
-        fetch('http://localhost:5000/complete', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prefix: input })
+        const currentInput = input;
+        
+        api.post('/complete', {
+            partial_command: currentInput,
+            context: 'shell'
         })
-        .then(r => r.json())
         .then(data => {
-            const suggs = data.suggestions;
-            if (suggs && suggs.length > 0) {
-                 const parts = input.split(' ');
-                 parts.pop();
-                 parts.push(suggs[0]);
-                 setInput(parts.join(' ') + (suggs[0].endsWith('/') ? '' : ' ')); 
+            if (data && data.completions && data.completions.length > 0) {
+                setInput(data.completions[0]);
             }
-        });
+        })
+        .catch(err => console.error('[Autocomplete] Error:', err));
         return;
     }
 
@@ -1375,10 +1379,7 @@ const App = () => {
               <span className="font-bold text-sm tracking-wider">HEXAGENT GUI</span>
           </div>
           <div className="flex items-center gap-4 text-xs font-mono">
-              <button onClick={() => setShowSessionModal(true)} className="flex items-center gap-1 text-gray-400 hover:text-white transition-colors">
-                  <History size={14} />
-                  <span>History</span>
-              </button>
+              
               
               {/* Existing Header Items */}
               {/* Header Status Removed as per user request */}
@@ -1396,13 +1397,29 @@ const App = () => {
                         <span className={initStatus.hexstrike.ready ? 'text-green-500' : 'text-red-500'}>HexStrike:{initStatus.hexstrike.port || 8888}</span>
                    </div>
 
-                   {/* Brain Status */}
-                   <div className="flex items-center gap-1.5 border-l border-[#333] pl-3" title="AI Core">
-                        <div className={`w-1.5 h-1.5 rounded-full ${initStatus.brain.status === 'success' ? 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]' : 'bg-red-500'}`}></div>
-                        <span className={initStatus.brain.status === 'success' ? 'text-green-500' : 'text-red-500'}>Brain</span>
+                   {/* Brain Status with AI Config */}
+                   <div className="flex items-center gap-2 border-l border-[#333] pl-3" title="AI Core">
+                        <div className="flex items-center gap-1.5">
+                             <div className={`w-1.5 h-1.5 rounded-full ${initStatus.brain.status === 'success' ? 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]' : initStatus.brain.status === 'warning' ? 'bg-yellow-500' : 'bg-red-500'}`}></div>
+                             <span className={initStatus.brain.status === 'success' ? 'text-green-500' : initStatus.brain.status === 'warning' ? 'text-yellow-500' : 'text-red-500'}>
+                                  Brain{initStatus.brain.status === 'warning' ? '(Standalone)' : ''}
+                             </span>
+                        </div>
+                        {/* AI Config Button */}
+                        <button
+                             onClick={() => aiConfigModal.open()}
+                             className="ml-1 p-0.5 text-cyan-400 hover:text-cyan-300 transition-colors"
+                             title="Configure AI Engine / Configurar Engine de IA"
+                        >
+                             <Cpu size={12} />
+                        </button>
                    </div>
               </div>
-
+{/* sdsad */}
+              <button onClick={() => sessionModal.open()} className="flex items-center gap-1 text-gray-400 hover:text-white transition-colors">
+                  <History size={14} />
+                  <span>History</span>
+              </button>
               <div className="flex items-center gap-2 border-l border-[#333] pl-3 ml-2">
                    {/* Export Chat Button (debug mode only) */}
                    {config?.system?.debug_mode && (
@@ -1420,7 +1437,7 @@ const App = () => {
                    
               {/* Services Button / Botão Serviços */}
               <button
-                onClick={() => setShowServices(true)}
+                onClick={() => servicesModal.open()}
                 className="flex items-center gap-1 text-gray-400 hover:text-blue-400 transition-colors"
                 title="Services / Serviços"
               >
@@ -1430,7 +1447,7 @@ const App = () => {
               
               {/* Workflows Button / Botão Workflows */}
               <button
-                onClick={() => setShowWorkflow(true)}
+                onClick={() => workflowModal.open()}
                 className="flex items-center gap-1 text-gray-400 hover:text-purple-400 transition-colors"
                 title="Automated Workflows"
               >
@@ -1440,15 +1457,11 @@ const App = () => {
               
                    <button
                      onClick={() => {
-                       console.log('[DEBUG] Settings button clicked!');
-                       console.log('[DEBUG] Current showSettings:', showSettings);
-                       console.log('[DEBUG] Current config:', config);
-                       setShowSettings(prev => {
-                         console.log('[DEBUG] Setting showSettings from', prev, 'to true');
-                         return true;
-                       });
-                     }}
-                     className="p-0 bg-transparent border-0 cursor-pointer flex items-center"
+                       console.log('[DEBUG] Settings button clicked');
+                       console.log('[DEBUG] Current settingsModal.isOpen:', settingsModal.isOpen);
+                       settingsModal.open();
+                       console.log('[DEBUG] Called settingsModal.open()');
+                     }}className="p-0 bg-transparent border-0 cursor-pointer flex items-center"
                      title="Settings / Configurações"
                    >
                      <Settings 
@@ -1456,7 +1469,7 @@ const App = () => {
                        className="text-gray-400 hover:text-white transition-colors" 
                      />
                    </button>
-                   <Power size={14} className="text-red-500 hover:text-red-400 cursor-pointer" onClick={() => setShowShutdown(true)} title="Shutdown and Kill All Services" />
+                    <Power size={14} className="text-red-500 hover:text-red-400 cursor-pointer" onClick={shutdownModal.open} title="Shutdown and Kill All Services" />
               </div>
           </div>
       </header>
@@ -1478,29 +1491,25 @@ const App = () => {
               }}
               onSave={async (path, content) => {
                 try {
-                  const response = await fetch('http://localhost:5000/file/write', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      content,
-                      filename: path.split('/').pop(),
-                      path,
-                      overwrite: true,
-                      make_executable: false,
-                      is_temp: false
-                    })
+                  console.log('[FileEditor] Saving file:', path);
+                  await api.post('/file/write', {
+                    path: path,
+                    content: content,
+                    overwrite: true,
+                    make_executable: false,
+                    is_temp: false
                   });
-                  const data = await response.json();
-                  if (!data.success) {
-                    throw new Error(data.error || 'Save failed');
-                  }
-                  // Update file content in openFiles
-                  setOpenFiles(prev => prev.map(f => 
-                    f.path === path ? { ...f, content } : f
-                  ));
+                  
+                  // Update saved state and content
+                  setOpenFiles(prev =>
+                    prev.map(f =>
+                      f.path === path ? { ...f, content, saved: true, modified: false } : f
+                    )
+                  );
+                  console.log('[FileEditor] File saved successfully');
                 } catch (error) {
-                  console.error('[App] File save failed:', error);
-                  alert(`Failed to save file: ${error.message}`);
+                  console.error('[FileEditor] Save error:', error);
+                  alert('Failed to save file: ' + error.message);
                 }
               }}
             />
@@ -1542,7 +1551,7 @@ const App = () => {
                 </button>
 
                 <button
-                    onClick={() => setShowHelp(true)}
+                    onClick={() => helpModal.open()}
                     className="flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-mono border text-blue-400 bg-blue-500/10 border-blue-500/30 hover:bg-blue-500/20 transition-all"
                 >
                     <HelpCircle size={10} />
@@ -1646,37 +1655,43 @@ const App = () => {
       </div> {/* End conversationArea flex-col */}
     </div> {/* End Content Area flex split */}      
       {/* Modals */}
-      {console.log('[DEBUG] About to render SettingsModal, showSettings=', showSettings, 'config=', config)}
-      
+      {console.log('[DEBUG] About to render SettingsModal, isOpen=', settingsModal.isOpen, 'config=', config)}
+      {/*console.log('[DEBUG] SettingsModal, AI config=', config?.ai)*/}
       <SettingsModal
-        isOpen={showSettings}
+        isOpen={settingsModal.isOpen}
         onClose={() => {
           console.log('[DEBUG] SettingsModal onClose called');
-          setShowSettings(false);
+          settingsModal.close();
         }}
         config={config}
-        onSave={saveConfig}
+        onSave={saveConfigToBackend}
         t={t}
       />
       <SessionModal
-        isOpen={showSessionModal}
-        onClose={() => setShowSessionModal(false)}
+        isOpen={sessionModal.isOpen}
+        onClose={sessionModal.close}
         onLoadSession={handleLoadSession}
         onSaveSession={handleSaveSession}
         currentSessionName={currentSessionName}
       />
       <ServiceManagerModal 
-        isOpen={showServices}
-        onClose={() => setShowServices(false)}
+        isOpen={servicesModal.isOpen}
+        onClose={servicesModal.close}
       />
       <WorkflowManagerModal
-        isOpen={showWorkflow}
-        onClose={() => setShowWorkflow(false)}
+        isOpen={workflowModal.isOpen}
+        onClose={workflowModal.close}
       />
-      <HelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} />
+      <HelpModal isOpen={helpModal.isOpen} onClose={helpModal.close} />
+      <AIConfigModal 
+        isOpen={aiConfigModal.isOpen}
+        onClose={aiConfigModal.close}
+        config={config}
+        onSave={handleSettingsSave}
+      />
       <ShutdownModal 
-        isOpen={showShutdown} 
-        onClose={() => setShowShutdown(false)} 
+        isOpen={shutdownModal.isOpen} 
+        onClose={shutdownModal.close} 
         onShutdownComplete={() => {
           // Send IPC to Electron to actually close the window
           if (window.require) {
