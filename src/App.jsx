@@ -20,6 +20,7 @@ import SessionService from './services/SessionService';
 import APIClient from './utils/APIClient';
 import { tempFileManager } from './utils/tempFileManager';
 
+import AIConfigModal from './components/AIConfigModal';
 import WorkflowManagerModal from './components/WorkflowManagerModal';
 import { AnsiRenderer } from './utils/ansiRenderer';
 
@@ -1131,17 +1132,19 @@ const App = () => {
 
 
     // PROMPT MODE LOGIC (Fallback for chat/AI)
+    // Call backend /chat endpoint with correct payload format
+    // Chamar endpoint /chat do backend com formato correto de payload
     try {
         const response = await fetch('http://localhost:5000/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              message: cmd,
-              context: {
-                messages: blocks.slice(-5),
-                auto_execute: autoExecute,
-                max_iterations: unlimitedIterations ? 0 : maxIterations  // 0 = unlimited
-              }
+              prompt: cmd,  // Backend expects 'prompt' not 'message'
+              context: blocks.slice(-5).map(b => ({
+                role: b.type === 'user' ? 'user' : 'assistant',
+                content: b.content
+              })),
+              stream: false
             }),
             signal: abortControllerRef.current.signal
         });

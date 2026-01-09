@@ -115,15 +115,15 @@ function startPythonBackend() {
     console.log(`[Backend] App path: ${appPath}`);
     
     // Define backend script path / Definir caminho do script backend
-    let scriptPath = path.join(appPath, 'backend', 'server.py');
+    let scriptPath = path.join(appPath, 'backend', 'app.py');
     
     // Check if backend exists / Verificar se backend existe
     if (!fs.existsSync(scriptPath)) {
         // Try alternative locations / Tentar localizações alternativas
         const altPaths = [
-            path.join(appPath, 'resources', 'backend', 'server.py'),
-            path.join(__dirname, '../backend/server.py'),
-            path.join(process.cwd(), 'backend', 'server.py')
+            path.join(appPath, 'resources', 'backend', 'app.py'),
+            path.join(__dirname, '../backend/app.py'),
+            path.join(process.cwd(), 'backend', 'app.py')
         ];
         
         for (const altPath of altPaths) {
@@ -135,7 +135,7 @@ function startPythonBackend() {
         }
         
         if (!fs.existsSync(scriptPath)) {
-            console.error(`[Backend] ERROR: server.py not found!`);
+            console.error(`[Backend] ERROR: app.py not found (OOP backend)!`);
             console.error(`[Backend] Tried paths:`, [scriptPath, ...altPaths]);
             // Don't crash app, let it run without backend
             return;

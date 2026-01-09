@@ -1,86 +1,17 @@
 import { Activity, Cpu, Database, Globe, Key, Save, Server, Settings, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import Draggable from 'react-draggable';
-import { loadConfig } from '../utils/configManager';
 import BrainSelector from './BrainSelector';
 
 const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
-  const [localConfig, setLocalConfig] = useState(config || {
-    ai: { 
-        language: 'auto', 
-        max_iterations: 10, 
-        temperature: 0.7,
-        model: 'openai/gpt-4-turbo',
-        api_key: '',
-        api_url: '',
-        web_search_enabled: false,
-        unlimited_iterations: false
-    },
-    services: {
-        flask_port: 5000,
-        hexstrike_port: 8888,
-        backend_host: '127.0.0.1'
-    },
-    system: {
-        theme: 'dark',
-        auto_save_session: true,
-        debug_mode: false,
-        cleanup_on_exit: false,
-        shell_type: 'auto'
-    },
-    ui: {
-        custom_colors: {}
-    }
-  });
-
-  const [activeTab, setActiveTab] = useState('general'); // general, api, models, terminal, features, brain, services, appearance, system
-
-  // Loading/saving state / Estado de carregamento/salvamento
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [message, setMessage] = useState({ type: '', text: '' }); // success, error
+  const [localConfig, setLocalConfig] = useState(config || {});
+  const [activeTab, setActiveTab] = useState('general');
 
   useEffect(() => {
     if (config) {
-        // Deep merge or specific field merge to ensure new fields exist
-        setLocalConfig(prev => ({
-            ...prev,
-            ...config,
-            ai: { ...prev.ai, ...config.ai },
-            services: { ...prev.services, ...config.services },
-            system: { ...prev.system, ...config.system },
-            ui: { ...prev.ui, ...config.ui }
-        }));
+      setLocalConfig(config);
     }
   }, [config]);
-
-  // Load configs from backend / Carregar configs do backend
-  useEffect(() => {
-    const loadAllConfigs = async () => {
-      setIsLoading(true);
-      try {
-        // Load basic configs needed for existing functionality
-        const generalConfig = await loadConfig('core/general');
-        const modelsConfig = await loadConfig('ai/models');
-        
-        // Update state if configs loaded
-        if (generalConfig) {
-          console.log('[Settings] Loaded general config:', generalConfig);
-        }
-        if (modelsConfig) {
-          console.log('[Settings] Loaded models config:', modelsConfig);
-        }
-      } catch (error) {
-        console.error('[Settings] Failed to load configs:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (isOpen) {
-      loadAllConfigs();
-    }
-  }, [isOpen]);
 
   const handleSave = () => {
     onSave(localConfig);

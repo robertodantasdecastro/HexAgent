@@ -34,9 +34,13 @@ import subprocess
 import signal
 import atexit
 import threading
+from datetime import datetime
 # Import command splitter for heredoc handling
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "utils"))
 from command_splitter import split_commands_smart
+
+# Import hex_logger for debug mode logging
+from hex_logger import HexAgentLogger
 
 # Add parent directories to sys.path to find HexAgent and its dependencies
 # Add path logic
@@ -100,15 +104,41 @@ elif os.path.exists(hexagent_path_dev):
     sys.path.append(os.path.join(grandparent_dir, "hexstrike-ai"))
     print(f"Dev Mode: Added {grandparent_dir} to sys.path")
 
+# ===========================================================================
+# STANDALONE MODE: HexAgent modules are NOT required for basic functionality
+# AgentCore will be None in standalone mode - app works with limited features
+# ===========================================================================
+
+# Set defaults / Definir padrões
+AgentCore = None
+Config = None
+KeyManager = None
+load_dotenv = None
+
+# Try to import HexAgent modules (optional) / Tentar importar módulos HexAgent (opcional)
 try:
     from HexAgent.core import AgentCore
     from HexAgent.config import Config
     from HexAgent.key_manager import KeyManager
     from dotenv import load_dotenv
+    print("[HexAgent] ✅ External HexAgent modules loaded successfully")
 except ImportError as e:
-    print(f"Critical Error: Failed to import HexAgent modules. {e}")
-    # Don't exit, allow debugging endpoints if possible, or just fail hard.
-    # sys.exit(1)
+    print(f"[HexAgent] ⚠️  Running in STANDALONE mode (HexAgent modules not available)")
+    print(f"[HexAgent] ℹ️  Basic functionality available. AI features require HexAgent integration.")
+    # Don't exit - backend can still serve config, files, sessions, etc.
+
+
+# Import File and Project Managers / Importar Gerenciadores de Arquivo e Projeto
+FileManager = None
+ProjectManager = None
+try:
+    from managers.file_manager import FileManager
+    from managers.project_manager import ProjectManager
+    print("[Import] FileManager and ProjectManager imported successfully")
+except ImportError as e:
+    print(f"[Import] Failed to import managers: {e}")
+    FileManager = None
+    ProjectManager = None
 
 app = Flask(__name__)
 CORS(app) # Enable CORS for Electron
@@ -230,6 +260,36 @@ def setup_workspace():
        A menos que o usuário especifique, SEMPRE use: ~/.hexagent-gui/tmp/files/
     2. If creating scripts/apps, ASK TO CONFIRM the path or suggest the default.
        Se criar scripts/apps, PEÇA CONFIRMAÇÃO do caminho ou sugira o padrão.
+    3. Always provide working directory context when executing commands.
+       Sempre forneça contexto de diretório de trabalho ao executar comandos.
+
+    [FILE MANAGEMENT - INTELLIGENT PATH HANDLING / GERENCIAMENTO DE ARQUIVOS - MANIPULAÇÃO INTELIGENTE DE CAMINHO]
+    
+    When users request file creation/saving, parse their intent:
+    Quando usuários solicitam criação/salvamento de arquivos, interprete a intenção:
+    
+    **Path Examples / Exemplos de Caminho:**
+    - "save to ./src/main.py" → use path="./src/main.py"
+    - "create in ~/scripts/" → use path="~/scripts/"
+    - "add to project myapp" → use context="myapp"
+    - No path specified → use filename only (goes to downloads)
+    - For temporary files → use is_temp=true
+    
+    **File paths can be:**
+    - Absolute: /home/user/file.py
+    - Relative: ./src/main.py, ../utils/helper.py
+    - Home-relative: ~/scripts/test.sh
+    - Project-context: filename + context="project_name"
+    
+    **The system automatically:**
+    - Shows diff dialog before overwriting existing files
+    - Creates backups in ~/.hexagent-gui/backups/{date}/
+    - Detects if scripts need execute permissions
+    
+    **For multi-file projects:**
+    - Group related files together
+    - Use descriptive directory names
+    - Consider project organization
 """
         create_template(os.path.join(work_dir, 'config', 'agents', 'hexagent.json'), {
             "name": "HexAgent",
@@ -293,11 +353,17 @@ WORKSPACE_DIR = setup_workspace()
 core = None
 init_error = None
 
-try:
-    core = AgentCore()
-except Exception as e:
-    init_error = str(e)
-    print(f"[HexAgentBackend] CRITICAL: Failed to initialize AgentCore: {e}")
+# Only try to init AgentCore if it was successfully imported
+# Somente tentar inicializar AgentCore se foi importado com sucesso
+if AgentCore is not None:
+    try:
+        core = AgentCore()
+        print("[HexAgent] ✅ AgentCore initialized successfully")
+    except Exception as e:
+        init_error = str(e)
+        print(f"[HexAgentBackend] ⚠️  Failed to initialize AgentCore: {e}")
+else:
+    print("[HexAgent] ℹ️  AgentCore not available (standalone mode)")
 
 # Configuration Management / Gerenciamento de Configuração
 def load_config():
@@ -428,6 +494,23 @@ def detect_language(text):
 config = load_config()
 print(f"[Config] Loaded: {config}")
 
+# Initialize logger / Inicializa logger
+hex_logger = HexAgentLogger()
+if config.get('system', {}).get('debug_mode', False):
+    hex_logger.enable()
+    print("[Logger] Debug mode enabled - structured logging activated")
+
+# Initialize file and project managers / Inicializar gerenciadores de arquivo e projeto
+file_manager = None
+project_manager = None
+if FileManager and ProjectManager:
+    try:
+        file_manager = FileManager()
+        project_manager = ProjectManager(file_manager)
+        print("[Managers] FileManager and ProjectManager initialized")
+    except Exception as e:
+        print(f"[Managers] Failed to initialize managers: {e}")
+
 @app.route('/init_status', methods=['GET'])
 def init_status():
     """
@@ -486,25 +569,42 @@ def init_agent():
         api_key = config_key.strip()
         print("[Auth] Using API Key from configuration")
     else:
-        # Fallback to env file
-        env_path = Config.ENV_FILE
-        if not os.path.exists(env_path):
-            # Fallback to HexSecGPT-main/.HexSec
-            potential_path = os.path.join(parent_dir, "HexSecGPT-main", ".HexSec")
-            if os.path.exists(potential_path):
-                env_path = potential_path
-                
-        load_dotenv(dotenv_path=env_path)
-        api_key = os.getenv(Config.API_KEY_NAME)
+        # Fallback to env file (only if Config is available)
+        # Fallback para arquivo env (somente se Config estiver disponível)
+        if Config is not None:
+            env_path = Config.ENV_FILE
+            if not os.path.exists(env_path):
+                # Fallback to HexSecGPT-main/.HexSec
+                potential_path = os.path.join(parent_dir, "HexSecGPT-main", ".HexSec")
+                if os.path.exists(potential_path):
+                    env_path = potential_path
+                    
+            if load_dotenv:
+                load_dotenv(dotenv_path=env_path)
+            api_key = os.getenv(Config.API_KEY_NAME if Config else 'OPENROUTER_API_KEY')
+        else:
+            # Standalone mode: check for standard env var
+            # Modo standalone: verificar variável de ambiente padrão
+            api_key = os.getenv('OPENROUTER_API_KEY') or os.getenv('API_KEY')
     
+    # STANDALONE MODE: If AgentCore is None, init succeeds with limited features
+    # MODO STANDALONE: Se AgentCore é None, init sucede com recursos limitados
+    if core is None:
+        return jsonify({
+            "success": True,
+            "message": "Running in STANDALONE mode. AI features disabled. Configure API key in Settings to enable.",
+            "standalone": True,
+            "agent_initialized": False
+        }), 200
+    
+    # If we have core but no API key, that's an error
+    # Se temos core mas sem API key, isso é um erro
     if not api_key:
         return jsonify({"success": False, "error": "API Key not found. Please configure it in Settings."}), 200
         
     try:
-        if not core:
-            return jsonify({"success": False, "error": f"Agent Core not loaded: {init_error}"}), 200
-
-
+        # At this point, core is not None and we have API key
+        # Neste ponto, core não é None e temos API key
         if core.initialize(api_key):
             # Auto-start HexStrike logic
             started = False
@@ -1059,19 +1159,34 @@ def chat():
                  # Stop the loop here, waiting for user action on frontend
                  break
 
-            # Step 3: Execute commands and collect results
+            # Step 3: Execute commands and send as separate SHELL blocks
             execution_summary = ""
             
             if core.body:
-                yield json.dumps({"chunk": "\n\n"}) + "\n"
                 for cmd_block in code_blocks:
                     commands = [line.strip() for line in cmd_block.split('\n') 
                                if line.strip() and not line.strip().startswith('#')]
                     
                     for cmd in commands:
-                        yield json.dumps({"chunk": f"🔧 Executando: {cmd}\n"}) + "\n"
+                        # Execute command
                         result = core.execute_tool(cmd)
-                        yield json.dumps({"chunk": f"{result}\n\n"}) + "\n"
+                        
+                        # Log command execution if debug mode active
+                        hex_logger.log_command(
+                            command=cmd,
+                            output=result,
+                            exit_code=0 if result and 'error' not in result.lower() else 1
+                        )
+                        
+                        # Send as SHELL output block (NEW - separate from AI feedback)
+                        yield json.dumps({
+                            "type": "shell_output",
+                            "command": cmd,
+                            "stdout": result,
+                            "exit_code": 0 if result and 'error' not in result.lower() else 1,
+                            "iteration": iteration,
+                            "max_iterations": actual_limit if not unlimited else 0
+                        }) + "\n"
                         
                         # Add to execution summary for AI feedback
                         execution_summary += f"\nComando: {cmd}\nResultado: {result}\n"
@@ -1272,9 +1387,332 @@ def execute_command():
         
     if not core:
         return jsonify({"error": f"Agent Core not loaded: {init_error}"}), 400
-        
+      # Execute command
     result = core.execute_tool(cmd)
-    return jsonify({"result": result})
+    
+    # Log command execution if debug mode active
+    hex_logger.log_command(
+        command=cmd,
+        output=result,
+        exit_code=0 if result and 'error' not in result.lower() else 1
+    )
+    
+    return jsonify({'output': result}), 200
+
+@app.route('/export/chat', methods=['POST'])
+def export_chat():
+    """
+    Export full conversation in structured markdown format
+    Exportar conversa completa em formato markdown estruturado
+    """
+    try:
+        print("[export_chat] Endpoint called")
+        data = request.json
+        print(f"[export_chat] Received data keys: {list(data.keys()) if data else 'None'}")
+        
+        blocks = data.get('blocks', [])
+        session_id = data.get('session_id', 'unknown')
+        metadata = data.get('metadata', {})
+        
+        print(f"[export_chat] Processing {len(blocks)} blocks")
+        
+        # Generate markdown export
+        output_lines = []
+        output_lines.append("# HexAgent Chat Export\n")
+        output_lines.append(f"**Export Date:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+        output_lines.append(f"**Session ID:** {session_id}\n")
+        output_lines.append(f"**Total Blocks:** {len(blocks)}\n")
+        output_lines.append("\n---\n\n")
+        
+        # Process each block
+        for idx, block in enumerate(blocks, 1):
+            try:
+                block_type = block.get('type', 'UNKNOWN')
+                timestamp = block.get('timestamp', 'N/A')
+                content = block.get('content', '')
+                
+                output_lines.append(f"## [BLOCK {idx}] {block_type}\n")
+                output_lines.append(f"**Timestamp:** {timestamp}\n\n")
+                
+                # Format based on block type
+                if block_type == 'SHELL':
+                    command = block.get('command', content)
+                    result = block.get('output', block.get('result', ''))
+                    output_lines.append(f"**Command:**\n```bash\n{command}\n```\n\n")
+                    if result:
+                        output_lines.append(f"**Output:**\n```\n{result}\n```\n")
+                elif block_type == 'THINKING':
+                    output_lines.append(f"```text\n{content}\n```\n")
+                elif block_type in ['CODE', 'SCRIPT']:
+                    language = block.get('language', 'bash')
+                    output_lines.append(f"```{language}\n{content}\n```\n")
+                else:
+                    output_lines.append(f"{content}\n")
+                
+                output_lines.append("\n---\n\n")
+            except Exception as block_error:
+                print(f"[export_chat] Error processing block {idx}: {str(block_error)}")
+                # Continue processing other blocks
+                output_lines.append(f"## [BLOCK {idx}] ERROR\n")
+                output_lines.append(f"Error processing block: {str(block_error)}\n\n---\n\n")
+        
+        markdown_content = "".join(output_lines)
+        print(f"[export_chat] Generated markdown: {len(markdown_content)} chars")
+        
+        # Log export event (safe logging - won't fail if logger is disabled)
+        try:
+            hex_logger.log_system_event('chat_export', {
+                'session_id': session_id,
+                'blocks_count': len(blocks),
+                'export_size': len(markdown_content)
+            })
+        except Exception as log_error:
+            print(f"[export_chat] Logger error (non-critical): {str(log_error)}")
+        
+        print("[export_chat] Returning success response")
+        return jsonify({
+            'success': True,
+            'markdown': markdown_content,
+            'blocks_count': len(blocks)
+        }), 200
+        
+    except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"[export_chat] ERROR: {str(e)}")
+        print(f"[export_chat] Traceback:\n{error_trace}")
+        
+        # Try to log error (safe)
+        try:
+            hex_logger.log_system_event('chat_export_error', {
+                'error': str(e),
+                'traceback': error_trace
+            })
+        except:
+            pass
+            
+        return jsonify({'success': False, 'error': str(e), 'traceback': error_trace}), 500
+
+# =============================================================================
+# File and Project Management Endpoints / Endpoints de Gerenciamento de Arquivos e Projetos
+# =============================================================================
+
+@app.route('/file/write', methods=['POST'])
+def write_file_endpoint():
+    """
+    Write content to file with intelligent path resolution
+    Escrever conteúdo em arquivo com resolução inteligente de caminho
+    
+    Body: {
+        "content": "file content",
+        "filename": "script.py",
+        "path": "./src/main.py" (optional),
+        "overwrite": false (optional),
+        "make_executable": false (optional),
+        "is_temp": false (optional),
+        "context": "project_name" (optional)
+    }
+    """
+    if not file_manager:
+        return jsonify({"error": "FileManager not available"}), 503
+    
+    try:
+        data = request.json
+        
+        result = file_manager.write_file(
+            content=data['content'],
+            filename=data['filename'],
+            user_path=data.get('path'),
+            overwrite=data.get('overwrite', False),
+            make_executable=data.get('make_executable', False),
+            is_temp=data.get('is_temp', False),
+            context=data.get('context')
+        )
+        
+        # Log file write if debug mode / Registrar escrita de arquivo se modo debug
+        if result['success']:
+            hex_logger.log_system_event('file_write', {
+                'path': result['path'],
+                'size': result['size'],
+                'is_temp': result.get('is_temp', False)
+            })
+        
+        return jsonify(result), 200 if result['success'] else 400
+        
+    except KeyError as e:
+        return jsonify({"error": f"Missing required field: {str(e)}"}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/file/diff', methods=['POST'])
+def get_file_diff_endpoint():
+    """
+    Get diff between existing file and new content
+    Obter diff entre arquivo existente e novo conteúdo
+    
+    Body: {
+        "path": "/path/to/file",
+        "content": "new content"
+    }
+    """
+    if not file_manager:
+        return jsonify({"error": "FileManager not available"}), 503
+    
+    try:
+        data = request.json
+        diff_result = file_manager.get_diff(data['path'], data['content'])
+        
+        if diff_result is None:
+            return jsonify({
+                "file_exists": False,
+                "message": "File does not exist"
+            }), 200
+        
+        return jsonify(diff_result), 200
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/file/read', methods=['POST'])
+def read_file_endpoint():
+    """
+    Read file content with metadata
+    Ler conteúdo de arquivo com metadados
+    """
+    if not file_manager:
+        return jsonify({"error": "FileManager not available"}), 503
+    
+    try:
+        data = request.json
+        result = file_manager.read_file(data['path'])
+        return jsonify(result), 200 if result['success'] else 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/file/backups', methods=['GET'])
+def list_backups_endpoint():
+    """
+    List available file backups
+    Listar backups de arquivos disponíveis
+    """
+    if not file_manager:
+        return jsonify({"error": "FileManager not available"}), 503
+    
+    try:
+        filename = request.args.get('filename')
+        backups = file_manager.list_backups(filename)
+        return jsonify({"backups": backups, "count": len(backups)}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/project/create', methods=['POST'])
+def create_project_endpoint():
+    """
+    Create multi-file project with structure
+    Criar projeto com múltiplos arquivos com estrutura
+    
+    Body: {
+        "name": "my_project",
+        "description": "Project description" (optional),
+        "files": [
+            {"path": "main.py", "content": "...", "executable": false},
+            {"path": "utils/helper.py", "content": "..."}
+        ]
+    }
+    """
+    if not project_manager:
+        return jsonify({"error": "ProjectManager not available"}), 503
+    
+    try:
+        data = request.json
+        
+        result = project_manager.create_project(
+            name=data['name'],
+            files=data['files'],
+            description=data.get('description')
+        )
+        
+        # Log project creation / Registrar criação de projeto
+        if result['success']:
+            hex_logger.log_system_event('project_create', {
+                'project_name': result['project_name'],
+                'file_count': len(result['files'])
+            })
+        
+        return jsonify(result), 200 if result['success'] else 400
+        
+    except KeyError as e:
+        return jsonify({"error": f"Missing required field: {str(e)}"}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/project/<project_name>/tree', methods=['GET'])
+def get_project_tree_endpoint(project_name):
+    """
+    Get file tree structure for project
+    Obter estrutura de árvore de arquivos do projeto
+    """
+    if not project_manager:
+        return jsonify({"error": "ProjectManager not available"}), 503
+    
+    try:
+        tree = project_manager.get_file_tree(
+            str(project_manager.projects_root / project_name)
+        )
+        
+        if not tree:
+            return jsonify({"error": "Project not found or empty"}), 404
+        
+        return jsonify({"project": project_name, "tree": tree}), 200
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/project/list', methods=['GET'])
+def list_projects_endpoint():
+    """
+    List all projects
+    Listar todos os projetos
+    """
+    if not project_manager:
+        return jsonify({"error": "ProjectManager not available"}), 503
+    
+    try:
+        projects = project_manager.list_projects()
+        return jsonify({"projects": projects, "count": len(projects)}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/project/<project_name>', methods=['DELETE'])
+def delete_project_endpoint(project_name):
+    """
+    Delete a project (with backup)
+    Deletar um projeto (com backup)
+    """
+    if not project_manager:
+        return jsonify({"error": "ProjectManager not available"}), 503
+    
+    try:
+        create_backup = request.args.get('backup', 'true').lower() == 'true'
+        result = project_manager.delete_project(project_name, create_backup)
+        
+        if result['success']:
+            hex_logger.log_system_event('project_delete', {
+                'project_name': project_name,
+                'backup_created': create_backup
+            })
+        
+        return jsonify(result), 200 if result['success'] else 400
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/status', methods=['GET'])
 def status():
