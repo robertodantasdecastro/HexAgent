@@ -1,14 +1,13 @@
 """
-Configuration Controller - Updated to use separated System and AI services
-Controlador de Configuração - Atualizado para usar serviços separados de Sistema e IA
+Configuration Controller - Handles all configuration endpoints
+Controlador de Configuração - Gerencia todos os endpoints de configuração
 
-Provides both legacy unified endpoints and new separated endpoints
-Fornece endpoints unificados legados e novos endpoints separados
+Provides endpoints for loading, saving, and managing system and AI configurations.
+Fornece endpoints para carregar, salvar e gerenciar configurações do sistema e IA.
 """
 
 from core.base_controller import BaseController
-from services.system_config_service import SystemConfigService
-from services.ai_config_service import AIConfigService
+from services.config_service import ConfigService
 from core.errors import ConfigError, ValidationError
 from flask import request
 
@@ -17,16 +16,10 @@ class ConfigController(BaseController):
     """
     Controller for configuration management endpoints
     Controlador para endpoints de gerenciamento de configuração
-    
-    Uses TWO independent services for clean separation
-    Usa DOIS serviços independentes para separação limpa
     """
     
     def __init__(self):
-        # Initialize BOTH services / Inicializar AMBOS os serviços
-        self.system_service = SystemConfigService()
-        self.ai_service = AIConfigService()
-        
+        self.service = ConfigService()
         super().__init__(
             name='config',
             import_name=__name__,
@@ -37,30 +30,20 @@ class ConfigController(BaseController):
         """Register all configuration routes / Registra todas as rotas de configuração"""
         
         # ============================================================================
-        # LEGACY UNIFIED ENDPOINTS (Backward Compatibility)
-        # Endpoints Unificados Legados (Compatibilidade com Versão Anterior)
+        # UNIFIED CONFIG ENDPOINTS (Backward Compatibility)
+        # Endpoints Unificados de Config (Compatibilidade com Versão Anterior)
         # ============================================================================
         
         @self.blueprint.route('/', methods=['GET'])
         def get_full_config():
             """
-            Get complete configuration (system + AI merged)
-            Obtém configuração completa (sistema + IA mesclados)
-            
-            LEGACY: For backward compatibility only
-            LEGADO: Apenas para compatibilidade com versão anterior
+            Get complete configuration (system + AI)
+            Obtém configuração completa (sistema + IA)
             """
             try:
-                self.log_request('GET /config (legacy)')
-                
-                # Load both configs separately
-                system_config = self.system_service.load_system_config()
-                ai_config = self.ai_service.load_ai_config()
-                
-                # Merge for legacy clients
-                merged = {**system_config, **ai_config}
-                
-                return self.success_response(data={'config': merged})
+                self.log_request('GET /config')
+                config = self.service.load_full_config()
+                return self.success_response(data={'config': config})
             except ConfigError as e:
                 return self.error_response(str(e), 400)
             except Exception as e:
@@ -72,29 +55,11 @@ class ConfigController(BaseController):
             """
             Save complete configuration (splits automatically)
             Salva configuração completa (divide automaticamente)
-            
-            LEGACY: For backward compatibility only
-            LEGADO: Apenas para compatibilidade com versão anterior
             """
             try:
-                self.log_request('POST /config (legacy)')
+                self.log_request('POST /config')
                 data = self.validate_request(['config'])
-                config = data['config']
-                
-                # Split into system and AI configs
-                system_keys = ['system', 'services', 'ui', 'terminal']
-                ai_keys = ['ai']
-                
-                # Extract system config
-                system_config = {k: v for k, v in config.items() if k in system_keys}
-                if system_config:
-                    self.system_service.save_system_config(system_config)
-                
-                # Extract AI config
-                ai_config = {k: v for k, v in config.items() if k in ai_keys}
-                if ai_config:
-                    self.ai_service.save_ai_config(ai_config)
-                
+                self.service.save_full_config(data['config'])
                 return self.success_response(message="Configuration saved successfully")
             except ValueError as e:
                 return self.error_response(str(e), 400)
@@ -105,19 +70,19 @@ class ConfigController(BaseController):
                 return self.error_response("Failed to save configuration", 500)
         
         # ============================================================================
-        # NEW SEPARATED ENDPOINTS (Clean Architecture)
-        # Novos Endpoints Separados (Arquitetura Limpa)
+        # SEPARATED CONFIG ENDPOINTS (New Dual System)
+        # Endpoints Separados de Config (Novo Sistema Dual)
         # ============================================================================
         
         @self.blueprint.route('/system', methods=['GET'])
         def get_system_config():
             """
-            Get system configuration ONLY
-            Obtém APENAS configuração do sistema
+            Get system configuration only
+            Obtém apenas configuração do sistema
             """
             try:
                 self.log_request('GET /config/system')
-                config = self.system_service.load_system_config()
+                config = self.service.load_system_config()
                 return self.success_response(data={'config': config})
             except ConfigError as e:
                 return self.error_response(str(e), 400)
@@ -128,13 +93,13 @@ class ConfigController(BaseController):
         @self.blueprint.route('/system', methods=['POST'])
         def save_system_config():
             """
-            Save system configuration ONLY
-            Salva APENAS configuração do sistema
+            Save system configuration only
+            Salva apenas configuração do sistema
             """
             try:
                 self.log_request('POST /config/system')
                 data = self.validate_request(['config'])
-                self.system_service.save_system_config(data['config'])
+                self.service.save_system_config(data['config'])
                 return self.success_response(message="System configuration saved")
             except ValueError as e:
                 return self.error_response(str(e), 400)
@@ -147,12 +112,12 @@ class ConfigController(BaseController):
         @self.blueprint.route('/ai', methods=['GET'])
         def get_ai_config():
             """
-            Get AI configuration ONLY
-            Obtém APENAS configuração de IA
+            Get AI configuration only
+            Obtém apenas configuração de IA
             """
             try:
                 self.log_request('GET /config/ai')
-                config = self.ai_service.load_ai_config()
+                config = self.service.load_ai_config()
                 return self.success_response(data={'config': config})
             except ConfigError as e:
                 return self.error_response(str(e), 400)
@@ -163,13 +128,13 @@ class ConfigController(BaseController):
         @self.blueprint.route('/ai', methods=['POST'])
         def save_ai_config():
             """
-            Save AI configuration ONLY
-            Salva APENAS configuração de IA
+            Save AI configuration only
+            Salva apenas configuração de IA
             """
             try:
                 self.log_request('POST /config/ai')
                 data = self.validate_request(['config'])
-                self.ai_service.save_ai_config(data['config'])
+                self.service.save_ai_config(data['config'])
                 return self.success_response(message="AI configuration saved")
             except ValueError as e:
                 return self.error_response(str(e), 400)

@@ -1,6 +1,7 @@
-import { Database, Globe, Save, Server, Settings, X } from 'lucide-react';
+import { Activity, Cpu, Database, Globe, Key, Save, Server, Settings, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import Draggable from 'react-draggable';
+import BrainSelector from './BrainSelector';
 
 const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
   const [localConfig, setLocalConfig] = useState(config || {});
@@ -17,7 +18,12 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
     onClose();
   };
 
-
+  const updateAI = (field, value) => {
+    setLocalConfig(prev => ({
+        ...prev,
+        ai: { ...prev.ai, [field]: value }
+    }));
+  };
 
   const updateService = (field, value) => {
     setLocalConfig(prev => ({
@@ -90,7 +96,24 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
             >
                 <Settings size={14} /> GENERAL
             </button>
-
+            <button 
+                onClick={() => setActiveTab('api')}
+                className={`flex-1 py-3 px-2 text-xs font-mono font-bold flex items-center justify-center gap-2 border-b-2 transition-colors ${activeTab === 'api' ? 'border-red-500 text-red-400 bg-red-500/5' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
+            >
+                <Key size={14} /> API KEYS
+            </button>
+            <button 
+                onClick={() => setActiveTab('models')}
+                className={`flex-1 py-3 px-2 text-xs font-mono font-bold flex items-center justify-center gap-2 border-b-2 transition-colors ${activeTab === 'models' ? 'border-pink-500 text-pink-400 bg-pink-500/5' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
+            >
+                <Activity size={14} /> MODELS
+            </button>
+            <button 
+                onClick={() => setActiveTab('brain')}
+                className={`flex-1 py-3 px-2 text-xs font-mono font-bold flex items-center justify-center gap-2 border-b-2 transition-colors ${activeTab === 'brain' ? 'border-[#00ff00] text-[#00ff00] bg-[#00ff00]/5' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
+            >
+                <Cpu size={14} /> {t ? t('settings.tab_brain') : 'BRAIN'}
+            </button>
             <button 
                 onClick={() => setActiveTab('services')}
                 className={`flex-1 py-3 px-2 text-xs font-mono font-bold flex items-center justify-center gap-2 border-b-2 transition-colors ${activeTab === 'services' ? 'border-cyan-500 text-cyan-400 bg-cyan-500/5' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
@@ -152,13 +175,13 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
                                 {t ? t('settings.language') : 'Language / Idioma'}
                             </label>
                             <select
-                                value={localConfig.system?.language || 'auto'}
+                                value={localConfig.ai?.language || 'auto'}
                                 onChange={async (e) => {
                                     const newLang = e.target.value;
-                                    updateSystem('language', newLang);
+                                    updateAI('language', newLang);
                                     
                                     // Use TranslationManager for real-time update / Usar TranslationManager para atualização em tempo real
-                                const { default: TranslationManager } = await import('../utils/TranslationManager');
+                                    const { default: TranslationManager } = await import('../utils/TranslationManager');
                                     const tm = TranslationManager.getInstance();
                                     tm.setLanguage(newLang);
                                 }}
@@ -182,11 +205,78 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
             )}
 
             {/* API KEYS TAB */}
+            {activeTab === 'api' && (
+                <div className="space-y-5 animate-in fade-in zoom-in-95 duration-200">
+                    <div className="text-sm text-gray-400 mb-4">
+                        {t ? t('settings.api_keys.description') : 'Configure API keys for AI providers'}
+                    </div>
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-xs text-gray-400 mb-1.5 font-mono">{t ? t('settings.api_keys.openai') : 'OpenAI API Key'}</label>
+                            <input 
+                                type="password"
+                                placeholder="sk-..."
+                                className="w-full bg-black border border-[#333] rounded px-3 py-2 text-white text-sm focus:border-red-500 focus:outline-none"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs text-gray-400 mb-1.5 font-mono">OpenRouter API Key</label>
+                            <input 
+                                type="password"
+                                placeholder="sk-or-..."
+                                className="w-full bg-black border border-[#333] rounded px-3 py-2 text-white text-sm focus:border-red-500 focus:outline-none"
+                            />
+                        </div>
+                        <div className="text-xs text-blue-500 mt-4">
+                            🔒 Keys stored in ~/.hexagent-gui/config/core/api_keys.json
+                        </div>
+                    </div>
+                </div>
+            )}
 
-
-
+            {/* MODELS TAB */}
+            {activeTab === 'models' && (
+                <div className="space-y-5 animate-in fade-in zoom-in-95 duration-200">
+                    <div className="text-sm text-gray-400 mb-4">
+                        AI model selection and parameters
+                    </div>
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-xs text-gray-400 mb-1.5 font-mono">Default Model</label>
+                            <select className="w-full bg-black border border-[#333] rounded px-3 py-2 text-white text-sm focus:border-pink-500 focus:outline-none">
+                                <option>openai/gpt-4-turbo</option>
+                                <option>openai/gpt-4</option>
+                                <option>openai/gpt-3.5-turbo</option>
+                                <option>openrouter/anthropic/claude-3-sonnet</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-xs text-gray-400 mb-1.5 font-mono">Temperature: 0.7</label>
+                            <input 
+                                type="range" 
+                                min="0" 
+                                max="2" 
+                                step="0.1" 
+                                defaultValue="0.7"
+                                className="w-full"
+                            />
+                        </div>
+                        <div className="text-xs text-pink-500 mt-4">
+                            ⚙️ Config in ~/.hexagent-gui/config/ai/models.json
+                        </div>
+                    </div>
+                </div>
+            )}
             
-
+            {/* BRAIN TAB - AI Engine Selector */}
+            {activeTab === 'brain' && (
+                <div className="space-y-5 animate-in fade-in zoom-in-95 duration-200">
+                    <BrainSelector 
+                        currentBrain={localConfig.ai?.provider || 'openai'}
+                        onBrainChange={(brainKey) => updateAI('provider', brainKey)}
+                    />
+                </div>
+            )}
             
             {/* TERMINAL TAB */}
             {activeTab === 'terminal' && (

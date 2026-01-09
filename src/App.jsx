@@ -13,8 +13,9 @@ import SessionModal from './components/SessionModal';
 import SettingsModal from './components/SettingsModal';
 import ShutdownModal from './components/ShutdownModal';
 import SmartBlock from './components/SmartBlock';
-import useConfig from './hooks/useConfig';
+import useAIConfig from './hooks/useAIConfig';
 import useModalState from './hooks/useModalState';
+import useSystemConfig from './hooks/useSystemConfig';
 import { useTranslation } from './hooks/useTranslation';
 import SessionService from './services/SessionService';
 import APIClient from './utils/APIClient';
@@ -124,7 +125,7 @@ const Block = ({ type, content, result, timestamp, onExecute, executed, onContin
                  <p className="text-sm text-gray-300">{t('block.limit_desc')}</p>
                  <div className="flex gap-2">
                      <button onClick={() => onContinue(0)} className="px-4 py-2 bg-red-900/20 border border-red-500/30 text-red-500 rounded hover:bg-red-900/40 text-xs font-mono">{t('block.stop')}</button>
-                     <button onClick={() => onContinue(config?.ai?.max_iterations || 15)} className="px-4 py-2 bg-green-900/20 border border-green-500/30 text-green-500 rounded hover:bg-green-900/40 text-xs font-mono flex items-center gap-2"><Play size={12} /> {t('block.continue_n').replace('{n}', config?.ai?.max_iterations || 15)}</button>
+                     <button onClick={() => onContinue(aiConfig?.ai?.max_iterations || 15)} className="px-4 py-2 bg-green-900/20 border border-green-500/30 text-green-500 rounded hover:bg-green-900/40 text-xs font-mono flex items-center gap-2"><Play size={12} /> {t('block.continue_n').replace('{n}', aiConfig?.ai?.max_iterations || 15)}</button>
                      <button onClick={() => onContinue('MAKE_SCRIPT')} className="px-4 py-2 bg-purple-900/20 border border-purple-500/30 text-purple-400 rounded hover:bg-purple-900/40 text-xs font-mono flex items-center gap-2 transition-all hover:scale-105"><FileText size={12} /> Make Script</button>
                  </div>
              </div>
@@ -437,12 +438,38 @@ const App = () => {
   const [autoScroll, setAutoScroll] = useState(true);
   
   // Configuration State (OOP with ConfigManager) / Estado de Configuração (POO com ConfigManager)
-  const { config, loading: configLoading, error: configError, updateConfig, saveConfig: saveConfigToBackend } = useConfig();
+  // Use SEPARATED config hooks / Usar hooks de config SEPARADOS
+  const { 
+    systemConfig, 
+    loading: systemLoading, 
+    error: systemError, 
+    saveSystemConfig 
+  } = useSystemConfig();
+  
+  const { 
+    aiConfig, 
+    loading: aiLoading, 
+    error: aiError, 
+    saveAIConfig 
+  } = useAIConfig();
+  
+  // Combined loading state / Estado de carregamento combinado
+  const configLoading = systemLoading || aiLoading;
+  const configError = systemError || aiError;
   const scrollRef = useRef(null);
   
 
   // Translation Hook / Hook de Tradução
-  const { t, language } = useTranslation();
+  const { t, language, setLanguage } = useTranslation();
+  
+  // Sync language from systemConfig to TranslationManager
+  // Sincronizar idioma do systemConfig para TranslationManager
+  useEffect(() => {
+    if (systemConfig?.system?.language && systemConfig.system.language !== language) {
+      console.log(`[App] Syncing language from systemConfig: ${systemConfig.system.language}`);
+      setLanguage(systemConfig.system.language);
+    }
+  }, [systemConfig?.system?.language, language, setLanguage]);
   
   // History State
   const [promptHistory, setPromptHistory] = useState([]); // Local Prompt History
@@ -759,7 +786,7 @@ const App = () => {
         session_id: Date.now().toString(),
         metadata: {
           date: new Date().toISOString(),
-          config: config
+          config: systemConfig
         }
       });
       
@@ -792,7 +819,7 @@ const App = () => {
   };
 
   const toggleUnlimited = () => {
-       const newUnlimited = !config?.ai?.unlimited_iterations;
+       const newUnlimited = !aiConfig?.ai?.unlimited_iterations;
        updateConfig('ai.unlimited_iterations', newUnlimited);
        // Also update local state for immediate feedback
        setConfig(prev => ({
@@ -1425,7 +1452,7 @@ const App = () => {
               </button>
               <div className="flex items-center gap-2 border-l border-[#333] pl-3 ml-2">
                    {/* Export Chat Button (debug mode only) */}
-                   {config?.system?.debug_mode && (
+                   {systemConfig?.system?.debug_mode && (
                      <button
                        onClick={handleExportChat}
                        className="p-0 bg-transparent border-0 cursor-pointer flex items-center"
@@ -1533,7 +1560,7 @@ const App = () => {
                   isLast={index === blocks.length - 1}
                   isLoading={isLoading && index === blocks.length - 1}
                   t={t}
-                  colors={config?.ui?.custom_ansi}
+                  colors={systemConfig?.ui?.custom_ansi}
               />
            ))}
            <div ref={bottomRef} />
@@ -1606,10 +1633,10 @@ const App = () => {
 
                 <button
                     onClick={toggleUnlimited}
-                    className={`flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-mono border transition-all ${config?.ai?.unlimited_iterations ? 'text-purple-400 bg-purple-500/10 border-purple-500/30' : 'text-gray-500 bg-gray-500/10 border-gray-500/20'}`}
+                    className={`flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-mono border transition-all ${aiConfig?.ai?.unlimited_iterations ? 'text-purple-400 bg-purple-500/10 border-purple-500/30' : 'text-gray-500 bg-gray-500/10 border-gray-500/20'}`}
                 >
-                    {config?.ai?.unlimited_iterations ? <Infinity size={10} /> : <Hash size={10} />}
-                    <span>{config?.ai?.unlimited_iterations ? 'Unlimited' : `Limit: ${config?.ai?.max_iterations || 15}`}</span>
+                    {aiConfig?.ai?.unlimited_iterations ? <Infinity size={10} /> : <Hash size={10} />}
+                    <span>{aiConfig?.ai?.unlimited_iterations ? 'Unlimited' : `Limit: ${aiConfig?.ai?.max_iterations || 15}`}</span>
                 </button>
              </div>
              <div>
@@ -1658,16 +1685,16 @@ const App = () => {
       </div> {/* End conversationArea flex-col */}
     </div> {/* End Content Area flex split */}      
       {/* Modals */}
-      {console.log('[DEBUG] About to render SettingsModal, isOpen=', settingsModal.isOpen, 'config=', config)}
-      {/*console.log('[DEBUG] SettingsModal, AI config=', config?.ai)*/}
+      {console.log('[DEBUG] About to render SettingsModal, isOpen=', settingsModal.isOpen, 'systemConfig=', systemConfig)}
+      {/*console.log('[DEBUG] SettingsModal, AI config=', aiConfig)*/}
       <SettingsModal
         isOpen={settingsModal.isOpen}
         onClose={() => {
           console.log('[DEBUG] SettingsModal onClose called');
           settingsModal.close();
         }}
-        config={config}
-        onSave={saveConfigToBackend}
+        config={systemConfig}
+        onSave={saveSystemConfig}
         t={t}
       />
       <SessionModal
@@ -1689,7 +1716,7 @@ const App = () => {
       <AIConfigModal 
         isOpen={aiConfigModal.isOpen}
         onClose={aiConfigModal.close}
-        config={config}
+        config={aiConfig}
         onSave={handleSettingsSave}
       />
       <ShutdownModal 
