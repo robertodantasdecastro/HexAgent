@@ -462,14 +462,33 @@ const App = () => {
   // Translation Hook / Hook de Tradução
   const { t, language, setLanguage } = useTranslation();
   
-  // Sync language from systemConfig to TranslationManager
-  // Sincronizar idioma do systemConfig para TranslationManager
+  // Initialize TranslationManager with systemConfig callbacks
+  // Inicializar TranslationManager com callbacks do systemConfig
   useEffect(() => {
-    if (systemConfig?.system?.language && systemConfig.system.language !== language) {
-      console.log(`[App] Syncing language from systemConfig: ${systemConfig.system.language}`);
-      setLanguage(systemConfig.system.language);
-    }
-  }, [systemConfig?.system?.language, language, setLanguage]);
+    const TranslationManager = require('./utils/TranslationManager').default;
+    const tm = TranslationManager.getInstance();
+    
+    // Set load callback - read from systemConfig
+    tm.setConfigLoadCallback(() => {
+      const lang = systemConfig?.system?.language;
+      console.log(`[App] TranslationManager loading language from systemConfig: ${lang}`);
+      return lang || 'auto';
+    });
+    
+    // Set save callback - save to systemConfig
+    tm.setConfigSaveCallback(async (newLang) => {
+      console.log(`[App] TranslationManager saving language to systemConfig: ${newLang}`);
+      if (systemConfig) {
+        const updated = {
+          ...systemConfig,
+          system: { ...systemConfig.system, language: newLang }
+        };
+        await saveSystemConfig(updated);
+      }
+    });
+    
+    console.log('[App] TranslationManager callbacks initialized');
+  }, [systemConfig, saveSystemConfig]);
   
   // History State
   const [promptHistory, setPromptHistory] = useState([]); // Local Prompt History
