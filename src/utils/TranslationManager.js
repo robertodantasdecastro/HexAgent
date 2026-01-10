@@ -57,18 +57,6 @@ class TranslationManager {
   usedKeys = new Set();
 
   /**
-   * Callback to load language from external config / Callback para carregar idioma de config externa
-   * @private
-   */
-  configLoadCallback = null;
-
-  /**
-   * Callback to save language to external config / Callback para salvar idioma em config externa
-   * @private
-   */
-  configSaveCallback = null;
-
-  /**
    * Private constructor (Singleton pattern)
    * Construtor privado (padrão Singleton)
    * @private
@@ -78,7 +66,7 @@ class TranslationManager {
       return TranslationManager.instance;
     }
 
-    // Load language from external config or browser / Carrega idioma de config externa ou navegador
+    // Load language from localStorage or browser / Carrega idioma do localStorage ou navegador
     this.loadLanguage();
     
     // Load missing keys from localStorage / Carrega chaves faltantes do localStorage
@@ -99,29 +87,11 @@ class TranslationManager {
   }
 
   /**
-   * Load language preference from external config or storage
-   * Carregar preferência de idioma de config externa ou armazenamento
+   * Load language preference from storage
+   * Carregar preferência de idioma do armazenamento
    * @private
    */
   loadLanguage() {
-    // Try external config first / Tentar config externa primeiro
-    if (this.configLoadCallback) {
-      try {
-        const configLang = this.configLoadCallback();
-        if (configLang && ['en', 'pt', 'es', 'auto'].includes(configLang)) {
-          if (configLang === 'auto') {
-            this.currentLanguage = this.detectBrowserLanguage();
-          } else {
-            this.currentLanguage = configLang;
-          }
-          return;
-        }
-      } catch (error) {
-        console.warn('[TranslationManager] Config load callback error:', error);
-      }
-    }
-    
-    // Fallback to localStorage / Fallback para localStorage
     const stored = localStorage.getItem('hexagent_language');
     if (stored && ['en', 'pt', 'es', 'auto'].includes(stored)) {
       if (stored === 'auto') {
@@ -176,59 +146,19 @@ class TranslationManager {
   }
 
   /**
-   * Set callback to load language from external config
-   * Definir callback para carregar idioma de config externa
-   * @param {Function} callback - Function that returns language code
-   */
-  setConfigLoadCallback(callback) {
-    if (typeof callback === 'function') {
-      this.configLoadCallback = callback;
-      // Reload language from config
-      this.loadLanguage();
-      this.notifyObservers();
-    }
-  }
-
-  /**
-   * Set callback to save language to external config
-   * Definir callback para salvar idioma em config externa
-   * @param {Function} callback - Function that receives language code
-   */
-  setConfigSaveCallback(callback) {
-    if (typeof callback === 'function') {
-      this.configSaveCallback = callback;
-    }
-  }
-
-  /**
    * Set current language / Definir idioma atual
    * @param {string} language - Language code (en, pt, es, auto)
    */
   setLanguage(language) {
-    let finalLang = language;
-    
     if (language === 'auto') {
-      finalLang = this.detectBrowserLanguage();
-      this.currentLanguage = finalLang;
+      this.currentLanguage = this.detectBrowserLanguage();
+      localStorage.setItem('hexagent_language', 'auto');
     } else if (['en', 'pt', 'es'].includes(language)) {
       this.currentLanguage = language;
+      localStorage.setItem('hexagent_language', language);
     } else {
       console.warn(`[TranslationManager] Invalid language: ${language}`);
       return;
-    }
-
-    // Save via external callback or localStorage
-    if (this.configSaveCallback) {
-      try {
-        this.configSaveCallback(language); // Save original (may be 'auto')
-      } catch (error) {
-        console.error('[TranslationManager] Config save callback error:', error);
-        // Fallback to localStorage
-        localStorage.setItem('hexagent_language', language);
-      }
-    } else {
-      //Fallback to localStorage
-      localStorage.setItem('hexagent_language', language);
     }
 
     // Notify all observers / Notificar todos os observadores
