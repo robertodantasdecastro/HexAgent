@@ -1,5 +1,6 @@
 import { Infinity, Plus, StopCircle } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from '../hooks/useTranslation';
 
 /**
  * IterationLimitReachedDialog Component
@@ -22,6 +23,7 @@ const IterationLimitReachedDialog = ({
   onStop,
   onClose
 }) => {
+  const { t } = useTranslation();
   const [customValue, setCustomValue] = useState(currentLimit + 10);
 
   return (
@@ -31,17 +33,14 @@ const IterationLimitReachedDialog = ({
         <div className="flex items-center gap-3 mb-4">
           <StopCircle className="text-yellow-500" size={24} />
           <h2 className="text-xl font-bold text-yellow-500">
-            ⚠️ Iteration Limit Reached
+            ⚠️ {t('iteration.limit_reached', 'Iteration Limit Reached')}
           </h2>
         </div>
         
         {/* Info */}
         <p className="text-gray-300 mb-2">
-          The AI has completed <span className="text-cyan-400 font-bold">{currentIteration}</span> iterations 
-          (limit: <span className="text-yellow-400 font-bold">{currentLimit}</span>).
-        </p>
-        <p className="text-gray-400 text-sm mb-6 italic">
-          A IA completou {currentIteration} iterações (limite: {currentLimit}).
+          {t('iteration.completed_iterations', 'The AI has completed')} <span className="text-cyan-400 font-bold">{currentIteration}</span> {t('iteration.iterations', 'iterations')} 
+          ({t('iteration.limit', 'limit')}: <span className="text-yellow-400 font-bold">{currentLimit}</span>).
         </p>
         
         {/* Options */}
@@ -52,7 +51,7 @@ const IterationLimitReachedDialog = ({
             className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/50 rounded-lg text-yellow-400 font-semibold transition-all"
           >
             <Infinity size={18} />
-            <span>Enable Unlimited Iterations</span>
+            <span>{t('iteration.enable_unlimited', 'Enable Unlimited Iterations')}</span>
           </button>
           
           {/* Quick options */}
@@ -62,7 +61,7 @@ const IterationLimitReachedDialog = ({
               className="flex items-center justify-center gap-2 px-4 py-2 bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/50 rounded-lg text-cyan-400 font-semibold transition-all"
             >
               <Plus size={16} />
-              <span>+5 More</span>
+              <span>+5 {t('iteration.more', 'More')}</span>
             </button>
             
             <button
@@ -70,7 +69,7 @@ const IterationLimitReachedDialog = ({
               className="flex items-center justify-center gap-2 px-4 py-2 bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/50 rounded-lg text-cyan-400 font-semibold transition-all"
             >
               <Plus size={16} />
-              <span>+10 More</span>
+              <span>+10 {t('iteration.more', 'More')}</span>
             </button>
           </div>
           
@@ -83,13 +82,13 @@ const IterationLimitReachedDialog = ({
               value={customValue}
               onChange={(e) => setCustomValue(parseInt(e.target.value) || currentLimit + 10)}
               className="flex-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-cyan-500"
-              placeholder="Custom limit"
+              placeholder={t('iteration.custom_limit', 'Custom limit')}
             />
             <button
               onClick={() => onContinue(customValue)}
               className="px-4 py-2 bg-gray-700 hover:bg-gray-600 border border-gray-600 rounded-lg text-white font-semibold transition-all"
             >
-              Set Custom
+              {t('iteration.set_custom', 'Set Custom')}
             </button>
           </div>
           
@@ -99,13 +98,13 @@ const IterationLimitReachedDialog = ({
             className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 border border-red-500/50 rounded-lg text-red-400 font-semibold transition-all mt-4"
           >
             <StopCircle size={16} />
-            <span>Stop Execution Here</span>
+            <span>{t('iteration.stop_execution', 'Stop Execution Here')}</span>
           </button>
         </div>
         
         {/* Footer hint */}
         <p className="text-gray-500 text-xs text-center mt-4 italic">
-          💡 Tip: Use ∞ button in controls to preset unlimited mode
+          💡 {t('iteration.tip', 'Tip: Use ∞ button in controls to preset unlimited mode')}
         </p>
       </div>
     </div>

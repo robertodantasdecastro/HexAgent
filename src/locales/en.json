@@ -208,7 +208,9 @@
             "max_tokens_desc": "Maximum response length",
             "max_iterations": "Max Iterations",
             "max_iterations_desc": "Maximum number of AI reasoning cycles",
-            "unlimited": "Unlimited Iterations"
+            "unlimited": "Unlimited",
+            "precise": "Precise",
+            "creative": "Creative"
         },
         "behavior": {
             "auto_execute": "Auto-Execute Commands",
@@ -258,7 +260,9 @@
         "business_logic": "Business Logic",
         "business_logic_desc": "Analyze API Logic flow and authentication bypasses",
         "full_assessment": "Full Assessment",
-        "full_assessment_desc": "Complete end-to-end security assessment with all modules combined"
+        "full_assessment_desc": "Complete end-to-end security assessment with all modules combined",
+        "running": "Running...",
+        "results_here": "Results will appear here."
     },
     "shutdown": {
         "title": "System Shutdown",
@@ -268,7 +272,16 @@
         "shutdown_button": "Delete & Shutdown",
         "shutting_down": "Shutting down...",
         "services_stopped": "All services have been stopped",
-        "goodbye": "Goodbye!"
+        "goodbye": "Goodbye!",
+        "check_files": "Checking Temporary Files...",
+        "stop_backend": "Stopping Backend Services...",
+        "stop_hexstrike": "Terminating HexStrike Engine...",
+        "cleanup": "Cleaning up Resources...",
+        "warning_title": "Unsaved Files Warning",
+        "warning_message": "You have",
+        "temp_files": "temporary files in",
+        "might_include": "These might include scripts or generated content.",
+        "note": "Note: Persistent storage is safer for important files."
     },
     "loading": {
         "initializing": "Initializing System...",
@@ -286,6 +299,32 @@
         "message": "The agent reached the maximum iteration limit. Do you want to continue?",
         "stop": "Stop",
         "continue_5": "Continue (+5)",
-        "continue_10": "Continue (+10)"
+        "continue_10": "Continue (+10)",
+        "task_requires_more": "Task requires more steps",
+        "current_progress": "Current Progress",
+        "continue_with": "Continue with",
+        "custom_amount": "Custom amount",
+        "unlimited": "Enable unlimited iterations",
+        "continue": "Continue",
+        "completed_iterations": "The AI has completed",
+        "iterations": "iterations",
+        "limit": "limit",
+        "enable_unlimited": "Enable Unlimited Iterations",
+        "more": "More",
+        "custom_limit": "Custom limit",
+        "set_custom": "Set Custom",
+        "stop_execution": "Stop Execution Here",
+        "tip": "Tip: Use ∞ button in controls to preset unlimited mode"
+    },
+    "savefiles": {
+        "title": "Unsaved Files",
+        "files_created": "file(s) created during this session",
+        "select_all": "Select all",
+        "save_location": "Save location",
+        "relative_structure": "Files will be saved with their relative directory structure",
+        "saving": "Saving...",
+        "save": "Save",
+        "files": "file(s)",
+        "discard_all": "Discard All"
     }
 }

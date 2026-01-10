@@ -208,7 +208,9 @@
             "max_tokens_desc": "Longitud máxima de respuesta",
             "max_iterations": "Máximo de Iteraciones",
             "max_iterations_desc": "Número máximo de ciclos de razonamiento de IA",
-            "unlimited": "Iteraciones Ilimitadas"
+            "unlimited": "Ilimitado",
+            "precise": "Preciso",
+            "creative": "Creativo"
         },
         "behavior": {
             "auto_execute": "Auto-Ejecutar Comandos",
@@ -258,7 +260,9 @@
         "business_logic": "Lógica de Negocio",
         "business_logic_desc": "Analizar flujo de Lógica de API y bypass de autenticación",
         "full_assessment": "Evaluación Completa",
-        "full_assessment_desc": "Evaluación de seguridad completa de extremo a extremo con todos los módulos combinados"
+        "full_assessment_desc": "Evaluación de seguridad completa de extremo a extremo con todos los módulos combinados",
+        "running": "Ejecutando...",
+        "results_here": "Los resultados aparecerán aquí."
     },
     "shutdown": {
         "title": "Apagado del Sistema",
@@ -268,7 +272,16 @@
         "shutdown_button": "Eliminar y Apagar",
         "shutting_down": "Apagando...",
         "services_stopped": "Todos los servicios han sido detenidos",
-        "goodbye": "¡Adiós!"
+        "goodbye": "¡Adiós!",
+        "check_files": "Verificando Archivos Temporales...",
+        "stop_backend": "Deteniendo Servicios Backend...",
+        "stop_hexstrike": "Terminando Motor HexStrike...",
+        "cleanup": "Limpiando Recursos...",
+        "warning_title": "Advertencia de Archivos No Guardados",
+        "warning_message": "Tienes",
+        "temp_files": "archivos temporales en",
+        "might_include": "Estos pueden incluir scripts o contenido generado.",
+        "note": "Nota: El almacenamiento persistente es más seguro para archivos importantes."
     },
     "loading": {
         "initializing": "Inicializando Sistema...",
@@ -286,6 +299,32 @@
         "message": "El agente alcanzó el límite máximo de iteraciones. ¿Desea continuar?",
         "stop": "Detener",
         "continue_5": "Continuar (+5)",
-        "continue_10": "Continuar (+10)"
+        "continue_10": "Continuar (+10)",
+        "task_requires_more": "La tarea requiere más pasos",
+        "current_progress": "Progreso Actual",
+        "continue_with": "Continuar con",
+        "custom_amount": "Cantidad personalizada",
+        "unlimited": "Habilitar iteraciones ilimitadas",
+        "continue": "Continuar",
+        "completed_iterations": "La IA ha completado",
+        "iterations": "iteraciones",
+        "limit": "límite",
+        "enable_unlimited": "Habilitar Iteraciones Ilimitadas",
+        "more": "Más",
+        "custom_limit": "Límite personalizado",
+        "set_custom": "Establecer Personalizado",
+        "stop_execution": "Detener Ejecución Aquí",
+        "tip": "Consejo: Use el botón ∞ en los controles para predefinir modo ilimitado"
+    },
+    "savefiles": {
+        "title": "Archivos No Guardados",
+        "files_created": "archivo(s) creado(s) durante esta sesión",
+        "select_all": "Seleccionar todos",
+        "save_location": "Ubicación de guardado",
+        "relative_structure": "Los archivos se guardarán con su estructura de directorios relativa",
+        "saving": "Guardando...",
+        "save": "Guardar",
+        "files": "archivo(s)",
+        "discard_all": "Descartar Todos"
     }
 }

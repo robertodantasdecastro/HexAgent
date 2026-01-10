@@ -1,12 +1,14 @@
 import { CheckCircle, Loader } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useTranslation } from '../hooks/useTranslation';
 
 const ShutdownModal = ({ isOpen, onShutdownComplete }) => {
+  const { t } = useTranslation();
   const [steps, setSteps] = useState([
-    { id: 'check_files', label: 'Checking Temporary Files...', status: 'pending' },
-    { id: 'backend', label: 'Stopping Backend Services...', status: 'pending' },
-    { id: 'hexstrike', label: 'Terminating HexStrike Engine...', status: 'pending' },
-    { id: 'cleanup', label: 'Cleaning up Resources...', status: 'pending' }
+    { id: 'check_files', label: t('shutdown.check_files', 'Checking Temporary Files...'), status: 'pending' },
+    { id: 'backend', label: t('shutdown.stop_backend', 'Stopping Backend Services...'), status: 'pending' },
+    { id: 'hexstrike', label: t('shutdown.stop_hexstrike', 'Terminating HexStrike Engine...'), status: 'pending' },
+    { id: 'cleanup', label: t('shutdown.cleanup', 'Cleaning up Resources...'), status: 'pending' }
   ]);
   const [status, setStatus] = useState('initializing'); // initializing, warning, shutting_down
   const [tempFileCount, setTempFileCount] = useState(0);
@@ -85,26 +87,26 @@ const ShutdownModal = ({ isOpen, onShutdownComplete }) => {
         
         {status === 'warning' ? (
             <>
-                <h2 className="text-xl font-bold text-yellow-500 mb-2">Unsaved Files Warning</h2>
+                <h2 className="text-xl font-bold text-yellow-500 mb-2">{t('shutdown.warning_title', 'Unsaved Files Warning')}</h2>
                 <p className="text-sm text-gray-300 text-center mb-6">
-                    You have <span className="text-white font-bold">{tempFileCount}</span> temporary files in 
+                    {t('shutdown.warning_message', 'You have')} <span className="text-white font-bold">{tempFileCount}</span> {t('shutdown.temp_files', 'temporary files in')}
                     <br/><code className="bg-black/50 px-1 rounded text-gray-400">~/.hexagent-gui/tmp/files</code>
-                    <br/>These might include scripts or generated content.
+                    <br/>{t('shutdown.might_include', 'These might include scripts or generated content.')}
                 </p>
                 <div className="flex gap-4 w-full">
                     <button 
                         className="flex-1 bg-gray-800 hover:bg-gray-700 text-white py-3 rounded font-bold transition"
                         onClick={() => startShutdown()}
                     >
-                        Delete & Shutdown
+                        {t('shutdown.shutdown_button', 'Delete & Shutdown')}
                     </button>
                     {/* Ideally we would have a 'Cancel' button but the app state is already in 'showShutdown'. */}
                 </div>
-                 <p className="text-[10px] text-gray-500 mt-4">Note: Persistent storage is safer for important files.</p>
+                 <p className="text-[10px] text-gray-500 mt-4">{t('shutdown.note', 'Note: Persistent storage is safer for important files.')}</p>
             </>
         ) : (
             <>
-                <h2 className="text-xl font-bold text-white mb-6">System Shutdown</h2>
+                <h2 className="text-xl font-bold text-white mb-6">{t('shutdown.title', 'System Shutdown')}</h2>
                 <div className="w-full space-y-4">
                     {steps.map(step => (
                         <div key={step.id} className="flex items-center gap-3">

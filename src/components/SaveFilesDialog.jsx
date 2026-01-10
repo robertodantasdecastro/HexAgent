@@ -8,8 +8,10 @@
 
 import { AlertCircle, FolderOpen, Save, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from '../hooks/useTranslation';
 
 const SaveFilesDialog = ({ files = [], onComplete }) => {
+  const { t } = useTranslation();
   const [selectedFiles, setSelectedFiles] = useState(new Set(files.map(f => f.path)));
   const [saveLocation, setSaveLocation] = useState('~/Documents/HexAgent');
   const [saving, setSaving] = useState(false);
@@ -96,10 +98,10 @@ const SaveFilesDialog = ({ files = [], onComplete }) => {
           </div>
           <div className="flex-1">
             <h3 className="text-xl font-bold text-yellow-500 font-mono">
-              Arquivos Não Salvos
+              {t('savefiles.title', 'Unsaved Files')}
             </h3>
             <p className="text-sm text-gray-400 mt-1">
-              {files.length} arquivo(s) criado(s) durante esta sessão
+              {files.length} {t('savefiles.files_created', 'file(s) created during this session')}
             </p>
           </div>
         </div>
@@ -115,7 +117,7 @@ const SaveFilesDialog = ({ files = [], onComplete }) => {
                 className="w-4 h-4"
               />
               <span className="font-bold">
-                Selecionar todos ({selectedFiles.size}/{files.length})
+                {t('savefiles.select_all', 'Select all')} ({selectedFiles.size}/{files.length})
               </span>
             </label>
           </div>
@@ -153,7 +155,7 @@ const SaveFilesDialog = ({ files = [], onComplete }) => {
           <div className="mt-4">
             <label className="block text-sm text-gray-400 mb-2 flex items-center gap-2">
               <FolderOpen size={14} />
-              Local de salvamento:
+              {t('savefiles.save_location', 'Save location')}:
             </label>
             <input 
               type="text"
@@ -163,7 +165,7 @@ const SaveFilesDialog = ({ files = [], onComplete }) => {
               className="w-full bg-black border border-[#333] rounded px-4 py-2 text-white text-sm focus:border-yellow-500 focus:outline-none font-mono"
             />
             <p className="text-xs text-gray-600 mt-1">
-              Os arquivos serão salvos com sua estrutura de diretórios relativa
+              {t('savefiles.relative_structure', 'Files will be saved with their relative directory structure')}
             </p>
           </div>
         </div>
@@ -176,7 +178,7 @@ const SaveFilesDialog = ({ files = [], onComplete }) => {
             className="flex-1 py-3 bg-[#00ff00] text-black font-bold rounded-lg hover:bg-[#00cc00] transition font-mono text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Save size={16} />
-            {saving ? 'Salvando...' : `Salvar ${selectedFiles.size} arquivo(s)`}
+            {saving ? t('savefiles.saving', 'Saving...') : `${t('savefiles.save', 'Save')} ${selectedFiles.size} ${t('savefiles.files', 'file(s)')}`}
           </button>
           
           <button 
@@ -185,7 +187,7 @@ const SaveFilesDialog = ({ files = [], onComplete }) => {
             className="flex-1 py-3 bg-red-500/20 border border-red-500/50 text-red-400 font-bold rounded-lg hover:bg-red-500/30 transition font-mono text-sm flex items-center justify-center gap-2 disabled:opacity-50"
           >
             <Trash2 size={16} />
-            Descartar Todos
+            {t('savefiles.discard_all', 'Discard All')}
           </button>
         </div>
       </div>

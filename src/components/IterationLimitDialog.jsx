@@ -5,6 +5,7 @@
 
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from '../hooks/useTranslation';
 
 const IterationLimitDialog = ({ 
   currentIteration, 
@@ -12,6 +13,7 @@ const IterationLimitDialog = ({
   onContinue, 
   onCancel 
 }) => {
+  const { t } = useTranslation();
   const [additionalIterations, setAdditionalIterations] = useState(5);
   const [unlimited, setUnlimited] = useState(false);
 
@@ -31,14 +33,14 @@ const IterationLimitDialog = ({
             <AlertCircle className="text-yellow-500" size={24} />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-yellow-500 font-mono">Iteration Limit Reached</h3>
-            <p className="text-xs text-gray-500">Task requires more steps</p>
+            <h3 className="text-lg font-bold text-yellow-500 font-mono">{t('iteration.limit_reached', 'Iteration Limit Reached')}</h3>
+            <p className="text-xs text-gray-500">{t('iteration.task_requires_more', 'Task requires more steps')}</p>
           </div>
         </div>
         
         <div className="bg-[#1a1a1a] border border-[#333] rounded-lg p-4 mb-5">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-400">Current Progress:</span>
+            <span className="text-sm text-gray-400">{t('iteration.current_progress', 'Current Progress')}:</span>
             <span className="text-sm font-mono font-bold text-[#00ff00]">
               {currentIteration} / {maxIterations}
             </span>
@@ -53,7 +55,7 @@ const IterationLimitDialog = ({
         
         <div className="space-y-4">
           <div>
-            <label className="block text-sm text-gray-300 mb-3">Continue with:</label>
+            <label className="block text-sm text-gray-300 mb-3">{t('iteration.continue_with', 'Continue with')}:</label>
             <div className="grid grid-cols-3 gap-2 mb-3">
               {[5, 10, 20].map(num => (
                 <button 
@@ -79,7 +81,7 @@ const IterationLimitDialog = ({
                 setAdditionalIterations(parseInt(e.target.value) || 5);
                 setUnlimited(false);
               }}
-              placeholder="Custom amount"
+              placeholder={t('iteration.custom_amount', 'Custom amount')}
               className="w-full bg-black border border-[#333] rounded px-3 py-2 text-white text-sm mb-3 focus:border-cyan-500 focus:outline-none"
             />
             
@@ -90,7 +92,7 @@ const IterationLimitDialog = ({
                 onChange={(e) => setUnlimited(e.target.checked)}
                 className="w-4 h-4"
               />
-              <span className="text-sm text-gray-300">Enable unlimited iterations (∞)</span>
+              <span className="text-sm text-gray-300">{t('iteration.unlimited', 'Enable unlimited iterations')} (∞)</span>
             </label>
           </div>
         </div>
@@ -101,13 +103,13 @@ const IterationLimitDialog = ({
             className="flex-1 py-2.5 bg-[#00ff00] text-black font-bold rounded-lg hover:bg-[#00cc00] transition font-mono text-sm flex items-center justify-center gap-2"
           >
             <RefreshCw size={14} />
-            Continue
+            {t('iteration.continue', 'Continue')}
           </button>
           <button 
             onClick={onCancel}
             className="flex-1 py-2.5 bg-[#333] text-white font-bold rounded-lg hover:bg-[#444] transition font-mono text-sm"
           >
-            Stop Here
+            {t('iteration.stop', 'Stop')}
           </button>
         </div>
       </div>

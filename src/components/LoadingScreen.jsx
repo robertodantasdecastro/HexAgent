@@ -1,5 +1,6 @@
 import { AlertTriangle, CheckCircle, ChevronDown, ChevronRight, Copy, Loader, RefreshCw, Terminal, XCircle } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from '../hooks/useTranslation';
 
 /**
  * LoadingScreen Component
@@ -11,6 +12,7 @@ import { useState } from 'react';
  */
 
 const LoadingScreen = ({ initStatus, progress, error, onRetry, onContinue }) => {
+  const { t } = useTranslation();
   const [showDetails, setShowDetails] = useState(false);
 
   const getStatusIcon = (status) => {
@@ -84,7 +86,7 @@ const LoadingScreen = ({ initStatus, progress, error, onRetry, onContinue }) => 
           <img src="logo.png" className="w-12 h-12 object-contain mb-2 pointer-events-none" alt="Logo" />
           <h1 className="text-xl font-bold tracking-wider pointer-events-none">HEXAGENT GUI</h1>
           <p className="text-xs text-gray-500 pointer-events-none">
-            {error ? 'Initialization Failed / Falha na Inicialização' : 'System Initialize / Inicializando Sistema'}
+            {error ? t('loading.init_failed', 'Initialization Failed') : t('loading.initializing', 'Initializing System...')}
           </p>
         </div>
 
@@ -111,10 +113,10 @@ const LoadingScreen = ({ initStatus, progress, error, onRetry, onContinue }) => 
                 <div className="flex items-center gap-3">
                   {getStatusIcon(data.status)}
                   <span className={`text-sm font-mono transition-colors ${getStatusColor(data.status)}`}>
-                    {service === 'backend' && 'Backend Flask (5000)'}
-                    {service === 'brain' && 'Brain HexSecGPT'}
-                    {service === 'hexstrike' && 'HexStrike Engine (8888)'}
-                    {service === 'config' && 'Configuration'}
+                    {service === 'backend' && t('loading.components.backend', 'Backend Server')}
+                    {service === 'brain' && t('loading.components.brain', 'AI Brain Core')}
+                    {service === 'hexstrike' && t('loading.components.hexstrike', 'HexStrike Client')}
+                    {service === 'config' && t('loading.components.config', 'Configuration')}
                   </span>
                 </div>
                 {/* Status Message Ppill */}
@@ -132,7 +134,7 @@ const LoadingScreen = ({ initStatus, progress, error, onRetry, onContinue }) => 
                   <div className="flex items-start gap-3">
                     <AlertTriangle size={18} className="text-red-500 flex-shrink-0 mt-0.5" />
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-sm font-bold text-red-400 mb-1">Critical Startup Error</h3>
+                      <h3 className="text-sm font-bold text-red-400 mb-1">{t('loading.critical_error', 'Critical Startup Error')}</h3>
                       <div className="text-xs text-gray-300 font-mono break-words whitespace-pre-wrap bg-black/50 p-2 rounded border border-red-900/30 mb-2 select-text">
                         {error.message || "Unknown Error"}
                       </div>
@@ -142,13 +144,13 @@ const LoadingScreen = ({ initStatus, progress, error, onRetry, onContinue }) => 
                             onClick={copyError}
                             className="flex items-center gap-1 px-2 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded text-[10px] border border-red-500/30 transition-colors"
                           >
-                             <Copy size={10} /> Copy Logs
+                             <Copy size={10} /> {t('loading.copy_logs', 'Copy Logs')}
                           </button>
                           <button 
                             onClick={saveLogs}
                             className="flex items-center gap-1 px-2 py-1 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded text-[10px] border border-blue-500/30 transition-colors"
                           >
-                             <Terminal size={10} /> Save Logs
+                             <Terminal size={10} /> {t('loading.save_logs', 'Save Logs')}
                           </button>
                       </div>
                     </div>
@@ -157,7 +159,7 @@ const LoadingScreen = ({ initStatus, progress, error, onRetry, onContinue }) => 
 
                {/* Help Links */}
                <div className="text-xs text-center text-gray-500 mb-6 space-y-1">
-                  <p>Need Help? / Precisa de Ajuda?</p>
+                  <p>{t('loading.need_help', 'Need Help?')}</p>
                   <a href="https://github.com/robertodantasdecastro/HexAgent/wiki" target="_blank" rel="noopener noreferrer" className="text-cyan-500 hover:underline block truncate">
                     github.com/robertodantasdecastro/HexAgent/wiki
                   </a>
@@ -173,7 +175,7 @@ const LoadingScreen = ({ initStatus, progress, error, onRetry, onContinue }) => 
              >
                 {showDetails ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
                 <Terminal size={12} />
-                <span>System Logs / Logs do Sistema</span>
+                <span>{t('loading.system_logs', 'System Logs')}</span>
              </button>
              
              {showDetails && (
@@ -197,19 +199,19 @@ const LoadingScreen = ({ initStatus, progress, error, onRetry, onContinue }) => 
                onClick={onRetry}
                className="col-span-2 w-full bg-[#00ff00] text-black font-bold text-sm py-2 rounded hover:bg-[#00cc00] transition-colors flex items-center justify-center gap-2"
             >
-               <RefreshCw size={14} /> Restart Services
+               <RefreshCw size={14} /> {t('loading.retry', 'Retry')}
             </button>
              <button
                onClick={handleClose}
                className="w-full bg-[#222] text-gray-300 font-mono text-xs py-2 rounded hover:bg-[#333] transition-colors border border-[#333]"
             >
-               Close App
+               {t('loading.close_app', 'Close App')}
             </button>
             <button
                onClick={onContinue}
                className="w-full bg-[#222] text-gray-300 font-mono text-xs py-2 rounded hover:bg-[#333] transition-colors border border-[#333]"
             >
-               Force Continue
+               {t('loading.continue_anyway', 'Continue Anyway')}
             </button>
           </div>
         )}

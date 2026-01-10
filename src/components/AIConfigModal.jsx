@@ -189,7 +189,7 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-mono text-gray-300 mb-2">
-                  Temperature: {aiConfig.temperature.toFixed(2)}
+                  {t('aiconfig.params.temperature', 'Temperature')}: {aiConfig.temperature.toFixed(2)}
                 </label>
                 <input
                   type="range"
@@ -201,14 +201,14 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
                   className="w-full"
                 />
                 <div className="flex justify-between text-xs text-gray-500 mt-1">
-                  <span>Precise / Preciso (0.0)</span>
-                  <span>Creative / Criativo (2.0)</span>
+                  <span>{t('aiconfig.params.precise', 'Precise')} (0.0)</span>
+                  <span>{t('aiconfig.params.creative', 'Creative')} (2.0)</span>
                 </div>
               </div>
 
               <div>
                 <label className="block text-sm font-mono text-gray-300 mb-2">
-                  Max Tokens / Tokens Máximos
+                  {t('aiconfig.params.max_tokens', 'Max Tokens')}
                 </label>
                 <input
                   type="number"
@@ -227,8 +227,8 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
             <div className="space-y-4">
               <div className="flex items-center justify-between p-3 bg-[#1a1a1a] rounded border border-[#333]">
                 <div>
-                  <p className="text-sm font-mono text-white">Auto-Execute Commands</p>
-                  <p className="text-xs text-gray-500">Automatically run AI-suggested commands</p>
+                  <p className="text-sm font-mono text-white">{t('aiconfig.behavior.auto_execute', 'Auto-Execute Commands')}</p>
+                  <p className="text-xs text-gray-500">{t('aiconfig.behavior.auto_execute_desc', 'Automatically run AI-suggested commands')}</p>
                 </div>
                 <input
                   type="checkbox"
@@ -240,8 +240,8 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
 
               <div className="flex items-center justify-between p-3 bg-[#1a1a1a] rounded border border-[#333]">
                 <div>
-                  <p className="text-sm font-mono text-white">Web Search</p>
-                  <p className="text-xs text-gray-500">Enable web search capabilities</p>
+                  <p className="text-sm font-mono text-white">{t('aiconfig.behavior.web_search', 'Web Search')}</p>
+                  <p className="text-xs text-gray-500">{t('aiconfig.behavior.web_search_desc', 'Enable web search capabilities')}</p>
                 </div>
                 <input
                   type="checkbox"
@@ -253,7 +253,7 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
 
               <div>
                 <label className="block text-sm font-mono text-gray-300 mb-2">
-                  Max Iterations / Iterações Máximas: {aiConfig.unlimited_iterations ? '∞' : aiConfig.max_iterations}
+                  {t('aiconfig.params.max_iterations', 'Max Iterations')}: {aiConfig.unlimited_iterations ? '∞' : aiConfig.max_iterations}
                 </label>
                 <input
                   type="range"
@@ -273,7 +273,7 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
                     className="w-4 h-4"
                   />
                   <label htmlFor="unlimited" className="text-xs text-gray-400 font-mono">
-                    Unlimited / Ilimitado
+                    {t('aiconfig.params.unlimited', 'Unlimited')}
                   </label>
                 </div>
                 <p className="text-xs text-gray-500 mt-2">
@@ -288,7 +288,7 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-mono text-gray-300 mb-2">
-                  Custom System Prompt / Prompt de Sistema Customizado
+                  {t('aiconfig.advanced.system_prompt', 'Custom System Prompt')}
                 </label>
                 <textarea
                   value={aiConfig.system_prompt}
@@ -301,8 +301,8 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
 
               <div className="flex items-center justify-between p-3 bg-[#1a1a1a] rounded border border-[#333]">
                 <div>
-                  <p className="text-sm font-mono text-white">Stream Responses</p>
-                  <p className="text-xs text-gray-500">Show AI responses in real-time</p>
+                  <p className="text-sm font-mono text-white">{t('aiconfig.behavior.streaming', 'Stream Responses')}</p>
+                  <p className="text-xs text-gray-500">{t('aiconfig.behavior.streaming_desc', 'Show AI responses in real-time')}</p>
                 </div>
                 <input
                   type="checkbox"
@@ -321,13 +321,13 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
             onClick={onClose}
             className="px-4 py-2 rounded text-sm font-mono text-gray-400 hover:text-white transition-colors"
           >
-            Cancel / Cancelar
+            {t('aiconfig.cancel', 'Cancel')}
           </button>
           <button
             onClick={handleSave}
             className="px-4 py-2 bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 rounded hover:bg-cyan-500/30 transition-all font-mono text-sm"
           >
-            Save Configuration / Salvar Configuração
+            {t('aiconfig.save', 'Save Configuration')}
           </button>
         </div>
       </div>

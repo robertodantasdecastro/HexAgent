@@ -8,8 +8,10 @@
 
 import { Activity, CheckCircle, Crosshair, GitBranch, Play, RefreshCw, Shield, Target, X } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from '../hooks/useTranslation';
 
 const WorkflowManagerModal = ({ isOpen, onClose }) => {
+  const { t } = useTranslation();
   const [target, setTarget] = useState('');
   const [selectedWorkflow, setSelectedWorkflow] = useState('recon');
   const [loading, setLoading] = useState(false);
@@ -19,40 +21,40 @@ const WorkflowManagerModal = ({ isOpen, onClose }) => {
   const workflows = [
     {
       id: 'recon',
-      name: 'Reconnaissance / Reconhecimento',
-      description: 'Comprehensive subdomain enumeration, port scanning, and technology detection.',
+      name: t('workflow.reconnaissance', 'Reconnaissance'),
+      description: t('workflow.reconnaissance_desc', 'Comprehensive subdomain enumeration, DNS analysis, port scanning, and content discovery'),
       endpoint: '/api/workflow/start',
       type: 'reconnaissance-workflow',
       icon: Target
     },
     {
       id: 'vuln',
-      name: 'Vulnerability Hunt / Caça a Vulnerabilidades',
-      description: 'Targeted vulnerability scanning prioritized by impact and exploitability.',
+      name: t('workflow.vulnerability', 'Vulnerability Hunt'),
+      description: t('workflow.vulnerability_desc', 'Discover known vulnerabilities through version detection, service enumeration, and exploit matching'),
       endpoint: '/api/workflow/start',
       type: 'vulnerability-hunting-workflow',
       icon: Crosshair
     },
     {
       id: 'osint',
-      name: 'OSINT Gathering / Coleta OSINT',
-      description: 'Open Source Intelligence gathering from public sources.',
+      name: t('workflow.osint', 'OSINT Gathering'),
+      description: t('workflow.osint_desc', 'Open Source Intelligence gathering from public sources, social media, and document analysis'),
       endpoint: '/api/workflow/start',
       type: 'osint-workflow',
       icon: Activity
     },
     {
       id: 'logic',
-      name: 'Business Logic / Lógica de Negócio',
-      description: 'Testing for logical flaws and authentication bypasses.',
+      name: t('workflow.business_logic', 'Business Logic'),
+      description: t('workflow.business_logic_desc', 'Analyze API Logic flow and authentication bypasses'),
       endpoint: '/api/workflow/start',
       type: 'business-logic-workflow',
       icon: GitBranch
     },
     {
       id: 'full',
-      name: 'Full Assessment / Avaliação Completa',
-      description: 'Complete end-to-end assessment including all phases.',
+      name: t('workflow.full_assessment', 'Full Assessment'),
+      description: t('workflow.full_assessment_desc', 'Complete end-to-end security assessment with all modules combined'),
       endpoint: '/api/workflow/start',
       type: 'comprehensive-assessment',
       icon: Shield
@@ -104,8 +106,8 @@ const WorkflowManagerModal = ({ isOpen, onClose }) => {
                 <GitBranch className="text-purple-500" size={24} />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-white">Workflow Manager</h2>
-              <p className="text-xs text-gray-500 font-mono">Automated HexStrike Strategies</p>
+              <h2 className="text-xl font-bold text-white">{t('workflow.title', 'Workflow Manager')}</h2>
+              <p className="text-xs text-gray-500 font-mono">{t('workflow.subtitle', 'Intelligent workflow strategies')}</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-[#222] rounded-full text-gray-400 hover:text-white transition-colors">
@@ -142,7 +144,7 @@ const WorkflowManagerModal = ({ isOpen, onClose }) => {
                 <div className="p-6 flex-1 overflow-y-auto">
                     {/* Target Input Section */}
                     <div className="mb-8">
-                        <label className="text-xs font-mono text-purple-400 uppercase mb-2 block">Target Configuration</label>
+                        <label className="text-xs font-mono text-purple-400 uppercase mb-2 block">{t('workflow.target_label', 'Target')} Configuration</label>
                         <div className="flex gap-2">
                             <div className="flex-1 relative">
                                 <span className="absolute left-3 top-3 text-gray-500">
@@ -152,7 +154,7 @@ const WorkflowManagerModal = ({ isOpen, onClose }) => {
                                     type="text" 
                                     value={target}
                                     onChange={(e) => setTarget(e.target.value)}
-                                    placeholder="Enter domain, IP, or URL (e.g., example.com)"
+                                    placeholder={t('workflow.target_placeholder', 'example.com')}
                                     className="w-full bg-[#151515] border border-[#333] rounded-lg py-2.5 pl-10 pr-4 text-sm text-white font-mono focus:border-purple-500 outline-none transition-colors"
                                 />
                             </div>
@@ -162,7 +164,7 @@ const WorkflowManagerModal = ({ isOpen, onClose }) => {
                                 className="px-6 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                             >
                                 {loading ? <RefreshCw className="animate-spin" size={18} /> : <Play size={18} />}
-                                {loading ? 'Running...' : 'Start Workflow'}
+                                {loading ? t('workflow.running', 'Running...') : t('workflow.execute', 'Execute with MCP')}
                             </button>
                         </div>
                     </div>
@@ -196,8 +198,8 @@ const WorkflowManagerModal = ({ isOpen, onClose }) => {
                     ) : (
                         <div className="flex flex-col items-center justify-center py-20 text-gray-600 border-2 border-dashed border-[#222] rounded-lg bg-[#0f0f0f]">
                             <GitBranch size={48} className="mb-4 opacity-20" />
-                            <p className="text-sm font-medium">Select a workflow and set a target to begin.</p>
-                            <p className="text-xs mt-1 opacity-60">Results will appear here.</p>
+                            <p className="text-sm font-medium">{t('workflow.select', 'Select a workflow and set a target to begin.')}</p>
+                            <p className="text-xs mt-1 opacity-60">{t('workflow.results_here', 'Results will appear here.')}</p>
                         </div>
                     )}
                 </div>

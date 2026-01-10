@@ -208,7 +208,9 @@
             "max_tokens_desc": "Comprimento máximo da resposta",
             "max_iterations": "Máximo de Iterações",
             "max_iterations_desc": "Número máximo de ciclos de raciocínio da IA",
-            "unlimited": "Iterações Ilimitadas"
+            "unlimited": "Ilimitado",
+            "precise": "Preciso",
+            "creative": "Criativo"
         },
         "behavior": {
             "auto_execute": "Auto-Executar Comandos",
@@ -258,7 +260,9 @@
         "business_logic": "Lógica de Negócio",
         "business_logic_desc": "Analisar fluxo de Lógica de API e bypass de autenticação",
         "full_assessment": "Avaliação Completa",
-        "full_assessment_desc": "Avaliação de segurança completa de ponta a ponta com todos os módulos combinados"
+        "full_assessment_desc": "Avaliação de segurança completa de ponta a ponta com todos os módulos combinados",
+        "running": "Executando...",
+        "results_here": "Os resultados aparecerão aqui."
     },
     "shutdown": {
         "title": "Desligamento do Sistema",
@@ -268,7 +272,16 @@
         "shutdown_button": "Excluir e Desligar",
         "shutting_down": "Desligando...",
         "services_stopped": "Todos os serviços foram interrompidos",
-        "goodbye": "Até logo!"
+        "goodbye": "Até logo!",
+        "check_files": "Verificando Arquivos Temporários...",
+        "stop_backend": "Parando Serviços Backend...",
+        "stop_hexstrike": "Terminando Motor HexStrike...",
+        "cleanup": "Limpando Recursos...",
+        "warning_title": "Aviso de Arquivos Não Salvos",
+        "warning_message": "Você tem",
+        "temp_files": "arquivos temporários em",
+        "might_include": "Estes podem incluir scripts ou conteúdo gerado.",
+        "note": "Nota: Armazenamento persistente é mais seguro para arquivos importantes."
     },
     "loading": {
         "initializing": "Inicializando Sistema...",
@@ -286,6 +299,32 @@
         "message": "O agente atingiu o limite máximo de iterações. Deseja continuar?",
         "stop": "Parar",
         "continue_5": "Continuar (+5)",
-        "continue_10": "Continuar (+10)"
+        "continue_10": "Continuar (+10)",
+        "task_requires_more": "Tarefa requer mais passos",
+        "current_progress": "Progresso Atual",
+        "continue_with": "Continuar com",
+        "custom_amount": "Quantidade personalizada",
+        "unlimited": "Habilitar iterações ilimitadas",
+        "continue": "Continuar",
+        "completed_iterations": "A IA completou",
+        "iterations": "iterações",
+        "limit": "limite",
+        "enable_unlimited": "Habilitar Iterações Ilimitadas",
+        "more": "Mais",
+        "custom_limit": "Limite personalizado",
+        "set_custom": "Definir Personalizado",
+        "stop_execution": "Parar Execução Aqui",
+        "tip": "Dica: Use o botão ∞ nos controles para predefinir modo ilimitado"
+    },
+    "savefiles": {
+        "title": "Arquivos Não Salvos",
+        "files_created": "arquivo(s) criado(s) durante esta sessão",
+        "select_all": "Selecionar todos",
+        "save_location": "Local de salvamento",
+        "relative_structure": "Os arquivos serão salvos com sua estrutura de diretórios relativa",
+        "saving": "Salvando...",
+        "save": "Salvar",
+        "files": "arquivo(s)",
+        "discard_all": "Descartar Todos"
     }
 }
