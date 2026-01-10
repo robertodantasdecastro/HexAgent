@@ -11,7 +11,7 @@ import { useState } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { AnsiRenderer } from '../utils/ansiRenderer';
-import { ScriptManager } from '../utils/scriptManager';
+import ScriptManager from '../utils/scriptManager';
 
 const ScriptBlock = ({ 
   content, 
@@ -20,7 +20,8 @@ const ScriptBlock = ({
   onSaved,
   onExecuted
 }) => {
-  const [savePath, setSavePath] = useState(ScriptManager.suggestPath(filename));
+  const scriptManager = ScriptManager.getInstance();
+  const [savePath, setSavePath] = useState(scriptManager.suggestPath(filename));
   const [isExecuting, setIsExecuting] = useState(false);
   const [executionResult, setExecutionResult] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -31,7 +32,7 @@ const ScriptBlock = ({
     console.log('[ScriptBlock] Save clicked:', { savePath, filename, forceOverwrite });
     setIsSaving(true);
     try {
-      const needsExec = ScriptManager.needsExecutePermission(content);
+      const needsExec = scriptManager.needsExecutePermission(content);
       console.log('[ScriptBlock] Needs exec permission:', needsExec);
       
       // Use new file management API / Usar nova API de gerenciamento de arquivos
@@ -93,7 +94,7 @@ const ScriptBlock = ({
         await handleSave();
       }
       
-      const result = await ScriptManager.executeScript(savePath);
+      const result = await scriptManager.executeScript(savePath);
       setExecutionResult(result);
       
       if (onExecuted) onExecuted(result);
@@ -117,7 +118,7 @@ const ScriptBlock = ({
         await handleSave();
       }
       
-      const result = await ScriptManager.debugScript(savePath);
+      const result = await scriptManager.debugScript(savePath);
       setExecutionResult(result);
       
       if (onExecuted) onExecuted(result);
