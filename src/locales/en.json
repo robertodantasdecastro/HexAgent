@@ -14,7 +14,16 @@
         "executed": "Executed",
         "cancel": "Cancel",
         "save": "Save",
-        "close": "Close"
+        "close": "Close",
+        "shutdown": "Shutdown",
+        "optional": "Optional"
+    },
+    "nav": {
+        "history": "History",
+        "services": "Services",
+        "workflows": "Workflows",
+        "help": "Help",
+        "settings": "Settings"
     },
     "block": {
         "hexagent": "HEXAGENT",
@@ -47,9 +56,10 @@
             "api_keys": "API KEYS",
             "models": "MODELS",
             "services": "SERVICES",
-            "appearance": "Appearance",
+            "appearance": "APPEARANCE",
             "brain": "Cérebro / IA",
-            "geral": "Geral"
+            "geral": "Geral",
+            "system": "SYSTEM"
         },
         "general": {
             "description": "Core application settings and preferences",
@@ -135,5 +145,147 @@
         },
         "retry": "Retry",
         "continue_anyway": "Continue Anyway"
+    },
+    "service": {
+        "manager": "Service Manager",
+        "refresh": "Refresh",
+        "backend": "Backend",
+        "hexstrike": "HexStrike",
+        "brain": "Brain (AI)",
+        "running": "Running",
+        "offline": "Offline",
+        "status": "Status",
+        "port": "Port",
+        "message": "Message",
+        "about": "About this service",
+        "start": "Start",
+        "stop": "Stop",
+        "backend_desc": "Flask backend server providing REST API for the HexAgent GUI. Handles chat, configuration, and service management.",
+        "hexstrike_desc": "Command execution engine for running terminal commands. Required for AI to execute system commands and scripts.",
+        "brain_desc": "HexSecGPT AI brain for intelligent responses and reasoning. Provides the core AI functionality for conversations."
+    },
+    "session": {
+        "manager": "Session Manager",
+        "saved": "Saved Sessions",
+        "current": "Current Session",
+        "name": "Session Name",
+        "save_current": "Save Current",
+        "load": "Load",
+        "delete": "Delete",
+        "delete_confirm": "Delete session '{name}'?",
+        "no_sessions": "No saved sessions found.",
+        "loading": "Loading...",
+        "description": "Sessions save the full conversation history, including generated code blocks and AI responses.",
+        "warning": "⚠️ Generated files are stored separately in your workspace."
+    },
+    "aiconfig": {
+        "title": "AI Configuration",
+        "tabs": {
+            "engine": "Engine",
+            "api": "API",
+            "params": "Parameters",
+            "behavior": "Behavior",
+            "advanced": "Advanced"
+        },
+        "engine": {
+            "model": "AI Model",
+            "model_desc": "Select which AI model to use",
+            "provider": "Provider"
+        },
+        "api": {
+            "key": "API Key",
+            "key_desc": "Stored securely in ~/.hexagent-gui/config.json",
+            "url": "API URL (Optional)",
+            "url_desc": "Custom URL for API endpoint",
+            "test": "Test Connection",
+            "test_success": "✅ Connection successful!",
+            "test_failed": "❌ Connection failed:"
+        },
+        "params": {
+            "temperature": "Temperature",
+            "temperature_desc": "Controls randomness (0.0 = deterministic, 2.0 = very random)",
+            "max_tokens": "Max Tokens",
+            "max_tokens_desc": "Maximum response length",
+            "max_iterations": "Max Iterations",
+            "max_iterations_desc": "Maximum number of AI reasoning cycles",
+            "unlimited": "Unlimited Iterations"
+        },
+        "behavior": {
+            "auto_execute": "Auto-Execute Commands",
+            "auto_execute_desc": "Automatically run AI-suggested commands",
+            "web_search": "Enable Web Search",
+            "web_search_desc": "Allow AI to search information online",
+            "streaming": "Stream Responses",
+            "streaming_desc": "Show AI responses in real-time"
+        },
+        "advanced": {
+            "system_prompt": "System Prompt",
+            "system_prompt_desc": "Custom instructions for AI behavior",
+            "custom_instructions": "Custom Instructions",
+            "debug_mode": "Debug Mode",
+            "logging_level": "Logging Level"
+        },
+        "save": "Save Configuration",
+        "cancel": "Cancel",
+        "test_connection": "Test Connection"
+    },
+    "help": {
+        "title": "Terminal Commands & Help",
+        "prompt_mode": "Prompt Mode (Terminal)",
+        "prompt_desc": "Directly executes bash commands on the system.",
+        "prompt_example": "Directly executes bash commands on the system.",
+        "chat_mode": "Chat Mode",
+        "chat_desc": "Standard natural language interaction. The AI decides when to execute commands.",
+        "chat_example": "Standard natural language interaction. The AI decides when to execute commands.",
+        "ai_inference": "AI Inference",
+        "ai_command": "@ <query>",
+        "ai_desc": "Sends the query to the LLM agent instead of executing as bash.",
+        "ai_example": "Sends the query to the LLM agent instead of executing as bash."
+    },
+    "workflow": {
+        "title": "Workflow Manager",
+        "subtitle": "Intelligent workflow strategies",
+        "select": "Select a workflow and set a target to begin",
+        "execute": "Execute with MCP",
+        "target_label": "Target",
+        "target_placeholder": "example.com",
+        "reconnaissance": "Reconnaissance",
+        "reconnaissance_desc": "Comprehensive subdomain enumeration, DNS analysis, port scanning, and content discovery",
+        "vulnerability": "Vulnerability Hunt",
+        "vulnerability_desc": "Discover known vulnerabilities through version detection, service enumeration, and exploit matching",
+        "osint": "OSINT Gathering",
+        "osint_desc": "Open Source Intelligence gathering from public sources, social media, and document analysis",
+        "business_logic": "Business Logic",
+        "business_logic_desc": "Analyze API Logic flow and authentication bypasses",
+        "full_assessment": "Full Assessment",
+        "full_assessment_desc": "Complete end-to-end security assessment with all modules combined"
+    },
+    "shutdown": {
+        "title": "System Shutdown",
+        "confirm_title": "Confirm Shutdown",
+        "message": "This will terminate all services and close the application.",
+        "delete_tmp": "Delete temporary files",
+        "shutdown_button": "Delete & Shutdown",
+        "shutting_down": "Shutting down...",
+        "services_stopped": "All services have been stopped",
+        "goodbye": "Goodbye!"
+    },
+    "loading": {
+        "initializing": "Initializing System...",
+        "components": {
+            "backend": "Backend Server",
+            "brain": "AI Brain Core",
+            "hexstrike": "HexStrike Client",
+            "config": "Configuration"
+        },
+        "retry": "Retry",
+        "continue_anyway": "Continue Anyway"
+    },
+    "iteration": {
+        "limit_reached": "Iteration Limit Reached",
+        "message": "The agent reached the maximum iteration limit. Do you want to continue?",
+        "stop": "Stop",
+        "continue_5": "Continue (+5)",
+        "continue_10": "Continue (+10)"
     }
 }

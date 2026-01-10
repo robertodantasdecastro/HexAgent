@@ -14,7 +14,16 @@
         "executed": "Ejecutado",
         "cancel": "Cancelar",
         "save": "Guardar",
-        "close": "Cerrar"
+        "close": "Cerrar",
+        "shutdown": "Apagar",
+        "optional": "Opcional"
+    },
+    "nav": {
+        "history": "Historial",
+        "services": "Servicios",
+        "workflows": "Flujos",
+        "help": "Ayuda",
+        "settings": "Configuración"
     },
     "block": {
         "hexagent": "HEXAGENT",
@@ -47,9 +56,10 @@
             "api_keys": "CLAVES API",
             "models": "MODELOS",
             "services": "SERVICIOS",
-            "appearance": "Apariencia",
+            "appearance": "APARIENCIA",
             "brain": "Cerebro / IA",
-            "geral": "General"
+            "geral": "General",
+            "system": "SISTEMA"
         },
         "general": {
             "description": "Configuración y preferencias principales de la aplicación",
@@ -135,5 +145,147 @@
         },
         "retry": "Reintentar",
         "continue_anyway": "Continuar de Todos Modos"
+    },
+    "service": {
+        "manager": "Gestor de Servicios",
+        "refresh": "Actualizar",
+        "backend": "Backend",
+        "hexstrike": "HexStrike",
+        "brain": "Cerebro (IA)",
+        "running": "Ejecutando",
+        "offline": "Desconectado",
+        "status": "Estado",
+        "port": "Puerto",
+        "message": "Mensaje",
+        "about": "Acerca de este servicio",
+        "start": "Iniciar",
+        "stop": "Detener",
+        "backend_desc": "Servidor backend Flask que proporciona API REST para HexAgent GUI. Gestiona chat, configuración y gestión de servicios.",
+        "hexstrike_desc": "Motor de ejecución de comandos para ejecutar comandos de terminal. Necesario para que la IA ejecute comandos y scripts del sistema.",
+        "brain_desc": "Cerebro IA HexSecGPT para respuestas inteligentes y razonamiento. Proporciona la funcionalidad principal de IA para conversaciones."
+    },
+    "session": {
+        "manager": "Gestor de Sesiones",
+        "saved": "Sesiones Guardadas",
+        "current": "Sesión Actual",
+        "name": "Nombre de Sesión",
+        "save_current": "Guardar Actual",
+        "load": "Cargar",
+        "delete": "Eliminar",
+        "delete_confirm": "¿Eliminar sesión '{name}'?",
+        "no_sessions": "No se encontraron sesiones guardadas.",
+        "loading": "Cargando...",
+        "description": "Las sesiones guardan el historial completo de la conversación, incluyendo bloques de código generados y respuestas de la IA.",
+        "warning": "⚠️ Los archivos generados se almacenan por separado en su espacio de trabajo."
+    },
+    "aiconfig": {
+        "title": "Configuración de IA",
+        "tabs": {
+            "engine": "Motor",
+            "api": "API",
+            "params": "Parámetros",
+            "behavior": "Comportamiento",
+            "advanced": "Avanzado"
+        },
+        "engine": {
+            "model": "Modelo de IA",
+            "model_desc": "Seleccione qué modelo de IA usar",
+            "provider": "Proveedor"
+        },
+        "api": {
+            "key": "Clave API",
+            "key_desc": "Almacenada de forma segura en ~/.hexagent-gui/config.json",
+            "url": "URL de API (Opcional)",
+            "url_desc": "URL personalizada para el endpoint de API",
+            "test": "Probar Conexión",
+            "test_success": "✅ ¡Conexión exitosa!",
+            "test_failed": "❌ Conexión fallida:"
+        },
+        "params": {
+            "temperature": "Temperatura",
+            "temperature_desc": "Controla aleatoriedad (0.0 = determinista, 2.0 = muy aleatorio)",
+            "max_tokens": "Máximo de Tokens",
+            "max_tokens_desc": "Longitud máxima de respuesta",
+            "max_iterations": "Máximo de Iteraciones",
+            "max_iterations_desc": "Número máximo de ciclos de razonamiento de IA",
+            "unlimited": "Iteraciones Ilimitadas"
+        },
+        "behavior": {
+            "auto_execute": "Auto-Ejecutar Comandos",
+            "auto_execute_desc": "Ejecutar automáticamente comandos sugeridos por la IA",
+            "web_search": "Habilitar Búsqueda Web",
+            "web_search_desc": "Permitir que la IA busque información en línea",
+            "streaming": "Transmitir Respuestas",
+            "streaming_desc": "Mostrar respuestas de IA en tiempo real"
+        },
+        "advanced": {
+            "system_prompt": "Prompt del Sistema",
+            "system_prompt_desc": "Instrucciones personalizadas para el comportamiento de la IA",
+            "custom_instructions": "Instrucciones Personalizadas",
+            "debug_mode": "Modo de Depuración",
+            "logging_level": "Nivel de Registro"
+        },
+        "save": "Guardar Configuración",
+        "cancel": "Cancelar",
+        "test_connection": "Probar Conexión"
+    },
+    "help": {
+        "title": "Comandos de Terminal y Ayuda",
+        "prompt_mode": "Modo Prompt (Terminal)",
+        "prompt_desc": "Ejecuta comandos bash directamente en el sistema.",
+        "prompt_example": "Ejecuta comandos bash directamente en el sistema.",
+        "chat_mode": "Modo Chat",
+        "chat_desc": "Interacción estándar en lenguaje natural. La IA decide cuándo ejecutar comandos.",
+        "chat_example": "Interacción estándar en lenguaje natural. La IA decide cuándo ejecutar comandos.",
+        "ai_inference": "Inferencia IA",
+        "ai_command": "@ <consulta>",
+        "ai_desc": "Envía la consulta al agente LLM en lugar de ejecutar como bash.",
+        "ai_example": "Envía la consulta al agente LLM en lugar de ejecutar como bash."
+    },
+    "workflow": {
+        "title": "Gestor de Flujos",
+        "subtitle": "Estrategias inteligentes de workflow",
+        "select": "Seleccione un workflow y establezca un objetivo para comenzar",
+        "execute": "Ejecutar con MCP",
+        "target_label": "Objetivo",
+        "target_placeholder": "ejemplo.com",
+        "reconnaissance": "Reconocimiento",
+        "reconnaissance_desc": "Enumeración exhaustiva de subdominios, análisis DNS, escaneo de puertos y descubrimiento de contenido",
+        "vulnerability": "Búsqueda de Vulnerabilidades",
+        "vulnerability_desc": "Descubrir vulnerabilidades conocidas a través de detección de versión, enumeración de servicios y coincidencia de exploits",
+        "osint": "Recopilación OSINT",
+        "osint_desc": "Recopilación de Inteligencia de Fuentes Abiertas de fuentes públicas, redes sociales y análisis de documentos",
+        "business_logic": "Lógica de Negocio",
+        "business_logic_desc": "Analizar flujo de Lógica de API y bypass de autenticación",
+        "full_assessment": "Evaluación Completa",
+        "full_assessment_desc": "Evaluación de seguridad completa de extremo a extremo con todos los módulos combinados"
+    },
+    "shutdown": {
+        "title": "Apagado del Sistema",
+        "confirm_title": "Confirmar Apagado",
+        "message": "Esto finalizará todos los servicios y cerrará la aplicación.",
+        "delete_tmp": "Eliminar archivos temporales",
+        "shutdown_button": "Eliminar y Apagar",
+        "shutting_down": "Apagando...",
+        "services_stopped": "Todos los servicios han sido detenidos",
+        "goodbye": "¡Adiós!"
+    },
+    "loading": {
+        "initializing": "Inicializando Sistema...",
+        "components": {
+            "backend": "Servidor Backend",
+            "brain": "Núcleo IA",
+            "hexstrike": "Cliente HexStrike",
+            "config": "Configuración"
+        },
+        "retry": "Reintentar",
+        "continue_anyway": "Continuar de Todos Modos"
+    },
+    "iteration": {
+        "limit_reached": "Límite de Iteraciones Alcanzado",
+        "message": "El agente alcanzó el límite máximo de iteraciones. ¿Desea continuar?",
+        "stop": "Detener",
+        "continue_5": "Continuar (+5)",
+        "continue_10": "Continuar (+10)"
     }
 }

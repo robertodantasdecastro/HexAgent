@@ -8,8 +8,10 @@
 
 import { Activity, CheckCircle, Power, RefreshCw, Server, Terminal, XCircle, Zap } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useTranslation } from '../hooks/useTranslation';
 
 const ServiceManagerModal = ({ isOpen, onClose }) => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('backend');
   const [services, setServices] = useState({
     backend: { ready: false, status: 'pending', message: 'Loading...' },
@@ -102,7 +104,7 @@ const ServiceManagerModal = ({ isOpen, onClose }) => {
                   {tabs.find(t => t.id === tabId)?.name}
                 </h3>
                 <p className={`text-sm ${getStatusColor(service.status)}`}>
-                  {service.ready ? 'Running' : service.message}
+                  {service.ready ? t('service.running', 'Running') : service.message}
                 </p>
               </div>
             </div>
@@ -123,7 +125,7 @@ const ServiceManagerModal = ({ isOpen, onClose }) => {
                     `}
                   >
                     <Power size={16} />
-                    Start
+                    {t('service.start', 'Start')}
                   </button>
                   <button
                     onClick={() => controlService('hexstrike', 'stop')}
@@ -137,7 +139,7 @@ const ServiceManagerModal = ({ isOpen, onClose }) => {
                     `}
                   >
                     <Power size={16} />
-                    Stop
+                    {t('service.stop', 'Stop')}
                   </button>
                 </>
               )}
@@ -147,19 +149,19 @@ const ServiceManagerModal = ({ isOpen, onClose }) => {
           {/* Service Details */}
           <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-700">
             <div>
-              <p className="text-xs text-gray-500 uppercase">Status</p>
+              <p className="text-xs text-gray-500 uppercase">{t('service.status', 'Status')}</p>
               <p className={`font-mono ${getStatusColor(service.status)}`}>
                 {service.status.toUpperCase()}
               </p>
             </div>
             {service.port && (
               <div>
-                <p className="text-xs text-gray-500 uppercase">Port</p>
+                <p className="text-xs text-gray-500 uppercase">{t('service.port', 'Port')}</p>
                 <p className="font-mono text-white">{service.port}</p>
               </div>
             )}
             <div className="col-span-2">
-              <p className="text-xs text-gray-500 uppercase mb-1">Message</p>
+              <p className="text-xs text-gray-500 uppercase mb-1">{t('service.message', 'Message')}</p>
               <p className="text-sm text-gray-300">{service.message}</p>
             </div>
           </div>
@@ -167,23 +169,20 @@ const ServiceManagerModal = ({ isOpen, onClose }) => {
 
         {/* Service Info */}
         <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
-          <h4 className="text-sm font-semibold text-gray-400 mb-2">About this service</h4>
+          <h4 className="text-sm font-semibold text-gray-400 mb-2">{t('service.about', 'About this service')}</h4>
           {tabId === 'backend' && (
             <p className="text-sm text-gray-400">
-              Flask backend server providing REST API for the HexAgent GUI.
-              Handles chat, configuration, and service management.
+              {t('service.backend_desc', 'Flask backend server providing REST API for the HexAgent GUI.')}
             </p>
           )}
           {tabId === 'hexstrike' && (
             <p className="text-sm text-gray-400">
-              Command execution engine for running terminal commands.
-              Required for AI to execute system commands and scripts.
+              {t('service.hexstrike_desc', 'Command execution engine for running terminal commands.')}
             </p>
           )}
           {tabId === 'brain' && (
             <p className="text-sm text-gray-400">
-              HexSecGPT AI brain for intelligent responses and reasoning.
-              Provides the core AI functionality for conversations.
+              {t('service.brain_desc', 'HexSecGPT AI brain for intelligent responses and reasoning.')}
             </p>
           )}
         </div>
@@ -199,14 +198,14 @@ const ServiceManagerModal = ({ isOpen, onClose }) => {
           <div className="flex items-center gap-3">
             <Server className="text-purple-500" size={24} />
             <div>
-              <h2 className="text-xl font-bold text-white">Service Manager</h2>
-              <p className="text-sm text-gray-400">Gerenciador de Serviços</p>
+              <h2 className="text-xl font-bold text-white">{t('service.manager', 'Service Manager')}</h2>
+              <p className="text-sm text-gray-400">{t('service.manager', 'Service Manager')}</p>
             </div>
           </div>
           <button
             onClick={fetchServiceStatus}
             className="p-2 hover:bg-gray-800 rounded transition"
-            title="Refresh / Atualizar"
+            title={t('service.refresh', 'Refresh')}
           >
             <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
           </button>
@@ -249,7 +248,7 @@ const ServiceManagerModal = ({ isOpen, onClose }) => {
             onClick={onClose}
             className="px-6 py-2 bg-gray-800 hover:bg-gray-700 rounded transition text-white"
           >
-            Close / Fechar
+            {t('common.close', 'Close')}
           </button>
         </div>
       </div>

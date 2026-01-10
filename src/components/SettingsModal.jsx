@@ -88,26 +88,26 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
                 onClick={() => setActiveTab('general')}
                 className={`flex-1 py-3 px-2 text-xs font-mono font-bold flex items-center justify-center gap-2 border-b-2 transition-colors ${activeTab === 'general' ? 'border-blue-500 text-blue-400 bg-blue-500/5' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
             >
-                <Settings size={14} /> GENERAL
+                <Settings size={14} /> {t ? t('settings.tabs.general', 'GENERAL') : 'GENERAL'}
             </button>
 
             <button 
                 onClick={() => setActiveTab('services')}
                 className={`flex-1 py-3 px-2 text-xs font-mono font-bold flex items-center justify-center gap-2 border-b-2 transition-colors ${activeTab === 'services' ? 'border-cyan-500 text-cyan-400 bg-cyan-500/5' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
             >
-                <Server size={14} /> SERVICES
+                <Server size={14} /> {t ? t('settings.tabs.services', 'SERVICES') : 'SERVICES'}
             </button>
             <button 
                 onClick={() => setActiveTab('appearance')}
                 className={`flex-1 py-3 px-2 text-xs font-mono font-bold flex items-center justify-center gap-2 border-b-2 transition-colors ${activeTab === 'appearance' ? 'border-purple-500 text-purple-400 bg-purple-500/5' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
             >
-                <Globe size={14} /> {t ? t('settings.tab_appearance') : 'APPEARANCE'}
+                <Globe size={14} /> {t ? t('settings.tabs.appearance', 'APPEARANCE') : 'APPEARANCE'}
             </button>
             <button 
                 onClick={() => setActiveTab('system')}
                 className={`flex-1 py-3 px-2 text-xs font-mono font-bold flex items-center justify-center gap-2 border-b-2 transition-colors ${activeTab === 'system' ? 'border-yellow-500 text-yellow-400 bg-yellow-500/5' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
             >
-                <Database size={14} /> {t ? t('settings.tab_general') : 'SYSTEM'}
+                <Database size={14} /> {t ? t('settings.tabs.system', 'SYSTEM') : 'SYSTEM'}
             </button>
         </div>
 

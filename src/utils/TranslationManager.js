@@ -87,13 +87,25 @@ class TranslationManager {
   }
 
   /**
+   * Get list of available languages from loaded translations
+   * Obter lista de idiomas disponíveis das traduções carregadas
+   * @returns {Array<string>}
+   * @private
+   */
+  getAvailableLanguageCodes() {
+    return Object.keys(this.translations);
+  }
+
+  /**
    * Load language preference from storage
    * Carregar preferência de idioma do armazenamento
    * @private
    */
   loadLanguage() {
     const stored = localStorage.getItem('hexagent_language');
-    if (stored && ['en', 'pt', 'es', 'auto'].includes(stored)) {
+    const availableCodes = this.getAvailableLanguageCodes();
+    
+    if (stored && (stored === 'auto' || availableCodes.includes(stored))) {
       if (stored === 'auto') {
         this.currentLanguage = this.detectBrowserLanguage();
       } else {
@@ -150,14 +162,16 @@ class TranslationManager {
    * @param {string} language - Language code (en, pt, es, auto)
    */
   setLanguage(language) {
+    const availableCodes = this.getAvailableLanguageCodes();
+    
     if (language === 'auto') {
       this.currentLanguage = this.detectBrowserLanguage();
       localStorage.setItem('hexagent_language', 'auto');
-    } else if (['en', 'pt', 'es'].includes(language)) {
+    } else if (availableCodes.includes(language)) {
       this.currentLanguage = language;
       localStorage.setItem('hexagent_language', language);
     } else {
-      console.warn(`[TranslationManager] Invalid language: ${language}`);
+      console.warn(`[TranslationManager] Invalid language: ${language}. Available: ${availableCodes.join(', ')}`);
       return;
     }
 
@@ -322,15 +336,38 @@ class TranslationManager {
 
   /**
    * Get available languages / Obter idiomas disponíveis
+   * Auto-detects from loaded translation files
+   * Auto-detecta dos arquivos de tradução carregados
    * @returns {Array<{code: string, name: string}>}
    */
   getAvailableLanguages() {
-    return [
-      { code: 'auto', name: 'Auto Detect / Auto Detectar' },
-      { code: 'en', name: 'English' },
-      { code: 'pt', name: 'Portuguese / Português' },
-      { code: 'es', name: 'Spanish / Español' }
+    // Language names mapping / Mapeamento de nomes de idiomas
+    const languageNames = {
+      'en': 'English',
+      'pt': 'Portuguese / Português',
+      'es': 'Spanish / Español',
+      'fr': 'French / Français',
+      'de': 'German / Deutsch',
+      'it': 'Italian / Italiano',
+      'ja': 'Japanese / 日本語',
+      'zh': 'Chinese / 中文',
+      'ru': 'Russian / Русский'
+    };
+
+    // Build list from available translations / Construir lista das traduções disponíveis
+    const availableCodes = this.getAvailableLanguageCodes();
+    const languages = [
+      { code: 'auto', name: 'Auto Detect / Auto Detectar' }
     ];
+
+    availableCodes.forEach(code => {
+      languages.push({
+        code,
+        name: languageNames[code] || code.toUpperCase()
+      });
+    });
+
+    return languages;
   }
 }
 

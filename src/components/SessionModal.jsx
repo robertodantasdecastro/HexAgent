@@ -1,7 +1,9 @@
 import { Clock, FolderOpen, Save, Trash2, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useTranslation } from '../hooks/useTranslation';
 
 const SessionModal = ({ isOpen, onClose, onLoadSession, onSaveSession, currentSessionName }) => {
+  const { t } = useTranslation();
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [newSessionName, setNewSessionName] = useState('');
@@ -39,7 +41,7 @@ const SessionModal = ({ isOpen, onClose, onLoadSession, onSaveSession, currentSe
   };
 
   const handleDelete = async (name) => {
-    if (!confirm(`Delete session '${name}'?`)) return;
+    if (!confirm(t('session.delete_confirm', "Delete session '{name}'?").replace('{name}', name))) return;
     try {
         await fetch('http://localhost:5000/sessions', {
             method: 'POST',
@@ -62,7 +64,7 @@ const SessionModal = ({ isOpen, onClose, onLoadSession, onSaveSession, currentSe
         <div className="flex items-center justify-between p-4 border-b border-[#333] bg-[#111]">
           <div className="flex items-center gap-2">
             <Clock className="text-purple-500" size={20} />
-            <h2 className="font-bold text-gray-200">Session Manager</h2>
+            <h2 className="font-bold text-gray-200">{t('session.manager', 'Session Manager')}</h2>
           </div>
           <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
             <X size={20} />
@@ -75,13 +77,13 @@ const SessionModal = ({ isOpen, onClose, onLoadSession, onSaveSession, currentSe
             {/* List */}
             <div className="flex-1 p-4 overflow-y-auto custom-scrollbar border-r border-[#333]">
                 <h3 className="text-xs font-mono text-gray-500 uppercase mb-3 flex items-center gap-2">
-                    <FolderOpen size={12} /> Saved Sessions
+                    <FolderOpen size={12} /> {t('session.saved', 'Saved Sessions')}
                 </h3>
                 
                 {loading ? (
-                    <div className="text-center py-10 text-gray-600 animate-pulse">Loading...</div>
+                    <div className="text-center py-10 text-gray-600 animate-pulse">{t('session.loading', 'Loading...')}</div>
                 ) : sessions.length === 0 ? (
-                    <div className="text-center py-10 text-gray-600 italic">No saved sessions found.</div>
+                    <div className="text-center py-10 text-gray-600 italic">{t('session.no_sessions', 'No saved sessions found.')}</div>
                 ) : (
                     <div className="space-y-2">
                         {sessions.map(session => (
@@ -99,14 +101,14 @@ const SessionModal = ({ isOpen, onClose, onLoadSession, onSaveSession, currentSe
                                     <button 
                                         onClick={() => onLoadSession(session)}
                                         className="p-1.5 rounded bg-green-900/20 text-green-500 hover:bg-green-900/40"
-                                        title="Load Session"
+                                        title={t('session.load', 'Load')}
                                     >
                                         <FolderOpen size={14} />
                                     </button>
                                     <button 
                                         onClick={() => handleDelete(session)}
                                         className="p-1.5 rounded bg-red-900/20 text-red-500 hover:bg-red-900/40"
-                                        title="Delete"
+                                        title={t('session.delete', 'Delete')}
                                     >
                                         <Trash2 size={14} />
                                     </button>
@@ -119,11 +121,11 @@ const SessionModal = ({ isOpen, onClose, onLoadSession, onSaveSession, currentSe
 
             {/* Current Session Actions */}
             <div className="w-full md:w-64 bg-[#0f0f0f] p-4 flex flex-col gap-4">
-                <h3 className="text-xs font-mono text-gray-500 uppercase mb-1">Current Session</h3>
+                <h3 className="text-xs font-mono text-gray-500 uppercase mb-1">{t('session.current', 'Current Session')}</h3>
                 
                 <div className="space-y-3">
                     <div>
-                        <label className="text-[10px] text-gray-400 mb-1 block">Session Name</label>
+                        <label className="text-[10px] text-gray-400 mb-1 block">{t('session.name', 'Session Name')}</label>
                         <input 
                             type="text" 
                             value={newSessionName}
@@ -137,14 +139,14 @@ const SessionModal = ({ isOpen, onClose, onLoadSession, onSaveSession, currentSe
                         onClick={handleSave}
                         className="w-full py-2 bg-purple-600 hover:bg-purple-700 text-white rounded text-sm font-medium transition-colors flex items-center justify-center gap-2"
                     >
-                        <Save size={14} /> Save Current
+                        <Save size={14} /> {t('session.save_current', 'Save Current')}
                     </button>
 
                     <div className="h-px bg-[#333] my-2" />
                     
                     <div className="text-[10px] text-gray-500 leading-relaxed">
-                        <p>Sessions save the full conversation history, including generated code blocks and AI responses.</p>
-                        <p className="mt-2 text-yellow-500/80">⚠️ Generated files are stored separately in your workspace.</p>
+                        <p>{t('session.description', 'Sessions save the full conversation history.')}</p>
+                        <p className="mt-2 text-yellow-500/80">{t('session.warning', '⚠️ Files stored separately.')}</p>
                     </div>
                 </div>
             </div>

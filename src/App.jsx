@@ -1448,7 +1448,7 @@ const App = () => {
 {/* sdsad */}
               <button onClick={() => sessionModal.open()} className="flex items-center gap-1 text-gray-400 hover:text-white transition-colors">
                   <History size={14} />
-                  <span>History</span>
+                  <span>{t('nav.history', 'History')}</span>
               </button>
               <div className="flex items-center gap-2 border-l border-[#333] pl-3 ml-2">
                    {/* Export Chat Button (debug mode only) */}
@@ -1469,20 +1469,20 @@ const App = () => {
               <button
                 onClick={() => servicesModal.open()}
                 className="flex items-center gap-1 text-gray-400 hover:text-blue-400 transition-colors"
-                title="Services / Serviços"
+                title={t('nav.services', 'Services')}
               >
                 <Server size={14} />
-                <span className="hidden sm:inline">Services</span>
+                <span className="hidden sm:inline">{t('nav.services', 'Services')}</span>
               </button>
               
               {/* Workflows Button / Botão Workflows */}
               <button
                 onClick={() => workflowModal.open()}
                 className="flex items-center gap-1 text-gray-400 hover:text-purple-400 transition-colors"
-                title="Automated Workflows"
+                title={t('nav.workflows', 'Workflows')}
               >
                  <GitBranch size={14} />
-                 <span className="hidden sm:inline">Workflows</span>
+                 <span className="hidden sm:inline">{t('nav.workflows', 'Workflows')}</span>
               </button>
               
                    <button
@@ -1492,14 +1492,14 @@ const App = () => {
                        settingsModal.open();
                        console.log('[DEBUG] Called settingsModal.open()');
                      }}className="p-0 bg-transparent border-0 cursor-pointer flex items-center"
-                     title="Settings / Configurações"
+                     title={t('nav.settings', 'Settings')}
                    >
                      <Settings 
                        size={14} 
                        className="text-gray-400 hover:text-white transition-colors" 
                      />
                    </button>
-                    <Power size={14} className="text-red-500 hover:text-red-400 cursor-pointer" onClick={shutdownModal.open} title="Shutdown and Kill All Services" />
+                    <Power size={14} className="text-red-500 hover:text-red-400 cursor-pointer" onClick={shutdownModal.open} title={t('common.shutdown', 'Shutdown')} />
               </div>
           </div>
       </header>
@@ -1585,7 +1585,7 @@ const App = () => {
                     className="flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-mono border text-blue-400 bg-blue-500/10 border-blue-500/30 hover:bg-blue-500/20 transition-all"
                 >
                     <HelpCircle size={10} />
-                    <span>HELP</span>
+                    <span>{t('nav.help', 'HELP')}</span>
                 </button>
                 
                 <button

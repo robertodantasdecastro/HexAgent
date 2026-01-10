@@ -1,5 +1,6 @@
 import { Code, Cpu, Key, Sliders, X, Zap } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useTranslation } from '../hooks/useTranslation';
 
 /**
  * AIConfigModal - Dedicated AI/LLM Configuration
@@ -9,6 +10,7 @@ import { useEffect, useState } from 'react';
  * Separado das configurações de sistema para melhor organização
  */
 const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('engine');
   const [aiConfig, setAiConfig] = useState({
     model: 'openai/gpt-4-turbo',
@@ -55,20 +57,20 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
         body: JSON.stringify({ api_key: aiConfig.api_key, model: aiConfig.model })
       });
       const data = await response.json();
-      alert(data.success ? '✅ Connection successful!' : `❌ ${data.error}`);
+      alert(data.success ? t('aiconfig.api.test_success', '✅ Connection successful!') : `${t('aiconfig.api.test_failed', '❌ Connection failed:')} ${data.error}`);
     } catch (error) {
-      alert(`❌ Connection failed: ${error.message}`);
+      alert(`${t('aiconfig.api.test_failed', '❌ Connection failed:')} ${error.message}`);
     }
   };
 
   if (!isOpen) return null;
 
   const tabs = [
-    { id: 'engine', label: 'Engine', icon: Cpu },
-    { id: 'api', label: 'API', icon: Key },
-    { id: 'params', label: 'Parameters', icon: Sliders },
-    { id: 'behavior', label: 'Behavior', icon: Zap },
-    { id: 'advanced', label: 'Advanced', icon: Code }
+    { id: 'engine', label: t('aiconfig.tabs.engine', 'Engine'), icon: Cpu },
+    { id: 'api', label: t('aiconfig.tabs.api', 'API'), icon: Key },
+    { id: 'params', label: t('aiconfig.tabs.params', 'Parameters'), icon: Sliders },
+    { id: 'behavior', label: t('aiconfig.tabs.behavior', 'Behavior'), icon: Zap },
+    { id: 'advanced', label: t('aiconfig.tabs.advanced', 'Advanced'), icon: Code }
   ];
 
   return (
@@ -78,7 +80,7 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#333]">
           <div className="flex items-center gap-3">
             <Cpu className="text-cyan-400" size={20} />
-            <h2 className="text-lg font-bold text-white">AI Configuration</h2>
+            <h2 className="text-lg font-bold text-white">{t('aiconfig.title', 'AI Configuration')}</h2>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
             <X size={20} />
@@ -112,7 +114,7 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
           {activeTab === 'engine' && (
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-mono text-gray-300 mb-2">Model / Modelo</label>
+                <label className="block text-sm font-mono text-gray-300 mb-2">{t('aiconfig.engine.model', 'Model')}</label>
                 <select
                   value={aiConfig.model}
                   onChange={(e) => setAiConfig({...aiConfig, model: e.target.value})}
@@ -159,15 +161,11 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
                   placeholder="sk-..."
                   className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-cyan-400"
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  Stored securely in ~/.hexagent-gui/config.json
-                </p>
+                <p className="text-xs text-gray-500 mt-1 font-mono">{t('aiconfig.api.key_desc', 'Stored securely in ~/.hexagent-gui/config.json')}</p>
               </div>
 
               <div>
-                <label className="block text-sm font-mono text-gray-300 mb-2">
-                  API URL (Optional) / URL da API (Opcional)
-                </label>
+                <label className="block text-sm font-mono text-gray-300 mb-2">{t('aiconfig.api.url', 'API URL')} ({t('common.optional', 'Optional')})</label>
                 <input
                   type="text"
                   value={aiConfig.api_url}
@@ -181,7 +179,7 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
                 onClick={testConnection}
                 className="w-full py-2 bg-green-500/20 border border-green-500/30 text-green-400 rounded hover:bg-green-500/30 transition-all font-mono text-sm"
               >
-                Test Connection / Testar Conexão
+                {t('aiconfig.test_connection', 'Test Connection')} / {t('aiconfig.api.test', 'Testar Conexão')}
               </button>
             </div>
           )}

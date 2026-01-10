@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { HelpCircle, X, Terminal, MessageSquare, ChevronRight, Hash } from 'lucide-react';
+import { Hash, HelpCircle, MessageSquare, Terminal, X } from 'lucide-react';
+import { useTranslation } from '../hooks/useTranslation';
 
 const HelpModal = ({ isOpen, onClose }) => {
+  const { t } = useTranslation();
   if (!isOpen) return null;
 
   return (
@@ -11,7 +12,7 @@ const HelpModal = ({ isOpen, onClose }) => {
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#333] bg-[#111]">
           <h2 className="text-lg font-bold text-[#00ff00] flex items-center gap-2 font-mono">
-            <HelpCircle size={20} /> TERMINAL COMMANDS & HELP
+            <HelpCircle size={20} /> {t('help.title', 'TERMINAL COMMANDS & HELP')}
           </h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white transition hover:rotate-90">
             <X size={20} />
@@ -29,7 +30,9 @@ const HelpModal = ({ isOpen, onClose }) => {
                     <div className="bg-[#111] p-3 rounded border border-gray-800">
                         <div className="text-xs text-gray-500 font-mono mb-1">STANDARD EXECUTION</div>
                         <code className="text-[#00ff00] text-sm block mb-2 font-bold">ls -la</code>
-                        <p className="text-gray-400 text-xs">Directly executes bash commands on the system.</p>
+                        <p className="text-gray-400 text-xs">
+                            {t('help.prompt_desc', 'Directly executes bash commands on the system.')}
+                        </p>
                         <p className="text-gray-500 text-[10px] mt-1 italic">Executa comandos bash diretamente no sistema.</p>
                     </div>
 
@@ -42,7 +45,9 @@ const HelpModal = ({ isOpen, onClose }) => {
                                 <code className="text-cyan-300 text-sm block font-bold">/ai &lt;query&gt;</code>
                             </div>
                         </div>
-                        <p className="text-gray-400 text-xs mt-2">Sends the query to the LLM agent instead of executing as bash.</p>
+                        <p className="text-gray-400 text-xs mt-2">
+                            {t('help.ai_desc', 'Sends the query to the LLM agent instead of executing as bash.')}
+                        </p>
                         <p className="text-gray-500 text-[10px] mt-1 italic">Envia a consulta para o agente LLM em vez de executar como bash.</p>
                     </div>
                 </div>
@@ -53,7 +58,9 @@ const HelpModal = ({ isOpen, onClose }) => {
                     <MessageSquare size={16} /> Chat Mode
                 </h3>
                 <div className="space-y-2 text-xs text-gray-400">
-                    <p>Standard natural language interaction. The AI decides when to execute commands.</p>
+                    <p>
+                        {t('help.chat_desc', 'Standard natural language interaction. The AI decides when to execute commands.')}
+                    </p>
                     <p className="text-gray-500 italic">Interação padrão em linguagem natural. A IA decide quando executar comandos.</p>
                 </div>
             </section>
