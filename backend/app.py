@@ -156,6 +156,6 @@ if __name__ == '__main__':
     app.run(
         host=host,
         port=port,
-        debug=True,
+        debug=False,  # DISABLED: prevents auto-reload crashes in production
         threaded=True
     )

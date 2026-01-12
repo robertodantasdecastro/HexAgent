@@ -62,7 +62,8 @@ const useAIConfig = () => {
       // Save to backend
       await manager.save(configToSave);
       
-      // Reload from backend to ensure sync
+      // CRITICAL: Reload from backend to ensure sync and trigger re-render
+      // CRÍTICO: Recarregar do backend para garantir sincronia e forçar re-render
       const reloaded = await manager.load();
       setAIConfig(reloaded);
       
@@ -100,12 +101,41 @@ const useAIConfig = () => {
     });
   }, []);
 
+  /**
+   * Update and save atomically - FIXES race condition
+   * Atualizar e salvar atomicamente - CORRIGE condição de corrida
+   */
+  const updateAndSave = useCallback(async (path, value) => {
+    // Calculate new config synchronously
+    if (!aiConfig) return false;
+    
+    const updated = {...aiConfig};
+    const keys = path.split('.');
+    let current = updated;
+    
+    for (let i = 0; i < keys.length - 1; i++) {
+      const key = keys[i];
+      if (!current[key]) current[key] = {};
+      current[key] = {...current[key]};
+      current = current[key];
+    }
+    
+    current[keys[keys.length - 1]] = value;
+    
+    // Update local state
+    setAIConfig(updated);
+    
+    // Save the NEW config (not old aiConfig)
+    return await saveAIConfig(updated);
+  }, [aiConfig, saveAIConfig]);
+
   return {
     aiConfig,
     loading,
     error,
     saveAIConfig,
     updateAIConfig,
+    updateAndSave,  // NEW: atomic update+save
     reloadAIConfig: () => manager.load().then(setAIConfig)
   };
 };

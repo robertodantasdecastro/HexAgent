@@ -26,6 +26,7 @@ DEFAULT_AI_CONFIG = {
         "api_key": "",
         "api_url": "",
         "max_iterations": 10,
+        "unlimited_iterations": False,
         "temperature": 0.7,
         "web_search_enabled": False,
         "streaming_enabled": True

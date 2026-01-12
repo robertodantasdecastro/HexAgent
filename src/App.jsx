@@ -24,6 +24,7 @@ import { tempFileManager } from './utils/tempFileManager';
 import AIConfigModal from './components/AIConfigModal';
 import WorkflowManagerModal from './components/WorkflowManagerModal';
 import { AnsiRenderer } from './utils/ansiRenderer';
+import Logger from './utils/Logger';
 
 
 /**
@@ -450,7 +451,9 @@ const App = () => {
     aiConfig,
     loading: aiLoading,
     error: aiError,
-    saveAIConfig
+    updateAIConfig,
+    saveAIConfig,
+    updateAndSave  // Atomic update+save
   } = useAIConfig();
 
   // Combined loading state / Estado de carregamento combinado
@@ -461,12 +464,53 @@ const App = () => {
 
   // Translation Hook / Hook de Tradução
   const { t, language, setLanguage } = useTranslation();
+  
+  // Logger instance / Instância do Logger
+  const logger = Logger.getInstance();
+
+  // SIMPLIFIED iteration state - local first, save later (debounced)
+  // Estado de iteração SIMPLIFICADO - local primeiro, salvar depois (debounced)
+  const [maxIterations, setMaxIterations] = useState(10);
+  const [unlimitedIterations, setUnlimitedIterations] = useState(false);
+  
+  // Load from aiConfig once on mount
+  // Carregar do aiConfig uma vez ao montar
+  useEffect(() => {
+    if (aiConfig?.ai) {
+      setMaxIterations(aiConfig.ai.max_iterations || 10);
+      setUnlimitedIterations(aiConfig.ai.unlimited_iterations || false);
+    }
+  }, [aiConfig?.ai?.max_iterations, aiConfig?.ai?.unlimited_iterations]);
+  
+  // Debounced save to backend (1 second after user stops clicking)
+  // Salvamento debounced no backend (1 segundo após usuário parar de clicar)
+  useEffect(() => {
+    if (!aiConfig) return;
+    
+    const timer = setTimeout(() => {
+      const updated = {
+        ...aiConfig,
+        ai: {
+          ...aiConfig.ai,
+          max_iterations: maxIterations,
+          unlimited_iterations: unlimitedIterations
+        }
+      };
+      console.log('[App] Saving iterations to backend (debounced)...', {maxIterations, unlimitedIterations});
+      saveAIConfig(updated);
+    }, 1000); // 1 second debounce
+    
+    return () => clearTimeout(timer);
+  }, [maxIterations, unlimitedIterations]); // Only local state dependencies
 
   // Sync language from systemConfig to TranslationManager
   // Sincronizar idioma do systemConfig para TranslationManager
   useEffect(() => {
     if (systemConfig?.system?.language && systemConfig.system.language !== language) {
-      console.log(`[App] Syncing language from systemConfig: ${systemConfig.system.language}`);
+      logger.debug('Syncing language from systemConfig', { 
+        from: language, 
+        to: systemConfig.system.language 
+      });
       setLanguage(systemConfig.system.language);
     }
   }, [systemConfig?.system?.language, language, setLanguage]);
@@ -496,10 +540,16 @@ const App = () => {
 
   // UI Enhancements State / Estados de Melhorias de UI
   const [autoExecute, setAutoExecute] = useState(false); // Default false for safety
-  const [maxIterations, setMaxIterations] = useState(10); // Max AI iterations
-  const [unlimitedIterations, setUnlimitedIterations] = useState(false); // Unlimited mode toggle
+  
+  // Iteration tracking - currentIteration is runtime state, not persisted
+  // Rastreamento de iteração - currentIteration é estado de runtime, não persistido
+  // maxIterations and unlimitedIterations now come from aiConfig
+  // maxIterations e unlimitedIterations agora vêm de aiConfig
   const [currentIteration, setCurrentIteration] = useState(0); // Current iteration count
   const [showIterationLimitReached, setShowIterationLimitReached] = useState(false);
+  
+  // Refs for preventing memory leaks / Refs para prevenir vazamentos de memória
+  const statusIntervalRef = useRef(null); // For status check interval
   const abortControllerRef = useRef(null);
   const bottomRef = useRef(null);
 
@@ -518,10 +568,10 @@ const App = () => {
     setToggleLoading(true);
     const endpoint = status === 'ONLINE' ? '/stop_service' : '/start_service';
     try {
-      await fetch(`http://localhost:5000${endpoint}`, { method: 'POST' });
+      await api.post(endpoint);
       // Status update will happen next poll
     } catch (e) {
-      console.error("Toggle failed", e);
+      logger.error('Toggle failed', { error: e });
     } finally {
       setToggleLoading(false);
     }
@@ -555,14 +605,14 @@ const App = () => {
   useEffect(() => {
     const handleBeforeUnload = async (e) => {
       if (blocks.length > 0) {
-        console.log('[AutoSave] Saving session before close...');
+        logger.info('Saving session before close');
         try {
           await api.post('/save_session', {
             name: 'auto-save-' + Date.now(),
             blocks
           });
         } catch (error) {
-          console.error('[AutoSave] Failed:', error);
+          logger.error('AutoSave failed', { error });
         }
       }
     };
@@ -574,7 +624,6 @@ const App = () => {
   }, [blocks, api]); // Depend on blocks and api
 
   useEffect(() => {
-    let intervalId = null;
 
     // Config is now loaded automatically by useConfig hook
     // Configuração agora é carregada automaticamente pelo hook useConfig
@@ -605,10 +654,10 @@ const App = () => {
     const waitForBackend = async (maxRetries = 60, delayMs = 1000) => {
       for (let i = 0; i < maxRetries; i++) {
         try {
-          console.log(`[HexAgentGUI] Checking backend (attempt ${i + 1}/${maxRetries})...`);
+          logger.debug('Checking backend', { attempt: i + 1, max: maxRetries });
           const isHealthy = await api.healthCheck();
           if (isHealthy) {
-            console.log("[HexAgentGUI] Backend is ready!");
+            logger.info('Backend is ready!');
             return true;
           }
         } catch (e) {
@@ -616,38 +665,38 @@ const App = () => {
         }
         await new Promise(resolve => setTimeout(resolve, delayMs));
       }
-      console.error("[HexAgent GUI] Backend failed to start after retries");
+      logger.error('Backend failed to start after retries');
       return false;
     };
 
     // Init Backend - MUST complete before user can chat
     const initBackend = async (retries = 3, delay = 15000) => {
-      console.log("[HexAgentGUI] Initializing backend...");
+      logger.info('Initializing backend');
       for (let i = 0; i < retries; i++) {
         try {
           if (i > 0) {
             // Update UI to show retry
-            console.log(`[HexAgentGUI] Retrying Brain init (${i + 1}/${retries})...`);
+            logger.debug('Retrying Brain init', { attempt: i + 1, retries });
             setInitStatus(prev => ({ ...prev, brain: { status: 'loading', message: `Loading (${i + 1}/${retries})...` } }));
             await new Promise(r => setTimeout(r, delay));
           }
 
-          console.log(`[HexAgentGUI] Attempting init (${i + 1}/${retries})...`);
+          logger.debug('Attempting init', { attempt: i + 1, retries });
           if (i > 0) {
-            console.warn(`[HexAgentGUI] Retry ${i}/${retries - 1} for init`);
+            logger.warn('Retrying init', { attempt: i, remaining: retries - 1 });
           }
 
           const data = await api.post('/init');
-          console.log("[HexAgentGUI] Init response:", data);
+          logger.debug('Init response', { data });
 
           if (data.success) {
-            console.log("[HexAgentGUI] Brain initialized successfully!");
+            logger.info('Brain initialized successfully!');
             return true;
           }
-          console.error("[HexAgentGUI] Init failed:", data.error || data.message);
+          logger.error('Init failed', { error: data.error || data.message });
           // If specific error, maybe don't retry? But safe to retry generally.
         } catch (e) {
-          console.error(`[HexAgentGUI] Init exception (attempt ${i + 1}):`, e);
+          logger.error('Init exception', { attempt: i + 1, error: e });
         }
       }
       return false;
@@ -674,7 +723,7 @@ const App = () => {
         if (!initResult) {
           // Brain init failed - continue anyway in standalone mode
           // Inicialização do brain falhou - continuar em modo standalone
-          console.warn('[Init] Brain initialization failed - continuing in standalone mode');
+          logger.warn('Brain initialization failed - continuing in standalone mode');
           setInitStatus(prev => ({ ...prev, brain: { status: 'warning', message: 'Standalone Mode' } }));
         } else {
           setInitStatus(prev => ({ ...prev, brain: { status: 'success', message: 'Loaded' } }));
@@ -697,12 +746,12 @@ const App = () => {
         setInitStatus(prev => ({ ...prev, hexstrike: { status: 'pending', message: 'Offline' } }));
         setInitProgress(100);
 
-        // Success - hide loading screen
+        // Success - hide loading screen and start status polling
         setTimeout(() => setIsInitializing(false), 500);
-        intervalId = setInterval(checkStatus, 5000);
+        statusIntervalRef.current = setInterval(checkStatus, 5000);
 
       } catch (error) {
-        console.error('[Init] Error:', error);
+        logger.error('Init error', { error });
         setInitError({ message: error.message });
       }
     };
@@ -712,8 +761,12 @@ const App = () => {
       await initialize();
     })();
 
+    // Cleanup on unmount - clear interval to prevent memory leak
     return () => {
-      if (intervalId) clearInterval(intervalId);
+      if (statusIntervalRef.current) {
+        clearInterval(statusIntervalRef.current);
+        statusIntervalRef.current = null;
+      }
     };
   }, []);
 
@@ -725,7 +778,7 @@ const App = () => {
           setSystemHistory(data.history);
         }
       })
-      .catch(e => console.error('[History] Failed to load shell history:', e));
+      .catch(e => logger.error('Failed to load shell history', { error: e }));
   }, []);
 
   // UseEffect for AutoScroll logic / Lógica de AutoScroll
@@ -743,14 +796,14 @@ const App = () => {
         const handler = () => shutdownModal.open();
         ipcRenderer.on('app-close-requested', handler);
         return () => ipcRenderer.removeListener('app-close-requested', handler);
-      } catch (e) { console.log('Non-electron env'); }
+      } catch (e) { logger.debug('Non-electron env'); }
     }
   }, []);
 
   // Save settings handler (unified with ConfigManager)
   // Handler de salvamento de configurações (unificado com ConfigManager)
   const handleSettingsSave = async (newConfig) => {
-    console.log('[DEBUG] Saving settings:', newConfig);
+    logger.debug('Saving settings', { newConfig });
     try {
       // Use APIClient for unified config handling
       // Usar APIClient para tratamento unificado de config
@@ -761,24 +814,24 @@ const App = () => {
       Object.keys(newConfig).forEach(key => {
         updateConfig(key, newConfig[key]);
       });
-      console.log('[DEBUG] Settings saved successfully');
+      logger.info('Settings saved successfully');
     } catch (error) {
-      console.error('[DEBUG] Failed to save settings:', error);
+      logger.error('Failed to save settings', { error });
     }
   };
 
   // Export chat handler (debug mode only)
   const handleExportChat = async () => {
-    console.log('[Export Chat] Button clicked');
+    logger.debug('Export Chat button clicked');
     try {
       // Check if Electron is available
       if (!window.require) {
-        console.error('[Export Chat] window.require not available');
+        logger.error('Export Chat: window.require not available');
         alert('Export feature only works in Electron app');
         return;
       }
 
-      console.log('[Export Chat] Preparing export data...');
+      logger.debug('Preparing export data');
       // Use APIClient for backend export
       const data = await api.post('/export/chat', {
         blocks,
@@ -791,20 +844,20 @@ const App = () => {
       });
 
       if (data.success && data.filepath) {
-        console.log('[Export Chat] Exported to:', data.filepath);
+        logger.info('Exported to', { filepath: data.filepath });
         alert(`Chat exported to: ${data.filepath}`);
       } else {
         throw new Error(data.error || 'Export failed');
       }
     } catch (error) {
-      console.error('[Export Chat] Error:', error);
+      logger.error('Export Chat error', { error });
       alert('Error exporting chat: ' + error.message);
     }
   };
 
   // Save configuration handler
   const handleConfigUpdate = async (newConfig) => {
-    console.log('[Config Update] Saving config:', newConfig);
+    logger.debug('Saving config', { newConfig });
     try {
       await api.post('/config', newConfig);
 
@@ -812,9 +865,9 @@ const App = () => {
       Object.keys(newConfig).forEach(key => {
         updateConfig(key, newConfig[key]);
       });
-      console.log('[Config Update] Config saved successfully');
+      logger.info('Config saved successfully');
     } catch (error) {
-      console.error('[Config Update] Failed to save config:', error);
+      logger.error('Failed to save config', { error });
     }
   };
 
@@ -860,7 +913,7 @@ const App = () => {
     abortControllerRef.current = new AbortController();
 
     try {
-      const response = await fetch('http://localhost:5000/chat', {
+      const response = await fetch(api.baseURL + '/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -924,7 +977,7 @@ const App = () => {
       }
     } catch (e) {
       if (e.name !== 'AbortError') {
-        console.error(e);
+        logger.error('Error occurred', { error: e });
       }
     } finally {
       setLoading(false);
@@ -952,7 +1005,7 @@ const App = () => {
         service: serviceName
       });
 
-      console.log('[Service] Response:', data);
+      logger.debug('Service response', { data });
 
       // Update service status if provided
       // This `setServiceStatus` is not defined in the provided context.
@@ -968,7 +1021,7 @@ const App = () => {
         timestamp: new Date().toLocaleTimeString()
       }]);
     } catch (error) {
-      console.error('[Service] Error:', error);
+      logger.error('Service error', { error });
       setBlocks(prev => [...prev, {
         id: Date.now(), type: 'terminal',
         content: `Error: ${error.message}`,
@@ -1040,10 +1093,10 @@ const App = () => {
         setBlocks(result.blocks);
         setCurrentSessionName(result.name);
         sessionModal.close();
-        console.log(`[App] Session "${name}" loaded successfully`);
+        logger.info('Session loaded successfully', { name });
       }
     } catch (error) {
-      console.error('[App] Load session error:', error);
+      logger.error('Load session error', { error });
       alert(`Failed to load session: ${error.message}`);
     }
   };
@@ -1056,10 +1109,10 @@ const App = () => {
       if (result.success) {
         setCurrentSessionName(result.name);
         sessionModal.close();
-        console.log(`[App] Session "${name}" saved successfully (${result.blockCount} blocks)`);
+        logger.info('Session saved successfully', { name, blockCount: result.blockCount });
       }
     } catch (error) {
-      console.error('[App] Save session error:', error);
+      logger.error('Save session error', { error });
       alert(`Failed to save session: ${error.message}`);
     }
   };
@@ -1162,7 +1215,7 @@ const App = () => {
     // Call backend /chat endpoint with correct payload format
     // Chamar endpoint /chat do backend com formato correto de payload
     try {
-      const response = await fetch('http://localhost:5000/chat', {
+      const response = await fetch(api.baseURL + '/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1255,7 +1308,7 @@ const App = () => {
       }
 
     } catch (e) {
-      if (e.name !== 'AbortError') console.error(e);
+      if (e.name !== 'AbortError') logger.error('Request error', { error: e });
       setLoading(false);
     } finally {
       setLoading(false);
@@ -1294,7 +1347,7 @@ const App = () => {
         setBlocks(prev => [...prev, resultBlock]);
       }
     } catch (error) {
-      console.error('[Execute] Error:', error);
+      logger.error('Execute error', { error });
       setBlocks(prevBlocks =>
         prevBlocks.map(b =>
           b.id === blockId ? {
@@ -1330,7 +1383,7 @@ const App = () => {
             setInput(data.completions[0]);
           }
         })
-        .catch(err => console.error('[Autocomplete] Error:', err));
+        .catch(err => logger.error('Autocomplete error', { error: err }));
       return;
     }
 
@@ -1408,7 +1461,7 @@ const App = () => {
             <img src="logo.png" className="w-4 h-4 object-contain" alt="logo" />
             <span className="font-bold text-sm tracking-wider">HEXAGENT GUI</span>
           </div>
-          <div className="flex items-center gap-4 text-xs font-mono">
+          <div className="flex items-center gap-3">
 
 
             {/* Existing Header Items */}
@@ -1438,11 +1491,7 @@ const App = () => {
 
               </div>
             </div>
-            {/* sdsad */}
-            <button onClick={() => sessionModal.open()} className="flex items-center gap-1 text-gray-400 hover:text-white transition-colors">
-              <History size={14} />
-              <span>{t('nav.history', 'History')}</span>
-            </button>
+            
             <div className="flex items-center gap-2 border-l border-[#333] pl-3 ml-2">
               {/* Export Chat Button (debug mode only) */}
               {systemConfig?.system?.debug_mode && (
@@ -1457,6 +1506,14 @@ const App = () => {
                   />
                 </button>
               )}
+            </div>
+            <div className="flex items-center gap-2 border-l border-[#333] pl-3 ml-2">
+
+              {/* History Button */}
+              <button onClick={() => sessionModal.open()} className="flex items-center gap-1 text-gray-400 hover:text-white transition-colors">
+                <History size={14} />
+                <span>{t('nav.history', 'History')}</span>
+              </button>
 
               {/* Services Button / Botão Serviços */}
               <button
@@ -1477,14 +1534,15 @@ const App = () => {
                 <GitBranch size={14} />
                 <span className="hidden sm:inline">{t('nav.workflows', 'Workflows')}</span>
               </button>
-
-
+            </div>
+            <div className="flex items-center gap-2 border-l border-[#333] pl-3 ml-2">
+              {/* General Config Button */}
               <button
                 onClick={() => {
-                  console.log('[DEBUG] Settings button clicked');
-                  console.log('[DEBUG] Current settingsModal.isOpen:', settingsModal.isOpen);
+                  logger.debug('Settings button clicked');
+                  logger.debug('Current settingsModal.isOpen', { isOpen: settingsModal.isOpen });
                   settingsModal.open();
-                  console.log('[DEBUG] Called settingsModal.open()');
+                  logger.debug('Called settingsModal.open()');
                 }} className="p-0 bg-transparent border-0 cursor-pointer flex items-center"
                 title={t('nav.settings', 'Settings')}
               >
@@ -1504,6 +1562,7 @@ const App = () => {
 
             </div>
           </div>
+          <div className="flex items-center gap-3 text-[10px] font-mono border-l border-[#333] pl-3 h-5"></div>
         </header>
 
         {/* Content Area - Split between Editor and Chat */}
@@ -1523,7 +1582,7 @@ const App = () => {
                 }}
                 onSave={async (path, content) => {
                   try {
-                    console.log('[FileEditor] Saving file:', path);
+                    logger.debug('Saving file', { path });
                     await api.post('/file/write', {
                       path: path,
                       content: content,
@@ -1538,9 +1597,9 @@ const App = () => {
                         f.path === path ? { ...f, content, saved: true, modified: false } : f
                       )
                     );
-                    console.log('[FileEditor] File saved successfully');
+                    logger.info('File saved successfully');
                   } catch (error) {
-                    console.error('[FileEditor] Save error:', error);
+                    logger.error('FileEditor save error', { error });
                     alert('Failed to save file: ' + error.message);
                   }
                 }}
@@ -1608,7 +1667,7 @@ const App = () => {
                       <Infinity size={10} />
                     </button>
                     <button
-                      onClick={() => setMaxIterations(Math.max(1, maxIterations - 1))}
+                      onClick={() => setMaxIterations(prev => Math.max(1, prev - 1))}
                       className="text-gray-400 hover:text-white px-1 transition-colors"
                       disabled={unlimitedIterations}
                     >
@@ -1616,7 +1675,7 @@ const App = () => {
                     </button>
                     <span className="px-1 font-bold text-cyan-400">{unlimitedIterations ? '∞' : `${currentIteration}/${maxIterations}`}</span>
                     <button
-                      onClick={() => setMaxIterations(Math.min(50, maxIterations + 1))}
+                      onClick={() => setMaxIterations(prev => Math.min(50, prev + 1))}
                       className="text-gray-400 hover:text-white px-1 transition-colors"
                       disabled={unlimitedIterations}
                     >
@@ -1687,12 +1746,12 @@ const App = () => {
           </div> {/* End conversationArea flex-col */}
         </div> {/* End Content Area flex split */}
         {/* Modals */}
-        {console.log('[DEBUG] About to render SettingsModal, isOpen=', settingsModal.isOpen, 'systemConfig=', systemConfig)}
-        {/*console.log('[DEBUG] SettingsModal, AI config=', aiConfig)*/}
+        {/* Debug logging removed - use Logger instead */}
+        {/* Debug logging available via logger.debug() */}
         <SettingsModal
           isOpen={settingsModal.isOpen}
           onClose={() => {
-            console.log('[DEBUG] SettingsModal onClose called');
+            logger.debug('SettingsModal onClose called');
             settingsModal.close();
           }}
           config={systemConfig}
@@ -1731,7 +1790,7 @@ const App = () => {
                 const { ipcRenderer } = window.require('electron');
                 ipcRenderer.send('app-ready-to-quit');
               } catch (e) {
-                console.error('Failed to send quit signal:', e);
+                logger.error('Failed to send quit signal', { error: e });
                 window.close();
               }
             } else {

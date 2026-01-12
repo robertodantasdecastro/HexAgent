@@ -41,12 +41,15 @@ const SessionModal = ({ isOpen, onClose, onLoadSession, onSaveSession, currentSe
 
   const handleDelete = async (name) => {
     if (!confirm(t('session.delete_confirm', "Delete session '{name}'?").replace('{name}', name))) return;
-    const api = APIClient.getInstance();
     try {
-      await api.post('/sessions', { action: 'delete', name });
-      fetchSessions();
+        await fetch('http://localhost:5000/sessions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'delete', name })
+        });
+        fetchSessions();
     } catch(e) {
-      alert(e.message);
+        alert(e.message);
     }
   };
 

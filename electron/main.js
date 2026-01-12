@@ -28,6 +28,12 @@ if (!gotTheLock) {
 
   // Create window only if we have the lock
   app.on('ready', () => {
+      // Enable console logging for debugging / Habilitar logs do console para debug
+      console.log('[Electron] Starting HexAgentGUI...');
+      console.log('[Electron] isPackaged:', app.isPackaged);
+      console.log('[Electron] execPath:', process.execPath);
+      console.log('[Electron] cwd:', process.cwd());
+      
       createWindow();
       startPythonBackend();
   });
@@ -145,10 +151,16 @@ function startPythonBackend() {
     // Determine Python command / Determinar comando Python
     let pythonCmd;
     const pythonPaths = [
-        path.join(appPath, 'venv', 'bin', 'python'),           // Local venv
-        path.join(__dirname, '../venv/bin/python'),             // Dev venv
-        'python3',                                               // System Python 3
-        'python'                                                 // System Python
+        // PRIORITY 1: Packaged venv / PRIORIDADE 1: venv empacotado
+        path.join(appPath, 'resources', 'venv', 'bin', 'python'),
+        path.join(appPath, 'venv', 'bin', 'python'),
+        
+        // PRIORITY 2: Project venv / PRIORIDADE 2: venv do projeto
+        path.join(__dirname, '../venv/bin/python'),
+        
+        // PRIORITY 3: System Python (LAST RESORT) / PRIORIDADE 3: Python do sistema (ÚLTIMO RECURSO)
+        'python3',
+        'python'
     ];
     
     for (const pyPath of pythonPaths) {
@@ -156,13 +168,13 @@ function startPythonBackend() {
             // Absolute or relative path / Caminho absoluto ou relativo
             if (fs.existsSync(pyPath)) {
                 pythonCmd = pyPath;
-                console.log(`[Backend] Using Python at: ${pythonCmd}`);
+                console.log(`[Backend] ✓ Using Python at: ${pythonCmd}`);
                 break;
             }
         } else {
             // System command / Comando do sistema
             pythonCmd = pyPath;
-            console.log(`[Backend] Using system Python: ${pythonCmd}`);
+            console.log(`[Backend] ⚠ Using system Python: ${pythonCmd} (may not have dependencies)`);
             break;
         }
     }
@@ -212,8 +224,24 @@ app.on('window-all-closed', () => {
 });
 
 app.on('will-quit', () => {
+    console.log('[Electron] Shutting down...');
     if (pythonProcess) {
-        pythonProcess.kill();
+        console.log('[Backend] Stopping Python process...');
+        try {
+            pythonProcess.kill('SIGTERM'); // Graceful shutdown / Encerramento gracioso
+            
+            // Force kill after 2 seconds if still running / Forçar encerramento após 2s
+            setTimeout(() => {
+                if (pythonProcess && !pythonProcess.killed) {
+                    console.log('[Backend] Force killing...');
+                    pythonProcess.kill('SIGKILL');
+                }
+            }, 2000);
+            
+            console.log('[Backend] ✓ Stopped');
+        } catch (error) {
+            console.error('[Backend] Error stopping:', error);
+        }
     }
 });
 
