@@ -1,0 +1,243 @@
+/**
+ * Command Proposal Component Styles
+ * Estilos do Componente de Proposta de Comando
+ */
+
+.command-proposal-container {
+  margin: 10px 0;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.command-proposal {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border: 2px solid #0f3460;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.command-proposal:hover {
+  border-color: #e94560;
+  box-shadow: 0 6px 12px rgba(233, 69, 96, 0.2);
+}
+
+/* Header / Cabeçalho */
+.command-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.command-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.command-icon {
+  font-size: 20px;
+}
+
+.command-label {
+  font-weight: 600;
+  color: #e94560;
+  font-size: 14px;
+}
+
+.command-badge {
+  background: rgba(233, 69, 96, 0.2);
+  color: #e94560;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Code Block / Bloco de Código */
+.command-code {
+  background: #0a0e1a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 12px;
+  margin: 12px 0;
+  overflow-x: auto;
+  font-family: 'Fira Code', 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.command-code code {
+  color: #7fffd4;
+  word-break: break-all;
+  white-space: pre-wrap;
+}
+
+/* Metadata / Metadados */
+.command-metadata {
+  display: flex;
+  gap: 20px;
+  margin: 12px 0;
+  padding: 8px 0;
+}
+
+.metadata-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.metadata-label {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
+}
+
+.metadata-value {
+  color: #fff;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.metadata-value.status-ok {
+  color: #00ff88;
+}
+
+.metadata-value.status-warn {
+  color: #ffaa00;
+}
+
+/* Auto-Execute / Execução Automática */
+.command-auto-execute {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  background: rgba(233, 69, 96, 0.1);
+  border-radius: 8px;
+  color: #e94560;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.auto-execute-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(233, 69, 96, 0.3);
+  border-top-color: #e94560;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Actions / Ações */
+.command-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.command-actions button {
+  flex: 1;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.btn-approve {
+  background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
+  color: #0a0e1a;
+}
+
+.btn-approve:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 255, 136, 0.4);
+}
+
+.btn-approve:disabled {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.3);
+  cursor: not-allowed;
+}
+
+.btn-reject {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-reject:hover {
+  background: rgba(233, 69, 96, 0.2);
+  border-color: #e94560;
+  transform: translateY(-2px);
+}
+
+.btn-icon {
+  font-size: 16px;
+}
+
+.btn-text {
+  font-size: 13px;
+}
+
+/* Warning / Aviso */
+.command-warning {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 10px;
+  background: rgba(255, 170, 0, 0.1);
+  border: 1px solid rgba(255, 170, 0, 0.3);
+  border-radius: 8px;
+  color: #ffaa00;
+  font-size: 12px;
+}
+
+.warning-icon {
+  font-size: 18px;
+}
+
+.warning-text {
+  line-height: 1.4;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .command-proposal {
+    padding: 12px;
+  }
+  
+  .command-actions {
+    flex-direction: column;
+  }
+  
+  .command-metadata {
+    flex-direction: column;
+    gap: 8px;
+  }
+}

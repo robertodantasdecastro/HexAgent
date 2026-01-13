@@ -17,7 +17,6 @@ import useAIConfig from './hooks/useAIConfig';
 import useModalState from './hooks/useModalState';
 import useSystemConfig from './hooks/useSystemConfig';
 import { useTranslation } from './hooks/useTranslation';
-import ChatService from './services/ChatService';
 import SessionService from './services/SessionService';
 import APIClient from './utils/APIClient';
 import { tempFileManager } from './utils/tempFileManager';
@@ -772,105 +771,6 @@ const App = () => {
     };
   }, []);
 
-  // ========================================================================
-  // ChatService SSE Event Handlers Setup
-  // Configuração de Event Handlers SSE do ChatService
-  // ========================================================================
-  
-  useEffect(() => {
-    // Setup ChatService event listeners / Configurar event listeners do ChatService
-    logger.info('Setting up ChatService event handlers');
-
-    // Handle incoming message chunks / Tratar chunks de mensagem recebidos
-    const unsubMessage = chatService.onMessage((chunk) => {
-      const { type, content, metadata } = chunk;
-
-      switch (type) {
-        case 'text':
-          // Append AI text to last block or create new block
-          setBlocks(prev => {
-            const lastBlock = prev[prev.length - 1];
-            
-            if (lastBlock && lastBlock.type === 'agent' && !lastBlock.completed) {
-              return prev.map((block, idx) => 
-                idx === prev.length - 1
-                  ? { ...block, content: block.content + content }
-                  : block
-              );
-            } else {
-              return [...prev, {
-                id: Date.now(),
-                type: 'agent',
-                content: content,
-                timestamp: new Date().toLocaleTimeString(),
-                completed: false
-              }];
-            }
-          });
-          break;
-
-        case 'command_proposal':
-          setBlocks(prev => [...prev, {
-            id: Date.now(),
-            type: 'command_proposal',
-            content: content,
-            metadata: metadata,
-            timestamp: new Date().toLocaleTimeString()
-          }]);
-          break;
-
-        case 'command_result':
-          setBlocks(prev => [...prev, {
-            id: Date.now(),
-            type: 'output',
-            content: content,
-            result: metadata.success ? 'success' : 'error',
-            metadata: metadata,
-            timestamp: new Date().toLocaleTimeString()
-          }]);
-          break;
-
-        default:
-          logger.warn('Unknown chunk type:', type);
-      }
-    });
-
-    const unsubError = chatService.onError((error) => {
-      logger.error('ChatService error:', error);
-      
-      setBlocks(prev => [...prev, {
-        id: Date.now(),
-        type: 'agent',
-        content: `⚠️ Error: ${error.message}`,
-        timestamp: new Date().toLocaleTimeString(),
-        completed: true,
-        error: true
-      }]);
-      
-      setLoading(false);
-    });
-
-    const unsubComplete = chatService.onComplete((metadata) => {
-      logger.info('ChatService streaming complete:', metadata);
-      
-      setBlocks(prev => prev.map((block, idx) => 
-        idx === prev.length - 1 && block.type === 'agent'
-          ? { ...block, completed: true }
-          : block
-      ));
-      
-      setLoading(false);
-    });
-
-    return () => {
-      unsubMessage();
-      unsubError();
-      unsubComplete();
-      logger.info('ChatService event handlers cleaned up');
-    };
-  }, []);
-
-
   // Load shell history / Carregar histórico do shell
   useEffect(() => {
     api.get('/history/shell')
@@ -1222,21 +1122,6 @@ const App = () => {
       alert(`Failed to save session: ${error.message}`);
     }
   };
-
-  // ========================================================================
-  // Helper: Get conversation context for AI
-  // ========================================================================
-  
-  const getContext = () => {
-    return blocks
-      .filter(block => block.type === 'user' || block.type === 'agent')
-      .slice(-5)
-      .map(block => ({
-        role: block.type === 'user' ? 'user' : 'assistant',
-        content: block.content
-      }));
-  };
-
 
   const handleSubmit = async (e) => {
     e.preventDefault();
