@@ -150,3 +150,119 @@ Realizar uma reformulação completa do backend de IA e da configuração do fro
 
 4.  **Documentação:**
     *   Todo o código deve incluir comentários bilíngues: Inglês (Primário) / Português-BR (Secundário).
+
+
+### Prompt for Antigravity AI: Local AI Engine Integration via LM Studio (English)
+
+**Context:**
+To ensure privacy, security, and offline functionality, `HexAgentGUI` requires the integration of a local inference engine. LM Studio provides a robust local server that mimics the OpenAI API protocol, making it an ideal candidate for local LLM execution.
+
+**Objective:**
+Implement a new AI Engine provider based on LM Studio. Update the backend architecture to support local/network inference and redesign the GUI configuration modal to include dedicated controls for local model management.
+
+**Instructions:**
+
+1.  **Backend Integration (LM Studio Provider):**
+    *   Implement a new class `LMStudioProvider` that inherits from the `InferenceStrategy` base class.
+    *   Utilize the OpenAI-compatible API format (typically hosted at `http://localhost:1234/v1`) to communicate with the LM Studio local server.
+    *   Update the `ProviderFactory` to dynamically instantiate the `LMStudioProvider` when selected.
+    *   Ensure robust error handling for connection timeouts or when the local server is not running.
+
+2.  **Frontend Redesign (Local AI Configuration):**
+    *   Update the AI Configuration Modal to include a dedicated tab for "Local Inference (LM Studio)".
+    *   Add configurable fields: Server URL (e.g., `http://localhost`), Port (e.g., `1234`), Model Identifier, and Request Timeout.
+    *   Implement a "Test Connection" button that validates the link between the GUI and the LM Studio server in real-time.
+
+3.  **System Synchronization:**
+    *   Ensure the `InferenceManager` correctly switches to the local engine without requiring a system restart.
+    *   Map all GUI state variables for the local engine to the backend configuration files in `~/hexagent-gui/`.
+
+4.  **Documentation:**
+    *   All new code and configuration schemas must include bilingual comments: English (Primary) / Portuguese-BR (Secondary).
+
+---
+
+### Prompt para Antigravity AI: Integração de Motor de IA Local via LM Studio (Português-BR)
+
+**Contexto:**
+Para garantir privacidade, segurança e funcionalidade offline, o `HexAgentGUI` requer a integração de um motor de inferência local. O LM Studio fornece um servidor local robusto que imita o protocolo da API da OpenAI, tornando-o um candidato ideal para execução local de LLMs.
+
+**Objetivo:**
+Implementar um novo provedor de Motor de IA baseado no LM Studio. Atualizar a arquitetura do backend para suportar inferência local/rede e redesenhar o modal de configuração da GUI para incluir controles dedicados ao gerenciamento de modelos locais.
+
+**Instruções:**
+
+1.  **Integração de Backend (Provedor LM Studio):**
+    *   Implemente uma nova classe `LMStudioProvider` que herde da classe base `InferenceStrategy`.
+    *   Utilize o formato de API compatível com OpenAI (geralmente hospedado em `http://localhost:1234/v1`) para se comunicar com o servidor local do LM Studio.
+    *   Atualize o `ProviderFactory` para instanciar dinamicamente o `LMStudioProvider` quando selecionado.
+    *   Garanta um tratamento de erros robusto para timeouts de conexão ou quando o servidor local não estiver em execução.
+
+2.  **Redesign do Frontend (Configuração de IA Local):**
+    *   Atualize o Modal de Configuração de IA para incluir uma aba dedicada para "Inferência Local (LM Studio)".
+    *   Adicione campos configuráveis: URL do Servidor (ex: `http://localhost`), Porta (ex: `1234`), Identificador do Modelo e Timeout da Requisição.
+    *   Implemente um botão "Testar Conexão" que valide o link entre a GUI e o servidor LM Studio em tempo real.
+
+3.  **Sincronização do Sistema:**
+    *   Garanta que o `InferenceManager` alterne corretamente para o motor local sem exigir a reinicialização do sistema.
+    *   Mapeie todas as variáveis de estado da GUI do motor local para os arquivos de configuração do backend em `~/hexagent-gui/`.
+
+4.  **Documentação:**
+    *   Todo o novo código e esquemas de configuração devem incluir comentários bilíngues: Inglês (Primário) / Português-BR (Secundário).
+    
+
+
+### Prompt for Antigravity AI: Frontend UI Implementation for LM Studio Integration (English)
+
+**Context:**
+The backend logic for LM Studio integration has been established, but the `HexAgentGUI` frontend currently lacks the user interface components required to configure and manage this local engine. The configuration must persist in `~/hexagent-gui/config.json` and reflect the current backend state.
+
+**Objective:**
+Update the AI Configuration Modal to include a functional UI for LM Studio, ensuring seamless synchronization between the GUI state, the backend provider, and the local configuration file.
+
+**Instructions:**
+
+1.  **UI Component Update:**
+    *   Modify the `SettingsModal` or equivalent UI class to include a "Local/LM Studio" tab or section.
+    *   Implement input fields for: `Base URL` (default: `http://localhost`), `Port` (default: `1234`), `Model Name`, and `API Key` (optional for local).
+    *   Add a "Connection Status" indicator (LED-style or text) that updates when a "Test Connection" button is clicked.
+
+2.  **State & Persistence Mapping:**
+    *   Bind the UI fields to the application's configuration manager.
+    *   Ensure that saving settings updates the `~/hexagent-gui/config.json` file immediately.
+    *   Implement a loading mechanism that populates these fields from the config file upon modal initialization.
+
+3.  **Real-time Validation:**
+    *   Implement an asynchronous check to verify if the LM Studio server is reachable at the specified URL/Port before allowing the user to set it as the active engine.
+
+4.  **Documentation:**
+    *   All code must include bilingual comments: English (Primary) / Portuguese-BR (Secondary).
+
+---
+
+### Prompt para Antigravity AI: Implementação de UI do Frontend para Integração com LM Studio (Português-BR)
+
+**Contexto:**
+A lógica de backend para a integração com o LM Studio foi estabelecida, mas o frontend do `HexAgentGUI` atualmente carece dos componentes de interface de usuário necessários para configurar e gerenciar este motor local. A configuração deve persistir em `~/hexagent-gui/config.json` e refletir o estado atual do backend.
+
+**Objetivo:**
+Atualizar o Modal de Configuração de IA para incluir uma UI funcional para o LM Studio, garantindo a sincronização perfeita entre o estado da GUI, o provedor de backend e o arquivo de configuração local.
+
+**Instruções:**
+
+1.  **Atualização dos Componentes de UI:**
+    *   Modifique a classe `SettingsModal` ou equivalente para incluir uma aba ou seção "Local/LM Studio".
+    *   Implemente campos de entrada para: `URL Base` (padrão: `http://localhost`), `Porta` (padrão: `1234`), `Nome do Modelo` e `Chave de API` (opcional para local).
+    *   Adicione um indicador de "Status da Conexão" (estilo LED ou texto) que é atualizado quando um botão "Testar Conexão" é clicado.
+
+2.  **Mapeamento de Estado e Persistência:**
+    *   Vincule os campos da UI ao gerenciador de configuração da aplicação.
+    *   Garanta que salvar as configurações atualize o arquivo `~/hexagent-gui/config.json` imediatamente.
+    *   Implemente um mecanismo de carregamento que preencha esses campos a partir do arquivo de configuração na inicialização do modal.
+
+3.  **Validação em Tempo Real:**
+    *   Implemente uma verificação assíncrona para validar se o servidor LM Studio está acessível na URL/Porta especificada antes de permitir que o usuário o defina como o motor ativo.
+
+4.  **Documentação:**
+    *   Todo o código deve incluir comentários bilíngues: Inglês (Primário) / Português-BR (Secundário).
+    

@@ -18,6 +18,9 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
     engine: 'hexsecgpt',
     model: '',
     api_key: '',
+    host: 'http://localhost',      // LM Studio server host
+    port: 1234,                     // LM Studio server port  
+    timeout: 60,                    // Request timeout (seconds)
     temperature: 0.7,
     max_tokens: 4000,
     max_iterations: 10,
@@ -26,13 +29,15 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
     system_prompt: ''
   });
 
-  // Load config when modal opens / Carrega config quando modal abre
   useEffect(() => {
     if (config?.ai) {
       setAiConfig({
         engine: config.ai.engine || 'hexsecgpt',
         model: config.ai.model || '',
         api_key: config.ai.api_key || '',
+        host: config.ai.host || 'http://localhost',
+        port: config.ai.port || 1234,
+        timeout: config.ai.timeout || 60,
         temperature: config.ai.temperature || 0.7,
         max_tokens: config.ai.max_tokens || 4000,
         max_iterations: config.ai.max_iterations || 10,
@@ -83,22 +88,56 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
   };
 
   const handleSave = () => {
-    onSave({ ai: aiConfig });
+    // Build engine-specific configuration / Construir configuração específica do engine
+    const configToSave = {
+      ai: {
+        engine: aiConfig.engine,
+        model: aiConfig.model,
+        temperature: aiConfig.temperature,
+        max_tokens: aiConfig.max_tokens,
+        max_iterations: aiConfig.max_iterations,
+        unlimited_iterations: aiConfig.unlimited_iterations,
+        auto_execute: aiConfig.auto_execute,
+        system_prompt: aiConfig.system_prompt,
+        // Conditional fields based on engine / Campos condicionais baseados no engine
+        ...(aiConfig.engine === 'hexsecgpt' && {
+          api_key: aiConfig.api_key
+        }),
+        ...(aiConfig.engine === 'lmstudio' && {
+          host: aiConfig.host,
+          port: aiConfig.port,
+          timeout: aiConfig.timeout
+        })
+      }
+    };
+    
+    onSave(configToSave);
     onClose();
   };
 
   const testConnection = async () => {
     try {
       setConnectionTestResult({ loading: true });
+      
+      // Build engine-specific config / Construir config específica do engine
+      const testConfig = aiConfig.engine === 'lmstudio'
+        ? {
+            host: aiConfig.host,
+            port: aiConfig.port,
+            model: aiConfig.model,
+            timeout: aiConfig.timeout
+          }
+        : {
+            api_key: aiConfig.api_key,
+            model: aiConfig.model
+          };
+      
       const response = await fetch('http://localhost:5000/engines/test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           engine: aiConfig.engine,
-          config: {
-            api_key: aiConfig.api_key,
-            model: aiConfig.model
-          }
+          config: testConfig
         })
       });
       
@@ -264,28 +303,94 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
           {/* API Configuration Tab */}
           {activeTab === 'api' && (
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-mono text-gray-300 mb-2">
-                  API Key / Chave API
-                </label>
-                <input
-                  type="password"
-                  value={aiConfig.api_key}
-                  onChange={(e) => setAiConfig({...aiConfig, api_key: e.target.value})}
-                  placeholder={
-                    engineDescriptions[aiConfig.engine]?.requires_api_key === false
-                      ? 'Não necessário para ' + aiConfig.engine
-                      : 'sk-...'
-                  }
-                  disabled={engineDescriptions[aiConfig.engine]?.requires_api_key === false}
-                  className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-cyan-400 disabled:opacity-50"
-                />
-                <p className="text-xs text-gray-500 mt-1 font-mono">
-                  Armazenada em ~/.hexagent-gui/config.json
-                </p>
-              </div>
+              {/* HexSecGPT - API Key Configuration */}
+              {aiConfig.engine === 'hexsecgpt' && (
+                <div>
+                  <label className="block text-sm font-mono text-gray-300 mb-2">
+                    <Key className="inline mr-1" size={14} />
+                    API Key / Chave API
+                  </label>
+                  <input
+                    type="password"
+                    value={aiConfig.api_key}
+                    onChange={(e) => setAiConfig({...aiConfig, api_key: e.target.value})}
+                    placeholder="sk-or-v1-..."
+                    className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-cyan-400"
+                  />
+                  <p className="text-xs text-gray-500 mt-1 font-mono">
+                    Obtenha sua chave em <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:underline">openrouter.ai/ keys</a>
+                  </p>
+                </div>
+              )}
 
-              {/* Connection Test */}
+              {/* LM Studio - Local Server Configuration */}
+              {aiConfig.engine === 'lmstudio' && (
+                <>
+                  <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded mb-4">
+                    <p className="text-xs text-blue-400 font-mono">
+                      💡 <strong>LM Studio Local:</strong> Privacidade total, sem internet, modelos sob seu controle
+                    </p>
+                    <p className="text-xs text-blue-400 font-mono mt-1">
+                      Inicie o servidor local no LM Studio antes de usar
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-mono text-gray-300 mb-2">
+                      Server Host / Host do Servidor
+                    </label>
+                    <input
+                      type="text"
+                      value={aiConfig.host}
+                      onChange={(e) => setAiConfig({...aiConfig, host: e.target.value})}
+                      placeholder="http://localhost"
+                      className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-cyan-400"
+                    />
+                    <p className="text-xs text-gray-500 mt-1 font-mono">
+                      URL do servidor LM Studio (local ou remoto)
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-mono text-gray-300 mb-2">
+                      Server Port / Porta do Servidor
+                    </label>
+                    <input
+                      type="number"
+                      value={aiConfig.port}
+                      onChange={(e) => setAiConfig({...aiConfig, port: parseInt(e.target.value) || 1234})}
+                      min="1"
+                      max="65535"
+                      placeholder="1234"
+                      className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-cyan-400"
+                    />
+                    <p className="text-xs text-gray-500 mt-1 font-mono">
+                      Porta padrão do LM Studio: 1234
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-mono text-gray-300 mb-2">
+                      Request Timeout / Timeout da Requisição: {aiConfig.timeout}s
+                    </label>
+                    <input
+                      type="range"
+                      value={aiConfig.timeout}
+                      onChange={(e) => setAiConfig({...aiConfig, timeout: parseInt(e.target.value)})}
+                      min="10"
+                      max="300"
+                      step="10"
+                      className="w-full accent-cyan-400"
+                    />
+                    <div className="flex justify-between text-xs text-gray-500 font-mono mt-1">
+                      <span>10s (rápido)</span>
+                      <span>300s (lento)</span>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Connection Test - All Engines */}
               <button
                 onClick={testConnection}
                 disabled={connectionTestResult?.loading}

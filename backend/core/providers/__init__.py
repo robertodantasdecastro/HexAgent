@@ -16,6 +16,7 @@ from .provider_factory import ProviderFactory
 #  Import all concrete strategies to trigger auto-registration
 # Importar todas as estratégias concretas para acionar auto-registro
 from .hexsecgpt_strategy import HexSecGPTStrategy
+from .lmstudio_strategy import LMStudioStrategy
 
 # Future imports will be added here / Futuras importações serão adicionadas aqui
 # from .openai_strategy import OpenAIStrategy
@@ -25,5 +26,6 @@ from .hexsecgpt_strategy import HexSecGPTStrategy
 __all__ = [
     'InferenceStrategy',
     'ProviderFactory',
-    'HexSecGPTStrategy'
+    'HexSecGPTStrategy',
+    'LMStudioStrategy'
 ]
