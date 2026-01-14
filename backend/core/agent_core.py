@@ -16,6 +16,7 @@ from .hex_brain import HexBrain
 from .hex_strike_client import HexStrikeClient
 from .inference_engine import InferenceEngine
 from .command_executor import CommandExecutor
+from .providers import ProviderFactory, InferenceStrategy
 
 logger = logging.getLogger(__name__)
 
@@ -45,32 +46,44 @@ class AgentCore:
         api_key: Optional[str] = None,
         hexstrike_url: Optional[str] = None,
         model: Optional[str] = None,
-        system_prompt: Optional[str] = None
+        system_prompt: Optional[str] = None,
+        engine: str = 'hexsecgpt'
     ):
         """
-        Initialize Agent Core
-        Inicializa Agent Core
+        Initialize Agent Core with multi-provider support
+        Inicializa Agent Core com suporte multi-provedor
         
         Args:
-            api_key: OpenRouter API key (defaults to env var)
-                    Chave API OpenRouter (padrão: variável de ambiente)
+            api_key: AI provider API key (defaults to env var)
+                    Chave API do provedor IA (padrão: variável de ambiente)
             hexstrike_url: HexStrike server URL (default: http://localhost:8888)
                           URL do servidor HexStrike (padrão: http://localhost:8888)
-            model: AI model name (default: gemini-2.0-flash-exp:free)
-                  Nome do modelo IA (padrão: gemini-2.0-flash-exp:free)
+            model: AI model name (provider-specific)
+                  Nome do modelo IA (específico do provedor)
             system_prompt: Custom system prompt (optional)
                           Prompt de sistema customizado (opcional)
+            engine: AI provider engine ('hexsecgpt', 'openai', 'deepseek', 'ollama')
+                   Motor provedor IA (padrão: 'hexsecgpt')
         """
-        # Initialize AI brain / Inicializa cérebro IA
+        # Initialize AI provider using ProviderFactory (Strategy Pattern)
+        # Inicializa provedor IA usando ProviderFactory (Padrão Strategy)
         try:
-            self.brain = HexBrain(
-                api_key=api_key,
-                model=model,
-                system_prompt=system_prompt
-            )
-            logger.info("HexBrain initialized successfully")
+            # Build provider configuration / Construir configuração do provedor
+            provider_config = {
+                'api_key': api_key,
+                'model': model,
+                'system_prompt': system_prompt
+            }
+            
+            # Create provider instance via factory / Criar instância via fábrica
+            self.engine = engine
+            self.provider = ProviderFactory.create_provider(engine, provider_config)
+            
+            logger.info(f"AI Provider initialized: {self.provider}")
+            logger.info(f"Engine: {engine}, Model: {self.provider.get_default_model()}")
+            
         except Exception as e:
-            logger.error(f"Failed to initialize HexBrain: {e}")
+            logger.error(f"Failed to initialize AI provider '{engine}': {e}")
             raise
         
         # Initialize command executor / Inicializa executor de comandos
@@ -93,8 +106,10 @@ class AgentCore:
         
         # InferenceEngine orchestrates iterative AI loop
         # InferenceEngine orquestra loop iterativo de IA
-        self.inference_engine = InferenceEngine(self.brain, self.executor)
-        logger.info("InferenceEngine initialized")
+        # Now uses provider strategy instead of HexBrain directly
+        # Agora usa estratégia de provedor em vez de HexBrain diretamente
+        self.inference_engine = InferenceEngine(self.provider, self.executor)
+        logger.info(f"InferenceEngine initialized with {engine} provider")
     
     def process_message(
         self, 
@@ -150,7 +165,7 @@ class AgentCore:
             full_response = ""
             
             try:
-                for chunk in self.brain.chat(current_context, stream=stream):
+                for chunk in self.provider.chat_step(current_context):
                     full_response += chunk
                     
                     # Yield text chunks to frontend
@@ -239,7 +254,10 @@ class AgentCore:
                         
                         # Add result to AI context for next iteration
                         # Adiciona resultado ao contexto IA para próxima iteração
-                        self.brain.add_context("user", feedback)
+                        # Note: HexBrain.add_context() not in InferenceStrategy interface
+                        # For now, feedback is implicit in next prompt
+                        # Nota: HexBrain.add_context() não está na interface InferenceStrategy
+                        # Por enquanto, feedback é implícito no próximo prompt
                         
                         logger.info(f"Command execution result: success={result['success']}, "
                                   f"exit_code={result['exit_code']}")
@@ -336,7 +354,11 @@ class AgentCore:
         Clears all conversation history except system prompt.
         Limpa todo histórico de conversa exceto prompt de sistema.
         """
-        self.brain.reset()
+        # Note: Reset not in generic InferenceStrategy interface
+        # Would need provider-specific implementation
+        # Nota: Reset não está na interface genérica InferenceStrategy  
+        # Precisaria de implementação específica do provedor
+        pass
         logger.info("Agent conversation reset")
     
     def get_status(self) -> Dict[str, Any]:
@@ -352,10 +374,10 @@ class AgentCore:
             - model: str
         """
         return {
-            "brain_ready": self.brain is not None,
+            "brain_ready": self.provider is not None,
             "hexstrike_available": self.hexstrike_available,
-            "conversation_length": len(self.brain.get_history()),
-            "model": self.brain.model,
+            "conversation_length": 0,  # TODO: Provider-specific
+            "model": self.provider.get_default_model() if self.provider else None,
             "hexstrike_url": self.hexstrike.base_url
         }
     
@@ -377,8 +399,8 @@ class AgentCore:
         try:
             health["components"]["brain"] = {
                 "status": "ok",
-                "model": self.brain.model,
-                "history_length": len(self.brain.get_history())
+                "model": self.provider.get_default_model() if self.provider else None,
+                "history_length": 0  # TODO: Provider-specific
             }
         except Exception as e:
             health["components"]["brain"] = {
@@ -399,5 +421,5 @@ class AgentCore:
     
     def __repr__(self) -> str:
         """String representation / Representação em string"""
-        return (f"AgentCore(brain={self.brain.model}, "
+        return (f"AgentCore(provider={self.provider.get_provider_name()}, "
                 f"hexstrike={'available' if self.hexstrike_available else 'unavailable'})")

@@ -93,3 +93,60 @@ Restaurar a lógica funcional da versão legada enquanto a integra com sucesso n
 5.  **Documentação:**
     *   Todo o novo código deve conter comentários bilíngues: Inglês (Primário) / Português-BR (Secundário).
     *   Atualize a documentação interna para refletir a nova arquitetura.
+
+
+
+
+### Prompt for Antigravity AI: Multi-Engine AI Integration and Backend Refactoring (English)
+
+**Context:**
+The current inference and command execution logic in `HexAgentGUI` is fragmented and non-functional. While `HexSecGPT` and `HexStrike` are primary components, the system requires a unified, scalable architecture capable of supporting multiple AI engines and models dynamically.
+
+**Objective:**
+Perform a complete overhaul of the AI backend and frontend configuration. Delete obsolete modules, implement a simplified multi-engine architecture using OOP patterns, and redesign the GUI configuration interface for full synchronization.
+
+**Instructions:**
+
+1.  **Backend Purge and Rewrite:**
+    *   Identify and delete all current modules and files responsible for inference and command execution that are redundant or non-functional.
+    *   Rewrite the core logic from scratch: implement a `ProviderFactory` and `InferenceStrategy` to support `HexSecGPT`, `HexStrike`, and future AI models (Local/API).
+    *   Optimize algorithms for performance and direct execution, ensuring a clean path for future scalability.
+
+2.  **Frontend Redesign (AI Configuration Modal):**
+    *   Redesign the AI Configuration Modal to allow dynamic selection of Engines (e.g., HexSecGPT, OpenAI, Ollama) and specific Models.
+    *   Ensure the UI components are reactively mapped to the backend's state variables.
+
+3.  **Inference and Command Integration:**
+    *   Establish a functional link between the GUI input, the selected AI engine, and the `CommandHandler` for action execution.
+    *   Ensure the inference loop provides real-time feedback to the GUI.
+
+4.  **Documentation:**
+    *   All code must include bilingual comments: English (Primary) / Portuguese-BR (Secondary).
+
+---
+
+### Prompt para Antigravity AI: Integração Multi-Motor de IA e Refatoração de Backend (Português-BR)
+
+**Contexto:**
+A lógica atual de inferência e execução de comandos no `HexAgentGUI` está fragmentada e não funcional. Embora `HexSecGPT` e `HexStrike` sejam componentes primários, o sistema exige uma arquitetura unificada e escalável, capaz de suportar múltiplos motores e modelos de IA dinamicamente.
+
+**Objetivo:**
+Realizar uma reformulação completa do backend de IA e da configuração do frontend. Excluir módulos obsoletos, implementar uma arquitetura multi-motor simplificada usando padrões POO e redesenhar a interface de configuração da GUI para sincronização total.
+
+**Instruções:**
+
+1.  **Limpeza e Reescrita do Backend:**
+    *   Identifique e exclua todos os módulos e arquivos atuais responsáveis pela inferência e execução de comandos que sejam redundantes ou não funcionais.
+    *   Reescreva a lógica central do zero: implemente um `ProviderFactory` e `InferenceStrategy` para suportar `HexSecGPT`, `HexStrike` e futuros modelos de IA (Local/API).
+    *   Otimize os algoritmos para desempenho e execução direta, garantindo um caminho limpo para escalabilidade futura.
+
+2.  **Redesign do Frontend (Modal de Configuração de IA):**
+    *   Redesenhe o Modal de Configuração de IA para permitir a seleção dinâmica de Motores (ex: HexSecGPT, OpenAI, Ollama) e Modelos específicos.
+    *   Garanta que os componentes da UI estejam mapeados reativamente às variáveis de estado do backend.
+
+3.  **Integração de Inferência e Comandos:**
+    *   Estabeleça um vínculo funcional entre a entrada da GUI, o motor de IA selecionado e o `CommandHandler` para execução de ações.
+    *   Garanta que o loop de inferência forneça feedback em tempo real para a GUI.
+
+4.  **Documentação:**
+    *   Todo o código deve incluir comentários bilíngues: Inglês (Primário) / Português-BR (Secundário).

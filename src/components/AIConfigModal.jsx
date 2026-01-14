@@ -1,48 +1,86 @@
-import { Code, Cpu, Key, Sliders, X, Zap } from 'lucide-react';
+import { Code, Cpu, Key, RefreshCw, Sliders, X, Zap } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from '../hooks/useTranslation';
 
 /**
- * AIConfigModal - Dedicated AI/LLM Configuration
- * Modal dedicado para configuração de IA/LLM
- * 
- * Separated from system settings for better organization
- * Separado das configurações de sistema para melhor organização
+ * AIConfigModal - Dynamic AI/LLM Configuration with ProviderFactory Integration
+ * Modal dinâmico para configuração de IA/LLM com integração ao ProviderFactory
  */
 const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('engine');
+  const [availableEngines, setAvailableEngines] = useState(['hexsecgpt']);
+  const [availableModels, setAvailableModels] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [connectionTestResult, setConnectionTestResult] = useState(null);
+  
   const [aiConfig, setAiConfig] = useState({
-    model: 'openai/gpt-4-turbo',
+    engine: 'hexsecgpt',
+    model: '',
     api_key: '',
-    api_url: '',
     temperature: 0.7,
     max_tokens: 4000,
     max_iterations: 10,
     unlimited_iterations: false,
     auto_execute: false,
-    web_search_enabled: false,
-    system_prompt: '',
-    stream_responses: true
+    system_prompt: ''
   });
 
+  // Load config when modal opens / Carrega config quando modal abre
   useEffect(() => {
     if (config?.ai) {
       setAiConfig({
-        model: config.ai.model || 'openai/gpt-4-turbo',
+        engine: config.ai.engine || 'hexsecgpt',
+        model: config.ai.model || '',
         api_key: config.ai.api_key || '',
-        api_url: config.ai.api_url || '',
         temperature: config.ai.temperature || 0.7,
         max_tokens: config.ai.max_tokens || 4000,
         max_iterations: config.ai.max_iterations || 10,
         unlimited_iterations: config.ai.unlimited_iterations || false,
         auto_execute: config.ai.auto_execute || false,
-        web_search_enabled: config.ai.web_search_enabled || false,
-        system_prompt: config.ai.system_prompt || '',
-        stream_responses: config.ai.stream_responses !== false
+        system_prompt: config.ai.system_prompt || ''
       });
     }
-  }, [config]);
+  }, [config, isOpen]);
+
+  // Fetch available models when engine changes / Busca modelos quando engine muda
+  useEffect(() => {
+    if (isOpen && aiConfig.engine) {
+      fetchAvailableModels(aiConfig.engine);
+    }
+  }, [aiConfig.engine, isOpen]);
+
+  const fetchAvailableModels = async (engine) => {
+    try {
+      setLoading(true);
+      const response = await fetch(`http://localhost:5000/engines/${engine}/models`);
+      if (response.ok) {
+        const data = await response.json();
+        setAvailableModels(data.models || []);
+        
+        // Set default model if current is empty / Define modelo padrão se atual está vazio
+        if (!aiConfig.model && data.models && data.models.length > 0) {
+          setAiConfig(prev => ({ ...prev, model: data.models[0] }));
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch models:', error);
+      // Fallback for HexSecGPT / Fallback para HexSecGPT
+      if (engine === 'hexsecgpt') {
+        const fallbackModels = [
+          'google/gemini-2.0-flash-exp:free',
+          'google/gemini-pro',
+          'meta-llama/llama-3.2-90b-vision-instruct:free'
+        ];
+        setAvailableModels(fallbackModels);
+        if (!aiConfig.model) {
+          setAiConfig(prev => ({ ...prev, model: fallbackModels[0] }));
+        }
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSave = () => {
     onSave({ ai: aiConfig });
@@ -51,27 +89,67 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
 
   const testConnection = async () => {
     try {
-      const response = await fetch('http://localhost:5000/ai/test', {
+      setConnectionTestResult({ loading: true });
+      const response = await fetch('http://localhost:5000/engines/test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ api_key: aiConfig.api_key, model: aiConfig.model })
+        body: JSON.stringify({
+          engine: aiConfig.engine,
+          config: {
+            api_key: aiConfig.api_key,
+            model: aiConfig.model
+          }
+        })
       });
+      
       const data = await response.json();
-      alert(data.success ? t('aiconfig.api.test_success', '✅ Connection successful!') : `${t('aiconfig.api.test_failed', '❌ Connection failed:')} ${data.error}`);
+      setConnectionTestResult(data);
+      
+      setTimeout(() => setConnectionTestResult(null), 5000);
     } catch (error) {
-      alert(`${t('aiconfig.api.test_failed', '❌ Connection failed:')} ${error.message}`);
+      setConnectionTestResult({
+        success: false,
+        error: error.message
+      });
     }
   };
 
   if (!isOpen) return null;
 
   const tabs = [
-    { id: 'engine', label: t('aiconfig.tabs.engine', 'Engine'), icon: Cpu },
+    { id: 'engine', label: t('aiconfig.tabs.engine', 'Motor'), icon: Cpu },
     { id: 'api', label: t('aiconfig.tabs.api', 'API'), icon: Key },
-    { id: 'params', label: t('aiconfig.tabs.params', 'Parameters'), icon: Sliders },
-    { id: 'behavior', label: t('aiconfig.tabs.behavior', 'Behavior'), icon: Zap },
-    { id: 'advanced', label: t('aiconfig.tabs.advanced', 'Advanced'), icon: Code }
+    { id: 'params', label: t('aiconfig.tabs.params', 'Parâmetros'), icon: Sliders },
+    { id: 'behavior', label: t('aiconfig.tabs.behavior', 'Comportamento'), icon: Zap },
+    { id: 'advanced', label: t('aiconfig.tabs.advanced', 'Avançado'), icon: Code }
   ];
+
+  // Engine descriptions / Descrições dos engines
+  const engineDescriptions = {
+    hexsecgpt: {
+      name: 'HexSecGPT',
+      description: 'OpenRouter-based multi-model access / Acesso multi-modelo via OpenRouter',
+      requires_api_key: true
+    },
+    openai: {
+      name: 'OpenAI',
+      description: 'Direct OpenAI API (ChatGPT) / API direta OpenAI (ChatGPT)',
+      requires_api_key: true,
+      status: 'template'
+    },
+    deepseek: {
+      name: 'DeepSeek',
+      description: 'DeepSeek AI models / Modelos DeepSeek AI',
+      requires_api_key: true,
+      status: 'template'
+    },
+    ollama: {
+      name: 'Ollama',
+      description: 'Local AI models (offline) / Modelos IA locais (offline)',
+      requires_api_key: false,
+      status: 'template'
+    }
+  };
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -80,7 +158,7 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#333]">
           <div className="flex items-center gap-3">
             <Cpu className="text-cyan-400" size={20} />
-            <h2 className="text-lg font-bold text-white">{t('aiconfig.title', 'AI Configuration')}</h2>
+            <h2 className="text-lg font-bold text-white">Configuração de IA / AI Configuration</h2>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
             <X size={20} />
@@ -110,44 +188,80 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* Engine Selection */}
+          {/* Engine Selection Tab */}
           {activeTab === 'engine' && (
             <div className="space-y-4">
+              {/* Engine Selector */}
               <div>
-                <label className="block text-sm font-mono text-gray-300 mb-2">{t('aiconfig.engine.model', 'Model')}</label>
+                <label className="block text-sm font-mono text-gray-300 mb-2">
+                  Motor IA / AI Engine
+                </label>
+                <select
+                  value={aiConfig.engine}
+                  onChange={(e) => setAiConfig({...aiConfig, engine: e.target.value})}
+                  className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-cyan-400"
+                >
+                  {availableEngines.map(engine => {
+                    const desc = engineDescriptions[engine] || { name: engine };
+                    return (
+                      <option key={engine} value={engine}>
+                        {desc.name} {desc.status === 'template' ? '(Template)' : ''}
+                      </option>
+                    );
+                  })}
+                </select>
+                
+                {/* Engine Description */}
+                {engineDescriptions[aiConfig.engine] && (
+                  <div className="mt-2 p-3 bg-blue-500/10 border border-blue-500/30 rounded">
+                    <p className="text-xs text-blue-400 font-mono">
+                      💡 {engineDescriptions[aiConfig.engine].description}
+                    </p>
+                    {engineDescriptions[aiConfig.engine].status === 'template' && (
+                      <p className="text-xs text-yellow-400 font-mono mt-1">
+                        ⚠️ Este provider está em template. Implemente seguindo provider_development_guide.md
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Model Selector */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-mono text-gray-300">
+                    Modelo / Model
+                  </label>
+                  <button
+                    onClick={() => fetchAvailableModels(aiConfig.engine)}
+                    className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
+                    disabled={loading}
+                  >
+                    <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
+                    Atualizar
+                  </button>
+                </div>
                 <select
                   value={aiConfig.model}
                   onChange={(e) => setAiConfig({...aiConfig, model: e.target.value})}
-                  className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-cyan-400"
+                  disabled={loading || availableModels.length === 0}
+                  className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-cyan-400 disabled:opacity-50"
                 >
-                  <optgroup label="OpenAI">
-                    <option value="openai/gpt-4-turbo">GPT-4 Turbo</option>
-                    <option value="openai/gpt-4">GPT-4</option>
-                    <option value="openai/gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                  </optgroup>
-                  <optgroup label="Anthropic">
-                    <option value="anthropic/claude-3-opus">Claude 3 Opus</option>
-                    <option value="anthropic/claude-3-sonnet">Claude 3 Sonnet</option>
-                  </optgroup>
-                  <optgroup label="Google">
-                    <option value="google/gemini-pro">Gemini Pro</option>
-                  </optgroup>
-                  <optgroup label="Meta">
-                    <option value="meta-llama/llama-3-70b">Llama 3 70B</option>
-                  </optgroup>
+                  {availableModels.length === 0 && (
+                    <option>Nenhum modelo disponível / No models available</option>
+                  )}
+                  {availableModels.map(model => (
+                    <option key={model} value={model}>{model}</option>
+                  ))}
                 </select>
-              </div>
-
-              <div className="bg-blue-500/10 border border-blue-500/30 rounded p-4">
-                <p className="text-xs text-blue-400 font-mono">
-                  💡 <strong>Tip:</strong> GPT-4 Turbo offers the best balance of capability and cost.
-                  Use Claude 3 Opus for complex reasoning tasks.
+                <p className="text-xs text-gray-500 mt-1 font-mono">
+                  {availableModels.length} modelo(s) disponível(is) para {aiConfig.engine}
                 </p>
               </div>
             </div>
           )}
 
-          {/* API Configuration */}
+          {/* API Configuration Tab */}
           {activeTab === 'api' && (
             <div className="space-y-4">
               <div>
@@ -158,38 +272,57 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
                   type="password"
                   value={aiConfig.api_key}
                   onChange={(e) => setAiConfig({...aiConfig, api_key: e.target.value})}
-                  placeholder="sk-..."
-                  className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-cyan-400"
+                  placeholder={
+                    engineDescriptions[aiConfig.engine]?.requires_api_key === false
+                      ? 'Não necessário para ' + aiConfig.engine
+                      : 'sk-...'
+                  }
+                  disabled={engineDescriptions[aiConfig.engine]?.requires_api_key === false}
+                  className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-cyan-400 disabled:opacity-50"
                 />
-                <p className="text-xs text-gray-500 mt-1 font-mono">{t('aiconfig.api.key_desc', 'Stored securely in ~/.hexagent-gui/config.json')}</p>
+                <p className="text-xs text-gray-500 mt-1 font-mono">
+                  Armazenada em ~/.hexagent-gui/config.json
+                </p>
               </div>
 
-              <div>
-                <label className="block text-sm font-mono text-gray-300 mb-2">{t('aiconfig.api.url', 'API URL')} ({t('common.optional', 'Optional')})</label>
-                <input
-                  type="text"
-                  value={aiConfig.api_url}
-                  onChange={(e) => setAiConfig({...aiConfig, api_url: e.target.value})}
-                  placeholder="https://api.openrouter.ai/api/v1"
-                  className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-cyan-400"
-                />
-              </div>
-
+              {/* Connection Test */}
               <button
                 onClick={testConnection}
-                className="w-full py-2 bg-green-500/20 border border-green-500/30 text-green-400 rounded hover:bg-green-500/30 transition-all font-mono text-sm"
+                disabled={connectionTestResult?.loading}
+                className="w-full py-2 bg-green-500/20 border border-green-500/30 text-green-400 rounded hover:bg-green-500/30 transition-all font-mono text-sm disabled:opacity-50"
               >
-                {t('aiconfig.test_connection', 'Test Connection')} / {t('aiconfig.api.test', 'Testar Conexão')}
+                {connectionTestResult?.loading ? 'Testando...' : 'Testar Conexão / Test Connection'}
               </button>
+
+              {/* Test Result */}
+              {connectionTestResult && !connectionTestResult.loading && (
+                <div className={`p-3 rounded border ${
+                  connectionTestResult.success
+                    ? 'bg-green-500/10 border-green-500/30'
+                    : 'bg-red-500/10 border-red-500/30'
+                }`}>
+                  <p className={`text-sm font-mono ${
+                    connectionTestResult.success ? 'text-green-400' : 'text-red-400'
+                  }`}>
+                    {connectionTestResult.success ? '✅ ' : '❌ '}
+                    {connectionTestResult.message || connectionTestResult.message_pt}
+                  </p>
+                  {connectionTestResult.error && (
+                    <p className="text-xs text-red-300 mt-1 font-mono">
+                      Error: {connectionTestResult.error}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
-          {/* Model Parameters */}
+          {/* Parameters Tab */}
           {activeTab === 'params' && (
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-mono text-gray-300 mb-2">
-                  {t('aiconfig.params.temperature', 'Temperature')}: {aiConfig.temperature.toFixed(2)}
+                  Temperatura / Temperature: {aiConfig.temperature.toFixed(2)}
                 </label>
                 <input
                   type="range"
@@ -201,14 +334,14 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
                   className="w-full"
                 />
                 <div className="flex justify-between text-xs text-gray-500 mt-1">
-                  <span>{t('aiconfig.params.precise', 'Precise')} (0.0)</span>
-                  <span>{t('aiconfig.params.creative', 'Creative')} (2.0)</span>
+                  <span>Preciso / Precise (0.0)</span>
+                  <span>Criativo / Creative (2.0)</span>
                 </div>
               </div>
 
               <div>
                 <label className="block text-sm font-mono text-gray-300 mb-2">
-                  {t('aiconfig.params.max_tokens', 'Max Tokens')}
+                  Max Tokens
                 </label>
                 <input
                   type="number"
@@ -222,13 +355,13 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
             </div>
           )}
 
-          {/* Behavior Settings */}
+          {/* Behavior Tab */}
           {activeTab === 'behavior' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between p-3 bg-[#1a1a1a] rounded border border-[#333]">
                 <div>
-                  <p className="text-sm font-mono text-white">{t('aiconfig.behavior.auto_execute', 'Auto-Execute Commands')}</p>
-                  <p className="text-xs text-gray-500">{t('aiconfig.behavior.auto_execute_desc', 'Automatically run AI-suggested commands')}</p>
+                  <p className="text-sm font-mono text-white">Auto-Executar Comandos / Auto-Execute Commands</p>
+                  <p className="text-xs text-gray-500">Executar automaticamente comandos sugeridos pela IA</p>
                 </div>
                 <input
                   type="checkbox"
@@ -238,22 +371,9 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
                 />
               </div>
 
-              <div className="flex items-center justify-between p-3 bg-[#1a1a1a] rounded border border-[#333]">
-                <div>
-                  <p className="text-sm font-mono text-white">{t('aiconfig.behavior.web_search', 'Web Search')}</p>
-                  <p className="text-xs text-gray-500">{t('aiconfig.behavior.web_search_desc', 'Enable web search capabilities')}</p>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={aiConfig.web_search_enabled}
-                  onChange={(e) => setAiConfig({...aiConfig, web_search_enabled: e.target.checked})}
-                  className="w-4 h-4"
-                />
-              </div>
-
               <div>
                 <label className="block text-sm font-mono text-gray-300 mb-2">
-                  {t('aiconfig.params.max_iterations', 'Max Iterations')}: {aiConfig.unlimited_iterations ? '∞' : aiConfig.max_iterations}
+                  Iterações Máximas / Max Iterations: {aiConfig.unlimited_iterations ? '∞' : aiConfig.max_iterations}
                 </label>
                 <input
                   type="range"
@@ -273,43 +393,30 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
                     className="w-4 h-4"
                   />
                   <label htmlFor="unlimited" className="text-xs text-gray-400 font-mono">
-                    {t('aiconfig.params.unlimited', 'Unlimited')}
+                    Ilimitado / Unlimited
                   </label>
                 </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  ⚡ Lower iterations = more efficient. AI should complete tasks in fewer steps.
-                </p>
               </div>
             </div>
           )}
 
-          {/* Advanced */}
+          {/* Advanced Tab */}
           {activeTab === 'advanced' && (
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-mono text-gray-300 mb-2">
-                  {t('aiconfig.advanced.system_prompt', 'Custom System Prompt')}
+                  System Prompt Customizado / Custom System Prompt
                 </label>
                 <textarea
                   value={aiConfig.system_prompt}
                   onChange={(e) => setAiConfig({...aiConfig, system_prompt: e.target.value})}
                   rows={6}
-                  placeholder="You are a helpful AI assistant specialized in..."
+                  placeholder="You are HexAgent, an elite autonomous cybersecurity AI assistant..."
                   className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-cyan-400 resize-none"
                 />
-              </div>
-
-              <div className="flex items-center justify-between p-3 bg-[#1a1a1a] rounded border border-[#333]">
-                <div>
-                  <p className="text-sm font-mono text-white">{t('aiconfig.behavior.streaming', 'Stream Responses')}</p>
-                  <p className="text-xs text-gray-500">{t('aiconfig.behavior.streaming_desc', 'Show AI responses in real-time')}</p>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={aiConfig.stream_responses}
-                  onChange={(e) => setAiConfig({...aiConfig, stream_responses: e.target.checked})}
-                  className="w-4 h-4"
-                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Deixe vazio para usar prompt padrão / Leave empty for default prompt
+                </p>
               </div>
             </div>
           )}
@@ -321,13 +428,13 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
             onClick={onClose}
             className="px-4 py-2 rounded text-sm font-mono text-gray-400 hover:text-white transition-colors"
           >
-            {t('aiconfig.cancel', 'Cancel')}
+            Cancelar / Cancel
           </button>
           <button
             onClick={handleSave}
             className="px-4 py-2 bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 rounded hover:bg-cyan-500/30 transition-all font-mono text-sm"
           >
-            {t('aiconfig.save', 'Save Configuration')}
+            Salvar Configuração / Save Configuration
           </button>
         </div>
       </div>

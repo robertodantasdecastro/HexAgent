@@ -178,3 +178,73 @@ class ConfigController(BaseController):
             except Exception as e:
                 self.log_error('POST /config/ai', e)
                 return self.error_response("Failed to save AI configuration", 500)
+        
+        # ============================================================================
+        # PROVIDER/ENGINE ENDPOINTS
+        # Endpoints de Provedor/Motor
+        # ============================================================================
+        
+        @self.blueprint.route('/engines/list', methods=['GET'])
+        def list_engines():
+            """
+            Get list of available AI engines
+            Obtém lista de motores IA disponíveis
+            """
+            try:
+                self.log_request('GET /engines/list')
+                from core.providers import ProviderFactory
+                
+                engines = ProviderFactory.get_available_engines()
+                return self.success_response(data={'engines': engines})
+            except Exception as e:
+                self.log_error('GET /engines/list', e)
+                return self.error_response("Failed to list engines", 500)
+        
+        @self.blueprint.route('/engines/<engine>/models', methods=['GET'])
+        def list_models(engine):
+            """
+            Get list of available models for specific engine
+            Obtém lista de modelos disponíveis para motor específico
+            """
+            try:
+                self.log_request(f'GET /engines/{engine}/models')
+                from core.providers import ProviderFactory
+                
+                # Create temporary provider instance to get models
+                # Criar instância temporária do provedor para obter modelos
+                provider = ProviderFactory.create_provider(engine, {})
+                models = provider.get_available_models()
+                
+                return self.success_response(data={'models': models})
+            except ValueError as e:
+                return self.error_response(str(e), 400)
+            except Exception as e:
+                self.log_error(f'GET /engines/{engine}/models', e)
+                return self.error_response(f"Failed to list models for {engine}", 500)
+        
+        @self.blueprint.route('/engines/test', methods=['POST'])
+        def test_engine():
+            """
+            Test connection to AI engine
+            Testa conexão com motor IA
+            """
+            try:
+                self.log_request('POST /engines/test')
+                data = self.validate_request(['engine', 'config'])
+                
+                from core.providers import ProviderFactory
+                
+                engine = data['engine']
+                config = data['config']
+                
+                # Create provider and test connection
+                # Criar provedor e testar conexão
+                provider = ProviderFactory.create_provider(engine, config)
+                result = provider.test_connection()
+                
+                return self.success_response(data=result)
+            except ValueError as e:
+                return self.error_response(str(e), 400)
+            except Exception as e:
+                self.log_error('POST /engines/test', e)
+                return self.error_response(f"Test failed: {str(e)}", 500)

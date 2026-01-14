@@ -109,16 +109,40 @@ def create_app(core_ref=None, hexstrike_ref=None):
             
             hexstrike_url = os.getenv('HEXSTRIKE_URL', 'http://localhost:8888')
             
+            # Read engine and model from config / Ler engine e modelo do config
+            engine = 'hexsecgpt'  # default
+            model = None
+            
+            if config_path.exists():
+                try:
+                    with open(config_path, 'r') as f:
+                        user_config = json.load(f)
+                        ai_config = user_config.get('ai', {})
+                        engine = ai_config.get('engine', 'hexsecgpt')
+                        model = ai_config.get('model')
+                        
+                        if engine != 'hexsecgpt':
+                            app.logger.info(f"✓ Using AI engine: {engine}")
+                        if model:
+                            app.logger.info(f"✓ Using model: {model}")
+                except Exception as e:
+                    app.logger.warning(f"Failed to read engine config: {e}")
+            
             if api_key:
-                # Initialize AgentCore with API key
-                # Inicializa AgentCore com chave API
+                # Initialize AgentCore with multi-provider support
+                # Inicializa AgentCore com suporte multi-provedor
                 agent_core = AgentCore(
                     api_key=api_key,
-                    hexstrike_url=hexstrike_url
+                    hexstrike_url=hexstrike_url,
+                    engine=engine,
+                    model=model
                 )
+
                 
                 app.logger.info("✅ AgentCore initialized successfully")
-                app.logger.info(f"   - AI Model: {agent_core.brain.model}")
+                app.logger.info(f"   - AI Engine: {agent_core.engine}")
+                app.logger.info(f"   - AI Provider: {agent_core.provider.get_provider_name()}")
+                app.logger.info(f"   - AI Model: {agent_core.provider.get_default_model()}")
                 app.logger.info(f"   - HexStrike: {'✓ Available' if agent_core.hexstrike_available else '✗ Unavailable'}")
             else:
                 app.logger.warning("⚠️  No API key found - AgentCore not initialized")
