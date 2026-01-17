@@ -101,21 +101,35 @@ def create_app(core_ref=None, hexstrike_ref=None):
                 if api_key:
                     app.logger.info("✓ API key loaded from environment variable")
             
-            hexstrike_url = os.getenv('HEXSTRIKE_URL', 'http://localhost:8888')
+            # Load active configuration (flattened and ready)
+            # Carregar configuração ativa (achatada e pronta)
+            engine, provider_config = ai_service.get_active_provider_config()
             
-            engine = ai_config.get('engine', 'hexsecgpt')
-            model = ai_config.get('model')
+            # Check if we can proceed (API key present OR local engine)
+            # Verificar se podemos prosseguir (Chave API presente OU motor local)
+            # Logic is handled inside get_active_provider_config/validate, but we double check for init
             
-            if api_key or engine == 'lmstudio': # LM Studio might not need key
-                # Initialize AgentCore with multi-provider support
-                # Inicializa AgentCore com suporte multi-provedor
+            # If provider config is empty/invalid, skip init
+            if not engine:
+                 app.logger.warning("⚠️  No active engine configured - AgentCore not initialized")
+                 agent_core = None
+            else:
+                # Initialize AgentCore
+                # Inicializa AgentCore
+                
+                # Extract api_key, model from flattened config
+                api_key = provider_config.get('api_key')
+                model = provider_config.get('model')
+                
+                # Pass remainder as kwargs
+                # provider_config already has host/port etc
                 
                 agent_core = AgentCore(
                     api_key=api_key,
                     hexstrike_url=hexstrike_url,
                     engine=engine,
                     model=model,
-                    provider_kwargs=ai_config  # Pass full config for host/port/timeout
+                    provider_kwargs=provider_config 
                 )
                 
                 app.logger.info("✅ AgentCore initialized successfully")
@@ -142,7 +156,7 @@ def create_app(core_ref=None, hexstrike_ref=None):
     # ========================================================================
     
     controllers = [
-        ConfigController(),
+        ConfigController(core_ref=agent_core),
         SystemController(core_ref=agent_core, hexstrike_ref=None),
         ChatController(core_ref=agent_core),  # AgentCore integration!
         SessionController(),

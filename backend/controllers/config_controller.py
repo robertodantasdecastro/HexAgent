@@ -22,10 +22,11 @@ class ConfigController(BaseController):
     Usa DOIS serviços independentes para separação limpa
     """
     
-    def __init__(self):
+    def __init__(self, core_ref=None):
         # Initialize BOTH services / Inicializar AMBOS os serviços
         self.system_service = SystemConfigService()
         self.ai_service = AIConfigService()
+        self.agent_core = core_ref
         
         super().__init__(
             name='config',
@@ -189,6 +190,32 @@ class ConfigController(BaseController):
                 self.log_request('POST /config/ai')
                 data = self.validate_request(['config'])
                 self.ai_service.save_ai_config(data['config'])
+                
+                # HOT RELOAD: Update AgentCore if available
+                # RECARGA QUENTE: Atualizar AgentCore se disponível
+                if self.agent_core:
+                    try:
+                        # Reload from disk (which was just saved above) to get the clean flattened version
+                        # Recarregar do disco (recém salvo) para obter versão achatada limpa
+                        engine, provider_config = self.ai_service.get_active_provider_config()
+                        
+                        api_key = provider_config.get('api_key')
+                        model = provider_config.get('model')
+                        
+                        success = self.agent_core.initialize(
+                            api_key=api_key,
+                            engine=engine,
+                            model=model,
+                            provider_kwargs=provider_config
+                        )
+                        if success:
+                            self.logger.info("AgentCore hot-reloaded successfully")
+                        else:
+                            self.logger.warning("AgentCore hot-reload returned false")
+                            
+                    except Exception as e:
+                        self.logger.error("Failed to hot-reload AgentCore", e)
+                
                 return self.success_response(message="AI configuration saved")
             except ValueError as e:
                 return self.error_response(str(e), 400)
@@ -229,9 +256,23 @@ class ConfigController(BaseController):
                 self.log_request(f'GET /engines/{engine}/models')
                 from core.providers import ProviderFactory
                 
+            try:
+                self.log_request(f'GET /engines/{engine}/models')
+                from core.providers import ProviderFactory
+                
+                # Use simplified helper from AI Config Service
+                # Usar helper simplificado do Serviço de Configuração de IA
+                active_engine, provider_config = self.ai_service.get_active_provider_config()
+                
+                # Verify if requested engine matches configured
+                # Se o motor solicitado não é o configurado, ainda precisamos criar uma config válida
+                # para ele (tentando usar os mesmos parâmetros de Host/Port)
+                if engine.lower() != active_engine.lower():
+                     self.logger.info(f"Requested engine {engine} differs from active {active_engine}, inheriting kwargs")
+                
                 # Create temporary provider instance to get models
                 # Criar instância temporária do provedor para obter modelos
-                provider = ProviderFactory.create_provider(engine, {})
+                provider = ProviderFactory.create_provider(engine, provider_config)
                 models = provider.get_available_models()
                 
                 return self.success_response(data={'models': models})

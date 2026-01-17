@@ -124,28 +124,48 @@ class AgentCore:
         
         logger.info(f"InferenceEngine initialized with {engine} provider")
     
-    def initialize(self, api_key: str) -> bool:
+    def initialize(
+        self, 
+        api_key: str = None, 
+        engine: str = None, 
+        model: str = None,
+        provider_kwargs: Optional[Dict[str, Any]] = None
+    ) -> bool:
         """
-        Re-initialize the agent with a new API key
-        Re-inicializa o agente com uma nova chave API
+        Re-initialize the agent with new configuration
+        Re-inicializa o agente com nova configuração
         
         Args:
-            api_key: New API key to use
+            api_key: New API key / Nova chave API
+            engine: New engine name / Novo nome do motor
+            model: New model name / Novo nome do modelo
+            provider_kwargs: Additional config / Configuração adicional
             
         Returns:
             bool: True if successful
         """
         try:
-            logger.info("Re-initializing AgentCore with new credentials")
+            logger.info(f"Re-initializing AgentCore: Engine={engine}, Model={model}")
             
-            # Re-create provider with new key
-            # Re-cria provedor com nova chave
+            # Use current values if not provided
+            # Usar valores atuais se não fornecidos
+            current_engine = engine or self.engine
+            
+            # Build new provider config
+            # Construir nova config do provedor
             provider_config = {
                 'api_key': api_key,
-                'model': self.provider.get_default_model() if self.provider else None
+                'model': model if model else (self.provider.get_default_model() if self.provider else None)
             }
             
-            self.provider = ProviderFactory.create_provider(self.engine, provider_config)
+            # Merge additional kwargs
+            if provider_kwargs:
+                provider_config.update(provider_kwargs)
+            
+            # Re-create provider
+            # Re-criar provedor
+            self.engine = current_engine
+            self.provider = ProviderFactory.create_provider(current_engine, provider_config)
             
             # Update inference engine
             # Atualiza motor de inferência
@@ -408,6 +428,16 @@ class AgentCore:
         # Precisaria de implementação específica do provedor
         pass
         logger.info("Agent conversation reset")
+
+    def shutdown(self):
+        """
+        Gracefully shutdown agent resources
+        Encerra graciosamente recursos do agente
+        """
+        logger.info("AgentCore shutting down...")
+        # Add any necessary cleanup here (e.g., closing connections, saving state)
+        # Adicionar limpeza necessária aqui (ex: fechar conexões, salvar estado)
+        pass
     
     def get_status(self) -> Dict[str, Any]:
         """

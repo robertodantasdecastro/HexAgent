@@ -372,6 +372,16 @@ class LMStudioStrategy(InferenceStrategy):
 
 # Auto-register with ProviderFactory
 # Auto-registrar com ProviderFactory
+# Auto-register with ProviderFactory
+# Auto-registrar com ProviderFactory
 from .provider_factory import ProviderFactory
 ProviderFactory.register_provider('lmstudio', LMStudioStrategy)
-logger.info("LMStudioStrategy registered with ProviderFactory")
+
+# Register aliases for other local OpenAI-compatible engines
+# Registrar aliases para outros motores locais compatíveis com OpenAI
+ProviderFactory.register_provider('5ire', LMStudioStrategy)
+ProviderFactory.register_provider('ollama', LMStudioStrategy)
+ProviderFactory.register_provider('localai', LMStudioStrategy)
+ProviderFactory.register_provider('text-generation-webui', LMStudioStrategy)
+
+logger.info("LMStudioStrategy registered with ProviderFactory (aliases: 5ire, ollama, localai)")

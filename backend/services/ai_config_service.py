@@ -101,9 +101,17 @@ class AIConfigService:
         
         # Log (protect API key!)
         if 'ai' in config:
-            has_key = bool(config.get('ai', {}).get('api_key', ''))
-            model = config.get('ai', {}).get('model', 'NOT_FOUND')
-            self.logger.info(f"[AI-SERVICE] Saving model={model}, has_api_key={has_key}")
+            ai_conf = config.get('ai', {})
+            engine = ai_conf.get('engine', '').lower()
+            model = ai_conf.get('model', 'NOT_FOUND')
+            has_key = bool(ai_conf.get('api_key', ''))
+            
+            # Check if local engine
+            local_engines = ['lmstudio', 'ollama', 'localai', '5ire', 'text-generation-webui']
+            is_local = engine in local_engines
+            
+            status = "Local Mode" if is_local else f"has_key={has_key}"
+            self.logger.info(f"[AI-SERVICE] Saving model={model}, engine={engine}, {status}")
         
         self._save_config(config)
         self.logger.info("[AI-SERVICE] AI config saved successfully")
@@ -118,16 +126,66 @@ class AIConfigService:
             return False
         
         ai = config['ai']
-        required_fields = ['model', 'api_key', 'api_url', 'max_iterations']
+        engine = ai.get('engine', '').lower()
         
-        for field in required_fields:
-            if field not in ai:
-                self.logger.error(f"[AI-SERVICE] Missing ai.{field}")
-                return False
+        # REQUIRED fields for ALL
+        # Campos OBRIGATÓRIOS para TODOS
+        if 'model' not in ai:
+             self.logger.error("[AI-SERVICE] Missing ai.model")
+             return False
+             
+        # Local Engines Check
+        # Verificação de Motores Locais
+        local_engines = ['lmstudio', 'ollama', 'localai', '5ire', 'text-generation-webui']
+        is_local = engine in local_engines
         
+        if is_local:
+            # For local, Host is critical, API Key is optional
+            # Para local, Host é crítico, Chave API é opcional
+            host = ai.get('host', '')
+            if not host.startswith('http'):
+                 self.logger.warning(f"[AI-SERVICE] Local engine {engine} missing valid host (http/https). Defaulting to localhost in strategy.")
+        else:
+            # For online, API Key is critical
+            # Para online, Chave API é crítica
+            if not ai.get('api_key'):
+                # Allow empty key if user really intends it (e.g. proxy), but warn
+                self.logger.warning(f"[AI-SERVICE] Online engine {engine} has no API key.")
+
         self.logger.info("[AI-SERVICE] Config validation passed")
         return True
     
+    def get_active_provider_config(self) -> tuple[str, Dict[str, Any]]:
+        """
+        Get flattened, ready-to-use configuration for ProviderFactory
+        Obtém configuração achatada e pronta para ProviderFactory
+        
+        Returns:
+            (engine_name, config_dict)
+        """
+        full_config = self.load_ai_config()
+        ai_config = full_config.get('ai', {})
+        
+        engine = ai_config.get('engine', 'hexsecgpt').lower()
+        
+        # Flattened config for Strategy Init
+        # Configuração achatada para Init da Estratégia
+        provider_config = {
+            'api_key': ai_config.get('api_key'),
+            'model': ai_config.get('model'),
+            'system_prompt': ai_config.get('system_prompt'),
+            'host': ai_config.get('host'),
+            'port': ai_config.get('port'),
+            'timeout': ai_config.get('timeout'),
+            # Legacy/Compatibility keys
+            'base_url': f"{ai_config.get('host')}:{ai_config.get('port')}/v1" if ai_config.get('host') and ai_config.get('port') else None
+        }
+        
+        # Clean None values
+        provider_config = {k: v for k, v in provider_config.items() if v is not None}
+        
+        return engine, provider_config
+
     def _save_config(self, config: Dict[str, Any]):
         """
         Internal method to write config to file (atomic operation)

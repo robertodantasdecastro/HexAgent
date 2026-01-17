@@ -52,8 +52,33 @@ Grande refatoração arquitetural para impor princípios de POO, centralizar ló
 
 **Issue 2: AI Configuration Not Loading**
 - **Symptom:** LM Studio settings saved but not applied on restart (reverted to OpenAI).
-- **Cause:** Backend (`app.py`) was reading legacy `config.json` instead of new `ai-config.json`.
-- **Fix:** Refactored `app.py` to use `AIConfigService` and updated `AgentCore` to accept dynamic provider config (Host/Port).
+- **Cause:** Backend (`app.py`) was reading legacy `config.json`. Also, backend process persistence meant `AgentCore` was never re-initialized with new settings.
+- **Symptom:** "System Offline" despite valid config. Logs showed `LMStudioStrategy` attempting to connect to `localhost`.
+- **Cause:** Discrepancy between "nested" vs "flat" config handling in Controller vs Factory.
+- **Fix:** Implemented `AIConfigService.get_active_provider_config()` as Single Source of Truth for flattened config generation.
+
+**Issue 3: Shutdown Crash**
+- **Symptom:** `AttributeError: 'AgentCore' object has no attribute 'shutdown'` in logs.
+- **Fix:** Implemented graceful `shutdown()` method in `AgentCore`.
+
+**Issue 4: Local Engine Support (5ire, Ollama)**
+- **Symptom:** App refused to start without API key, even for local engines.
+- **Fix:** 
+    1. Updated `AIConfigService` validation to make API key optional for local engines.
+    2. Updated `app.py` to use Service helper for unified initialization logic.
+    3. Registered aliases (`5ire`, `ollama`) to generic `LMStudioStrategy`.
+- **Fix:** 
+    1. Refactored `app.py` to use `AIConfigService`.
+    2. Implemented **Hot Reloading** in `ConfigController`.
+    3. Updated `AgentCore.initialize()` to support full runtime reconfiguration (Engine, Model, Host, Port).
+
+## 8. Hot Reload Architecture
+To avoid restart requirements and persistence issues, the following flow was implemented:
+1. **Frontend** sends `POST /config/ai` with new settings.
+2. **`ConfigController`** saves to `ai-config.json` via `AIConfigService`.
+3. **`ConfigController`** calls `agent_core.initialize()` with the new configuration.
+4. **`AgentCore`** rebuilds the `Provider` (e.g. `LMStudioStrategy`) instantly.
+This ensures "Click Save -> Immediate Effect" without needing to restart the application.
 - **`inference_engine.py`:** Verified bilingual compliance.
 
 ## 5. Legacy Cleanup / Limpeza de Legado
