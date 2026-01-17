@@ -84,25 +84,18 @@ def create_app(core_ref=None, hexstrike_ref=None):
             app.logger.info("=" * 70)
             app.logger.info("Initializing AgentCore...")
             
-            # Get configuration from environment
-            # Try to read API key from user config first / Tentar ler API key do config do usuário primeiro
-            # Prioridade: 1) ~/.hexagent-gui/config.json, 2) Environment variable
-            # Priority: 1) ~/.hexagent-gui/config.json, 2) Environment variable
+            # Load configuration via Services (Single Source of Truth)
+            # Carregar configuração via Serviços (Fonte Única da Verdade)
+            from services.ai_config_service import AIConfigService
+            ai_service = AIConfigService()
+            ai_config_full = ai_service.load_ai_config()
+            ai_config = ai_config_full.get('ai', {})
             
-            api_key = None
-            config_path = Path.home() / '.hexagent-gui' / 'config.json'
+            # Extract credentials and settings
+            # Extrair credenciais e configurações
+            api_key = ai_config.get('api_key')
             
-            if config_path.exists():
-                try:
-                    with open(config_path, 'r') as f:
-                        user_config = json.load(f)
-                        api_key = user_config.get('ai', {}).get('api_key')
-                        if api_key:
-                            app.logger.info(f"✓ API key loaded from {config_path}")
-                except Exception as e:
-                    app.logger.warning(f"Failed to read config: {e}")
-            
-            # Fallback to environment variable / Fallback para variável de ambiente
+            # Fallback to environment variable
             if not api_key:
                 api_key = os.environ.get('OPENROUTER_API_KEY') or os.environ.get('API_KEY')
                 if api_key:
@@ -110,35 +103,20 @@ def create_app(core_ref=None, hexstrike_ref=None):
             
             hexstrike_url = os.getenv('HEXSTRIKE_URL', 'http://localhost:8888')
             
-            # Read engine and model from config / Ler engine e modelo do config
-            engine = 'hexsecgpt'  # default
-            model = None
+            engine = ai_config.get('engine', 'hexsecgpt')
+            model = ai_config.get('model')
             
-            if config_path.exists():
-                try:
-                    with open(config_path, 'r') as f:
-                        user_config = json.load(f)
-                        ai_config = user_config.get('ai', {})
-                        engine = ai_config.get('engine', 'hexsecgpt')
-                        model = ai_config.get('model')
-                        
-                        if engine != 'hexsecgpt':
-                            app.logger.info(f"✓ Using AI engine: {engine}")
-                        if model:
-                            app.logger.info(f"✓ Using model: {model}")
-                except Exception as e:
-                    app.logger.warning(f"Failed to read engine config: {e}")
-            
-            if api_key:
+            if api_key or engine == 'lmstudio': # LM Studio might not need key
                 # Initialize AgentCore with multi-provider support
                 # Inicializa AgentCore com suporte multi-provedor
+                
                 agent_core = AgentCore(
                     api_key=api_key,
                     hexstrike_url=hexstrike_url,
                     engine=engine,
-                    model=model
+                    model=model,
+                    provider_kwargs=ai_config  # Pass full config for host/port/timeout
                 )
-
                 
                 app.logger.info("✅ AgentCore initialized successfully")
                 app.logger.info(f"   - AI Engine: {agent_core.engine}")

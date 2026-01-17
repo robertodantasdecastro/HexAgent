@@ -47,7 +47,8 @@ class AgentCore:
         hexstrike_url: Optional[str] = None,
         model: Optional[str] = None,
         system_prompt: Optional[str] = None,
-        engine: str = 'openai'
+        engine: str = 'openai',
+        provider_kwargs: Optional[Dict[str, Any]] = None
     ):
         """
         Initialize Agent Core with multi-provider support
@@ -64,6 +65,8 @@ class AgentCore:
                           Prompt de sistema customizado (opcional)
             engine: AI provider engine ('hexsecgpt', 'openai', 'deepseek', 'ollama')
                    Motor provedor IA (padrão: 'hexsecgpt')
+            provider_kwargs: Additional provider settings (host, port, etc.)
+                            Configurações adicionais do provedor
         """
         # Initialize AI provider using ProviderFactory (Strategy Pattern)
         # Inicializa provedor IA usando ProviderFactory (Padrão Strategy)
@@ -74,6 +77,10 @@ class AgentCore:
                 'model': model,
                 'system_prompt': system_prompt
             }
+            
+            # Merge additional kwargs if provided (e.g. host/port for LM Studio)
+            if provider_kwargs:
+                provider_config.update(provider_kwargs)
             
             # Create provider instance via factory / Criar instância via fábrica
             self.engine = engine

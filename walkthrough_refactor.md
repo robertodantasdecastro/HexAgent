@@ -43,6 +43,17 @@ Grande refatoração arquitetural para impor princípios de POO, centralizar ló
 **Goal:** Ensure 100% Eng/PT-BR comments.
 **Changes:**
 - **`hex_brain.py`:** Translated remaining monolingual comments.
+
+## 7. Bug Fixes & Stability / Correção de Bugs e Estabilidade
+**Issue 1: System Offline False Positive**
+- **Symptom:** AI Config connection test successful, but main chat shows "Offline".
+- **Cause:** Frontend expected status `ok`, Backend returned `healthy`.
+- **Fix:** Updated `useBackendInit.js` to accept `healthy` status.
+
+**Issue 2: AI Configuration Not Loading**
+- **Symptom:** LM Studio settings saved but not applied on restart (reverted to OpenAI).
+- **Cause:** Backend (`app.py`) was reading legacy `config.json` instead of new `ai-config.json`.
+- **Fix:** Refactored `app.py` to use `AIConfigService` and updated `AgentCore` to accept dynamic provider config (Host/Port).
 - **`inference_engine.py`:** Verified bilingual compliance.
 
 ## 5. Legacy Cleanup / Limpeza de Legado
