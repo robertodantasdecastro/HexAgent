@@ -10,17 +10,17 @@ import APIClient from '../utils/APIClient';
 const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('engine');
-  const [availableEngines, setAvailableEngines] = useState(['hexsecgpt']);
+  const [availableEngines, setAvailableEngines] = useState(['openai', 'deepseek', 'claude', 'lmstudio', '5ire']);
   const [availableModels, setAvailableModels] = useState([]);
   const [loading, setLoading] = useState(false);
   const [connectionTestResult, setConnectionTestResult] = useState(null);
   
   const [aiConfig, setAiConfig] = useState({
-    engine: 'hexsecgpt',
+    engine: 'openai',
     model: '',
     api_key: '',
-    host: 'http://localhost',      // LM Studio server host
-    port: 1234,                     // LM Studio server port  
+    host: 'http://localhost',      // LM Studio/5ire server host
+    port: 1234,                     // LM Studio/5ire server port  
     timeout: 60,                    // Request timeout (seconds)
     temperature: 0.7,
     max_tokens: 4000,
@@ -169,30 +169,35 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
     { id: 'advanced', label: t('aiconfig.tabs.advanced', 'Avançado'), icon: Code }
   ];
 
+
   // Engine descriptions / Descrições dos engines
   const engineDescriptions = {
-    hexsecgpt: {
-      name: 'HexSecGPT',
-      description: 'OpenRouter-based multi-model access / Acesso multi-modelo via OpenRouter',
-      requires_api_key: true
-    },
     openai: {
       name: 'OpenAI',
-      description: 'Direct OpenAI API (ChatGPT) / API direta OpenAI (ChatGPT)',
-      requires_api_key: true,
-      status: 'template'
+      description: 'Standard OpenAI API (GPT-4o, GPT-4 Turbo)',
+      requires_api_key: true
     },
     deepseek: {
       name: 'DeepSeek',
-      description: 'DeepSeek AI models / Modelos DeepSeek AI',
-      requires_api_key: true,
-      status: 'template'
+      description: 'DeepSeek AI Models (High Performance, Low Cost)',
+      requires_api_key: true
     },
-    ollama: {
-      name: 'Ollama',
-      description: 'Local AI models (offline) / Modelos IA locais (offline)',
+    claude: {
+      name: 'Claude',
+      description: 'Anthropic Claude 3.5 Sonnet & Opus',
+      requires_api_key: true
+    },
+    lmstudio: {
+      name: 'LM Studio',
+      description: 'Local Offline Inference (OpenAI Compatible)',
       requires_api_key: false,
-      status: 'template'
+      is_local: true
+    },
+    '5ire': {
+      name: '5ire',
+      description: '5ire Local Inference Environment',
+      requires_api_key: false,
+      is_local: true
     }
   };
 
@@ -246,14 +251,11 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
                   onChange={(e) => setAiConfig({...aiConfig, engine: e.target.value})}
                   className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-cyan-400"
                 >
-                  {availableEngines.map(engine => {
-                    const desc = engineDescriptions[engine] || { name: engine };
-                    return (
-                      <option key={engine} value={engine}>
-                        {desc.name} {desc.status === 'template' ? '(Template)' : ''}
-                      </option>
-                    );
-                  })}
+                  {Object.keys(engineDescriptions).map(engine => (
+                    <option key={engine} value={engine}>
+                      {engineDescriptions[engine].name}
+                    </option>
+                  ))}
                 </select>
                 
                 {/* Engine Description */}
@@ -262,11 +264,6 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
                     <p className="text-xs text-blue-400 font-mono">
                       💡 {engineDescriptions[aiConfig.engine].description}
                     </p>
-                    {engineDescriptions[aiConfig.engine].status === 'template' && (
-                      <p className="text-xs text-yellow-400 font-mono mt-1">
-                        ⚠️ Este provider está em template. Implemente seguindo provider_development_guide.md
-                      </p>
-                    )}
                   </div>
                 )}
               </div>
@@ -289,19 +286,21 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
                 <select
                   value={aiConfig.model}
                   onChange={(e) => setAiConfig({...aiConfig, model: e.target.value})}
-                  disabled={loading || availableModels.length === 0}
+                  disabled={loading}
                   className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-cyan-400 disabled:opacity-50"
                 >
-                  {availableModels.length === 0 && (
-                    <option>Nenhum modelo disponível / No models available</option>
-                  )}
+                  <option value="">{aiConfig.model ? aiConfig.model : 'Selecione ou digite / Select or type'}</option>
                   {availableModels.map(model => (
                     <option key={model} value={model}>{model}</option>
                   ))}
                 </select>
-                <p className="text-xs text-gray-500 mt-1 font-mono">
-                  {availableModels.length} modelo(s) disponível(is) para {aiConfig.engine}
-                </p>
+                <input 
+                    type="text" 
+                    placeholder="Custom Model ID (Optional)"
+                    className="w-full mt-2 bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-cyan-400"
+                    value={aiConfig.model}
+                    onChange={(e) => setAiConfig({...aiConfig, model: e.target.value})}
+                />
               </div>
             </div>
           )}
@@ -309,8 +308,8 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
           {/* API Configuration Tab */}
           {activeTab === 'api' && (
             <div className="space-y-4">
-              {/* HexSecGPT - API Key Configuration */}
-              {aiConfig.engine === 'hexsecgpt' && (
+              {/* API Key Configuration - For Engines that require it */}
+              {(engineDescriptions[aiConfig.engine]?.requires_api_key) && (
                 <div>
                   <label className="block text-sm font-mono text-gray-300 mb-2">
                     <Key className="inline mr-1" size={14} />
@@ -320,24 +319,18 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
                     type="password"
                     value={aiConfig.api_key}
                     onChange={(e) => setAiConfig({...aiConfig, api_key: e.target.value})}
-                    placeholder="sk-or-v1-..."
+                    placeholder={`Auth Key for ${engineDescriptions[aiConfig.engine].name}`}
                     className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-cyan-400"
                   />
-                  <p className="text-xs text-gray-500 mt-1 font-mono">
-                    Obtenha sua chave em <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:underline">openrouter.ai/ keys</a>
-                  </p>
                 </div>
               )}
 
-              {/* LM Studio - Local Server Configuration */}
-              {aiConfig.engine === 'lmstudio' && (
+              {/* Local Server Configuration (LM Studio / 5ire) */}
+              {(engineDescriptions[aiConfig.engine]?.is_local) && (
                 <>
                   <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded mb-4">
                     <p className="text-xs text-blue-400 font-mono">
-                      💡 <strong>LM Studio Local:</strong> Privacidade total, sem internet, modelos sob seu controle
-                    </p>
-                    <p className="text-xs text-blue-400 font-mono mt-1">
-                      Inicie o servidor local no LM Studio antes de usar
+                      💡 <strong>Local Inference:</strong> {aiConfig.engine === '5ire' ? '5ire Environment' : 'LM Studio'}
                     </p>
                   </div>
 
@@ -352,9 +345,6 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
                       placeholder="http://localhost"
                       className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-cyan-400"
                     />
-                    <p className="text-xs text-gray-500 mt-1 font-mono">
-                      URL do servidor LM Studio (local ou remoto)
-                    </p>
                   </div>
 
                   <div>
@@ -364,20 +354,15 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
                     <input
                       type="number"
                       value={aiConfig.port}
-                      onChange={(e) => setAiConfig({...aiConfig, port: parseInt(e.target.value) || 1234})}
-                      min="1"
-                      max="65535"
-                      placeholder="1234"
+                      onChange={(e) => setAiConfig({...aiConfig, port: parseInt(e.target.value) || (aiConfig.engine === '5ire' ? 5000 : 1234)})}
+                      placeholder={aiConfig.engine === '5ire' ? "5000" : "1234"}
                       className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-cyan-400"
                     />
-                    <p className="text-xs text-gray-500 mt-1 font-mono">
-                      Porta padrão do LM Studio: 1234
-                    </p>
                   </div>
 
                   <div>
                     <label className="block text-sm font-mono text-gray-300 mb-2">
-                      Request Timeout / Timeout da Requisição: {aiConfig.timeout}s
+                      Request Timeout / Timeout: {aiConfig.timeout}s
                     </label>
                     <input
                       type="range"
@@ -388,10 +373,6 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
                       step="10"
                       className="w-full accent-cyan-400"
                     />
-                    <div className="flex justify-between text-xs text-gray-500 font-mono mt-1">
-                      <span>10s (rápido)</span>
-                      <span>300s (lento)</span>
-                    </div>
                   </div>
                 </>
               )}

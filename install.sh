@@ -198,7 +198,27 @@ setup_user_config() {
 setup_configs() {
     print_info "Initializing backend configs / Inicializando configs do backend..."
     export HEXAGENT_SETUP_ONLY=1
-    python3 backend/app.py > /dev/null 2>&1 || true
+    
+    # Ensure venv exists and deps are installed / Garante que venv existe e deps instaladas
+    setup_python_env
+    
+    # Run setup with venv python / Executa setup com python do venv
+    ./venv/bin/python3 backend/app.py > /dev/null 2>&1 || true
+}
+
+# Setup Python Environment / Configura Ambiente Python
+setup_python_env() {
+    print_info "Setting up Python environment / Configurando ambiente Python..."
+    
+    if [ ! -d "venv" ]; then
+        print_info "Creating virtual environment (venv)..."
+        python3 -m venv venv
+    fi
+    
+    print_info "Installing backend dependencies..."
+    ./venv/bin/pip install --upgrade pip
+    ./venv/bin/pip install -r backend/requirements.txt
+    print_success "Python environment ready / Ambiente Python pronto"
 }
 
 # Build application / Compila aplicação

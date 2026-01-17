@@ -6,3 +6,4 @@ textual>=0.70.0
 rich>=13.0.0
 openai>=1.0.0
 psutil
+anthropic

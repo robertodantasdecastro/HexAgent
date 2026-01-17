@@ -13,19 +13,20 @@ Auto-importa todas as estratégias para registrá-las com ProviderFactory.
 from .base_strategy import InferenceStrategy
 from .provider_factory import ProviderFactory
 
-#  Import all concrete strategies to trigger auto-registration
+# Import all concrete strategies to trigger auto-registration
 # Importar todas as estratégias concretas para acionar auto-registro
-from .hexsecgpt_strategy import HexSecGPTStrategy
+from .openai_strategy import OpenAIStrategy
+from .deepseek_strategy import DeepSeekStrategy
+from .claude_strategy import ClaudeStrategy
 from .lmstudio_strategy import LMStudioStrategy
-
-# Future imports will be added here / Futuras importações serão adicionadas aqui
-# from .openai_strategy import OpenAIStrategy
-# from .deepseek_strategy import DeepSeekStrategy
-# from .ollama_strategy import OllamaStrategy
+from .fiveire_strategy import FiveIreStrategy
 
 __all__ = [
     'InferenceStrategy',
     'ProviderFactory',
-    'HexSecGPTStrategy',
-    'LMStudioStrategy'
+    'OpenAIStrategy',
+    'DeepSeekStrategy',
+    'ClaudeStrategy',
+    'LMStudioStrategy',
+    'FiveIreStrategy'
 ]

@@ -259,8 +259,16 @@ class SystemController(BaseController):
                 
                 # Setup shutdown timer for Flask
                 # Configurar timer de desligamento para Flask
-                # Note: We rely on the frontend to close the Electron window 
-                # or the process manager to kill the process after this response.
+                # Force exit in 1 second to allow response to be sent
+                # Forçar saída em 1 segundo para permitir envio da resposta
+                def delayed_exit():
+                    time.sleep(1)
+                    self.logger.info("Shutdown timer expired. Exiting process.")
+                    os._exit(0)
+                
+                import threading
+                t = threading.Thread(target=delayed_exit)
+                t.start()
                 
                 return self.success_response(message="System shutting down...")
             except Exception as e:

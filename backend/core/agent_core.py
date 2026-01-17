@@ -47,7 +47,7 @@ class AgentCore:
         hexstrike_url: Optional[str] = None,
         model: Optional[str] = None,
         system_prompt: Optional[str] = None,
-        engine: str = 'hexsecgpt'
+        engine: str = 'openai'
     ):
         """
         Initialize Agent Core with multi-provider support
