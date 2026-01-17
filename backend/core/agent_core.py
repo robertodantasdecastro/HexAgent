@@ -109,6 +109,12 @@ class AgentCore:
         # Now uses provider strategy instead of HexBrain directly
         # Agora usa estratégia de provedor em vez de HexBrain diretamente
         self.inference_engine = InferenceEngine(self.provider, self.executor)
+        
+        # Initialize ActionDispatcher
+        # Inicializa ActionDispatcher
+        from .action_dispatcher import ActionDispatcher
+        self.dispatcher = ActionDispatcher(self)
+        
         logger.info(f"InferenceEngine initialized with {engine} provider")
     
     def initialize(self, api_key: str) -> bool:
@@ -261,7 +267,9 @@ class AgentCore:
                     logger.info(f"Auto-executing command: {cmd}")
                     
                     try:
-                        result = self.hexstrike.execute_command(cmd)
+                        # Use ActionDispatcher instead of direct executor
+                        # Usa ActionDispatcher em vez de executor direto
+                        result = self.dispatcher.dispatch('execute_command', {'command': cmd})
                         any_executed = True
                         
                         # Yield command result

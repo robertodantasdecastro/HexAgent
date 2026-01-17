@@ -1,6 +1,6 @@
 """
-FileManager - Centralized file operations manager
-Gerenciador de operações de arquivos centralizado
+FileService - Centralized file operations service
+Serviço de operações de arquivos centralizado
 
 This module provides a unified interface for all file operations in HexAgentGUI,
 with intelligent path resolution, safety checks, and backup mechanisms.
@@ -21,7 +21,7 @@ from datetime import datetime
 from typing import Optional, Dict, List, Tuple
 
 
-class FileManager:
+class FileService:
     """
     Manages all file operations with workspace awareness and safety checks
     Gerencia todas as operações de arquivo com consciência de workspace e verificações de segurança
@@ -36,8 +36,8 @@ class FileManager:
     
     def __init__(self, workspace_root: str = "~/.hexagent-gui"):
         """
-        Initialize FileManager with workspace configuration
-        Inicializar FileManager com configuração de workspace
+        Initialize FileService with workspace configuration
+        Inicializar FileService com configuração de workspace
         
         Args:
             workspace_root: Root directory for all HexAgent files

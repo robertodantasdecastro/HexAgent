@@ -227,11 +227,48 @@ class ChatController(BaseController):
                         self.logger.error(f"Fallback API error: {e}")
                         return self.error_response(f"AI processing failed: {str(e)}", 500)
                 
-            except ValueError as e:
-                return self.error_response(str(e), 400)
             except Exception as e:
                 self.log_error('POST /chat', e)
                 return self.error_response("Chat processing failed / Processamento de chat falhou", 500)
+        
+        # ============================================================================
+        # EXECUTE - Manual Command Execution
+        # Executar - Execução Manual de Comandos
+        # ============================================================================
+        
+        @self.blueprint.route('/execute', methods=['POST'])
+        def manual_execute():
+            """
+            Manually execute a command via ActionDispatcher
+            Executa manualmente um comando via ActionDispatcher
+            """
+            try:
+                self.log_request('POST /execute')
+                data = self.get_request_data()
+                command = data.get('command')
+                
+                if not command:
+                    return self.error_response("Command is required", 400)
+                
+                if not self.core_ref:
+                    return self.error_response("AgentCore not initialized", 503)
+                
+                # Use Dispatcher!
+                result = self.core_ref.dispatcher.dispatch('execute_command', {'command': command})
+                
+                # Format response to match frontend expectation (useChatManager.js)
+                # Formatar resposta para corresponder à expectativa do frontend
+                response_data = {
+                    "success": result.get('success', False),
+                    "output": result.get('stdout', '') + result.get('stderr', ''),
+                    "exit_code": result.get('exit_code', 1)
+                }
+                
+                return self.success_response(data=response_data)
+                
+            except Exception as e:
+                self.log_error('POST /execute', e)
+                return self.error_response(f"Execution failed: {str(e)}", 500)
         
         # ============================================================================
         # COMPLETE - Code completion endpoint

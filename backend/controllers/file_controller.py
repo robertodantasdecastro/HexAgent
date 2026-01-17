@@ -9,7 +9,7 @@ Integra com FileManager para operações de arquivo seguras e com backup.
 """
 
 from core.base_controller import BaseController
-from managers.file_manager import FileManager
+from services.file_service import FileService
 from flask import request
 import os
 
@@ -21,8 +21,8 @@ class FileController(BaseController):
     """
     
     def __init__(self):
-        # Initialize FileManager / Inicializar FileManager
-        self.file_manager = FileManager()
+        # Initialize FileService / Inicializar FileService
+        self.file_service = FileService()
         
         super().__init__(
             name='file',
@@ -48,7 +48,7 @@ class FileController(BaseController):
                 self.log_request('POST /file/write')
                 data = self.validate_request(['path', 'content'])
                 
-                result = self.file_manager.write_file(
+                result = self.file_service.write_file(
                     content=data['content'],
                     filename=os.path.basename(data['path']),
                     user_path=data['path'],
@@ -84,7 +84,7 @@ class FileController(BaseController):
                 self.log_request('POST /file/read')
                 data = self.validate_request(['path'])
                 
-                result = self.file_manager.read_file(data['path'])
+                result = self.file_service.read_file(data['path'])
                 
                 if result['success']:
                     return self.success_response(data=result)
@@ -112,7 +112,7 @@ class FileController(BaseController):
                 self.log_request('POST /file/diff')
                 data = self.validate_request(['path', 'content'])
                 
-                result = self.file_manager.get_diff(data['path'], data['content'])
+                result = self.file_service.get_diff(data['path'], data['content'])
                 
                 if result:
                     return self.success_response(data=result)
@@ -138,7 +138,7 @@ class FileController(BaseController):
                 self.log_request('GET /file/backups')
                 filename = request.args.get('filename')
                 
-                backups = self.file_manager.list_backups(filename)
+                backups = self.file_service.list_backups(filename)
                 
                 return self.success_response(
                     data={"backups": backups, "count": len(backups)}, 
@@ -164,7 +164,7 @@ class FileController(BaseController):
                 
                 files = []
                 # Use FileManager's temp dir / Usar diretório temp do FileManager
-                tmp_dir = self.file_manager.tmp_dir
+                tmp_dir = self.file_service.tmp_dir
                 
                 if tmp_dir.exists():
                     files = [f.name for f in tmp_dir.iterdir() if f.is_file()]

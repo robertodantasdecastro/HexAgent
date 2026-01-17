@@ -1,6 +1,6 @@
 """
-ProjectManager - Multi-file project management
-Gerenciador de projetos com múltiplos arquivos
+ProjectService - Multi-file project management service
+Serviço de gerenciamento de projetos com múltiplos arquivos
 
 This module manages multi-file projects and workspaces, providing
 project structure creation, file tree generation, and metadata management.
@@ -18,7 +18,7 @@ from datetime import datetime
 from typing import List, Dict, Optional
 
 
-class ProjectManager:
+class ProjectService:
     """
     Manages multi-file projects and workspaces
     Gerencia projetos e workspaces com múltiplos arquivos
@@ -30,17 +30,17 @@ class ProjectManager:
     - Multi-file operations / Operações com múltiplos arquivos
     """
     
-    def __init__(self, file_manager):
+    def __init__(self, file_service):
         """
-        Initialize ProjectManager with FileManager dependency
-        Inicializar ProjectManager com dependência de FileManager
+        Initialize ProjectService with FileService dependency
+        Inicializar ProjectService com dependência de FileService
         
         Args:
-            file_manager: FileManager instance for file operations
-                         Instância de FileManager para operações de arquivo
+            file_service: FileService instance for file operations
+                         Instância de FileService para operações de arquivo
         """
-        self.file_manager = file_manager
-        self.projects_root = file_manager.projects_dir
+        self.file_service = file_service
+        self.projects_root = file_service.projects_dir
     
     def create_project(
         self, 
@@ -77,7 +77,7 @@ class ProjectManager:
             # Write all files / Escrever todos os arquivos
             created_files = []
             for file_info in files:
-                result = self.file_manager.write_file(
+                result = self.file_service.write_file(
                     content=file_info['content'],
                     filename=file_info.get('filename', file_info['path'].split('/')[-1]),
                     user_path=file_info.get('path'),
@@ -313,7 +313,7 @@ class ProjectManager:
                 # Create tar backup / Criar backup tar
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                 backup_name = f"{project_name}_backup_{timestamp}"
-                backup_path = self.file_manager.backups_dir / backup_name
+                backup_path = self.file_service.backups_dir / backup_name
                 
                 shutil.make_archive(
                     str(backup_path),
