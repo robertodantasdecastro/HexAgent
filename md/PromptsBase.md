@@ -268,3 +268,60 @@ Atualizar o Modal de Configuração de IA para incluir uma UI funcional para o L
 4.  **Documentação:**
     *   Todo o código deve incluir comentários bilíngues: Inglês (Primário) / Português-BR (Secundário).
     
+
+### Prompt for Antigravity AI: Global Project Refactoring, Optimization, and Unification (English)
+
+**Context:**
+The `HexAgentGUI` project has reached a stage where rapid development has introduced functional redundancies, fragmented logic across multiple modules, and inconsistent documentation. To ensure long-term scalability and stability, a deep architectural audit and refactoring are required.
+
+**Objective:**
+Perform a comprehensive "Deep Clean" and optimization of the entire codebase. Eliminate all forms of technical debt, unify the OOP structure, resolve analytical bugs, and standardize bilingual documentation.
+
+**Instructions:**
+
+1.  **Global Codebase Audit & Purge:**
+    *   Analyze all files in `./HexAgentGUI/` and `~/hexagent-gui/` to identify redundant classes, duplicated functions, and obsolete logic.
+    *   Consolidate overlapping features into unified, high-cohesion modules (e.g., merge fragmented inference scripts into the `InferenceManager` or `ProviderFactory` ecosystem).
+    *   Delete any files or code blocks that do not serve the current architectural vision or provide redundant functionality.
+
+2.  **OOP Structural Refinement:**
+    *   Strictly apply SOLID principles. Ensure that every class has a single responsibility and that inheritance/interfaces (like `InferenceStrategy`) are used correctly to prevent code duplication.
+    *   Refactor the `ActionDispatcher` and `CommandHandler` to ensure they are the sole entry points for system actions, removing any "shadow" execution logic found in GUI components.
+
+3.  **Analytical Bug Fixing & Optimization:**
+    *   Conduct a deep trace of the application's state management to identify and fix race conditions, memory leaks, or logical inconsistencies in the inference loop.
+    *   Optimize performance-critical paths, particularly the communication between the GUI and AI Engines (Local/API).
+
+4.  **Bilingual Documentation Standardization:**
+    *   Review every line of code to ensure comments are present and strictly bilingual: English (Primary) / Portuguese-BR (Secondary).
+    *   Translate any remaining monolingual documentation or strings to adhere to the project's global standard.
+
+---
+
+### Prompt para Antigravity AI: Refatoração Global, Otimização e Unificação do Projeto (Português-BR)
+
+**Contexto:**
+O projeto `HexAgentGUI` atingiu um estágio em que o desenvolvimento rápido introduziu redundâncias funcionais, lógica fragmentada em múltiplos módulos e documentação inconsistente. Para garantir a escalabilidade e estabilidade a longo prazo, é necessária uma auditoria arquitetônica profunda e refatoração.
+
+**Objetivo:**
+Realizar uma "Limpeza Profunda" (Deep Clean) e otimização de toda a base de código. Eliminar todas as formas de dívida técnica, unificar a estrutura POO, resolver bugs analíticos e padronizar a documentação bilíngue.
+
+**Instruções:**
+
+1.  **Auditoria Global e Purga da Base de Código:**
+    *   Analise todos os arquivos em `./HexAgentGUI/` e `~/hexagent-gui/` para identificar classes redundantes, funções duplicadas e lógica obsoleta.
+    *   Consolide recursos sobrepostos em módulos unificados de alta coesão (ex: mesclar scripts de inferência fragmentados no ecossistema `InferenceManager` ou `ProviderFactory`).
+    *   Exclua quaisquer arquivos ou blocos de código que não sirvam à visão arquitetônica atual ou que forneçam funcionalidade redundante.
+
+2.  **Refinamento Estrutural POO:**
+    *   Aplique rigorosamente os princípios SOLID. Garanta que cada classe tenha uma única responsabilidade e que heranças/interfaces (como `InferenceStrategy`) sejam usadas corretamente para evitar a duplicação de código.
+    *   Refatore o `ActionDispatcher` e o `CommandHandler` para garantir que sejam os únicos pontos de entrada para ações do sistema, removendo qualquer lógica de execução "paralela" encontrada nos componentes da GUI.
+
+3.  **Correção Analítica de Bugs e Otimização:**
+    *   Realize um rastreamento profundo do gerenciamento de estado da aplicação para identificar e corrigir condições de corrida (race conditions), vazamentos de memória ou inconsistências lógicas no loop de inferência.
+    *   Otimize caminhos críticos de desempenho, particularmente a comunicação entre a GUI e os Motores de IA (Local/API).
+
+4.  **Padronização de Documentação Bilíngue:**
+    *   Revise cada linha de código para garantir que os comentários estejam presentes e sejam estritamente bilíngues: Inglês (Primário) / Português-BR (Secundário).
+    *   Traduza qualquer documentação ou strings monolíngues restantes para aderir ao padrão global do projeto.
+    

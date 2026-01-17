@@ -120,9 +120,9 @@ const ServiceManagerModal = ({ isOpen, onClose }) => {
   const getStatusBg = (status) => {
     switch (status) {
       case 'running':
-      case 'success': return 'bg-[#00ff00]/10 border-[#00ff00]/30';
+      case 'success': return 'bg-[#00ff00]/5 border-[#00ff00]/30';
       case 'starting':
-      case 'pending': return 'bg-yellow-400/10 border-yellow-400/30';
+      case 'pending': return 'bg-yellow-400/5 border-yellow-400/30';
       default: return 'bg-red-500/5 border-red-500/20';
     }
   };
@@ -130,33 +130,33 @@ const ServiceManagerModal = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-[#0f0f0f] rounded-xl w-full max-w-4xl max-h-[90vh] flex flex-col border border-[#333] shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div 
+        className="bg-[#0a0a0a] rounded-lg w-full max-w-4xl max-h-[90vh] flex flex-col border border-[#00ff00]/30 shadow-2xl overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
         
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-[#222] bg-[#111]">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-purple-500/10 rounded-lg border border-purple-500/20">
-                <Server className="text-purple-400" size={24} />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-white tracking-wide">{t('service.manager', 'Service Manager')}</h2>
-              <p className="text-sm text-gray-500 font-mono">System & External Tools Lifecycle</p>
-            </div>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#333]">
+          <div className="flex items-center gap-3">
+             <Server className="text-cyan-400" size={20} />
+             <h2 className="text-lg font-bold text-white tracking-wide">
+                {t('service.manager', 'Service Manager')}
+             </h2>
           </div>
           <div className="flex gap-2">
             <button
                 onClick={fetchServiceStatus}
-                className="p-2 hover:bg-[#222] rounded-lg transition text-gray-400 hover:text-white"
+                className="text-gray-400 hover:text-cyan-400 transition"
                 title={t('service.refresh', 'Refresh')}
             >
-                <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
+                <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
             </button>
             <button
                 onClick={onClose}
-                className="p-2 hover:bg-red-900/20 hover:text-red-400 rounded-lg transition text-gray-400"
+                className="text-gray-400 hover:text-white transition"
             >
-                <XCircle size={24} />
+                <XCircle size={20} />
             </button>
           </div>
         </div>
@@ -165,117 +165,111 @@ const ServiceManagerModal = ({ isOpen, onClose }) => {
         <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-6 bg-[#0a0a0a]">
             
             {/* Backend Service Card */}
-            <div className={`rounded-xl p-5 border transition-all ${getStatusBg(services.backend.status)}`}>
+            <div className={`rounded-lg p-5 border transition-all ${getStatusBg(services.backend.status)}`}>
                 <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-3">
-                         <div className="p-2 bg-black/40 rounded border border-white/10">
+                         <div className="p-2 bg-black/40 rounded border border-[#333]">
                             <Box size={20} className="text-blue-400" />
                          </div>
-                         <h3 className="font-bold text-lg text-gray-200">Backend Core</h3>
+                         <h3 className="font-bold text-sm text-gray-200 uppercase tracking-wider">Backend Core</h3>
                     </div>
-                    <span className={`px-2 py-1 rounded text-xs font-mono font-bold uppercase border ${getStatusBg(services.backend.status).replace('/10', '/0')} ${getStatusColor(services.backend.status)}`}>
+                    <span className={`px-2 py-1 rounded text-[10px] font-mono font-bold uppercase border bg-black/50 ${getStatusColor(services.backend.status)} border-transparent`}>
                         {services.backend.status}
                     </span>
                 </div>
-                <p className="text-sm text-gray-400 mb-4 h-10">
-                    Flask API Server running on port 5000. Handles all request routing and file operations.
+                <p className="text-xs text-gray-400 mb-4 h-8 font-mono">
+                    Flask API Server running on port 5000. Handles all request routing.
                 </p>
-                <div className="pt-4 border-t border-white/5 flex justify-between items-center text-xs font-mono text-gray-500">
+                <div className="pt-3 border-t border-[#333] flex justify-between items-center text-[10px] font-mono text-gray-500">
                     <span>Host: 127.0.0.1</span>
                     <span>Internal</span>
                 </div>
             </div>
 
             {/* Brain/AI Service Card */}
-            <div className={`rounded-xl p-5 border transition-all ${getStatusBg(services.brain.status)}`}>
+            <div className={`rounded-lg p-5 border transition-all ${getStatusBg(services.brain.status)}`}>
                 <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-3">
-                         <div className="p-2 bg-black/40 rounded border border-white/10">
+                         <div className="p-2 bg-black/40 rounded border border-[#333]">
                             <Zap size={20} className="text-yellow-400" />
                          </div>
-                         <h3 className="font-bold text-lg text-gray-200">AI Engine</h3>
+                         <h3 className="font-bold text-sm text-gray-200 uppercase tracking-wider">AI Engine</h3>
                     </div>
-                    {/* Simplified status for AI since it's internal */}
-                    <span className="px-2 py-1 rounded text-xs font-mono font-bold uppercase border border-blue-500/30 bg-blue-500/10 text-blue-400">
+                    <span className="px-2 py-1 rounded text-[10px] font-mono font-bold uppercase border border-blue-500/30 bg-blue-500/10 text-blue-400">
                         READY
                     </span>
                 </div>
-                <p className="text-sm text-gray-400 mb-4 h-10">
-                   HexSecGPT Integration. Connection to OpenRouter/LocalAI active.
+                <p className="text-xs text-gray-400 mb-4 h-8 font-mono">
+                   AI Provider Factory Status. Active Strategy: {services.brain.provider || 'Auto'}
                 </p>
-                <div className="pt-4 border-t border-white/5 flex justify-between items-center text-xs font-mono text-gray-500">
+                <div className="pt-3 border-t border-[#333] flex justify-between items-center text-[10px] font-mono text-gray-500">
                     <span>Model: {services.brain.model || 'Configured'}</span>
-                    <span>Provider: HexSecGPT</span>
+                    <span>Provider: Standard</span>
                 </div>
             </div>
 
             {/* HexStrike Service Card - THE MAIN ONE */}
-            <div className={`md:col-span-2 rounded-xl p-6 border-2 transition-all ${getStatusBg(services.hexstrike.status)}`}>
+            <div className={`md:col-span-2 rounded-lg p-6 border transition-all ${getStatusBg(services.hexstrike.status)}`}>
                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                     <div className="flex items-center gap-4">
-                         <div className="p-3 bg-black/40 rounded-lg border border-white/10">
-                            <Shield size={28} className={services.hexstrike.ready ? "text-[#00ff00]" : "text-gray-400"} />
+                         <div className="p-3 bg-black/40 rounded border border-[#333]">
+                            <Shield size={24} className={services.hexstrike.ready ? "text-[#00ff00]" : "text-gray-400"} />
                          </div>
                          <div>
-                            <h3 className="font-bold text-xl text-white">HexStrike AI</h3>
-                            <p className="text-sm text-gray-400">Vulnerability Scanner & Command Engine</p>
+                            <h3 className="font-bold text-lg text-white">HexStrike AI</h3>
+                            <p className="text-[10px] text-gray-400 uppercase tracking-widest">Vulnerability Scanner & Command Engine</p>
                          </div>
                     </div>
 
                     <div className="flex items-center gap-4 w-full md:w-auto">
                         <div className="flex flex-col items-end mr-4 hidden md:flex">
-                             <span className={`text-sm font-bold font-mono tracking-wider uppercase ${getStatusColor(services.hexstrike.status)}`}>
+                             <span className={`text-xs font-bold font-mono tracking-wider uppercase ${getStatusColor(services.hexstrike.status)}`}>
                                 {services.hexstrike.status}
                              </span>
-                             <span className="text-xs text-gray-500">Port: 8888</span>
+                             <span className="text-[10px] text-gray-500">Port: 8888</span>
                         </div>
                         
                         {services.hexstrike.status === 'running' ? (
                             <button
                                 onClick={() => controlService('hexstrike', 'stop')}
                                 disabled={loading}
-                                className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-red-600/20 hover:bg-red-600/40 border border-red-500/50 text-red-200 rounded-lg transition group"
+                                className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 rounded-lg transition font-mono text-xs"
                             >
-                                <Power size={18} className="group-hover:scale-110 transition" />
-                                Stop Service
+                                <Power size={14} />
+                                STOP SERVICE
                             </button>
                         ) : (
                             <button
                                 onClick={() => controlService('hexstrike', 'start')}
-                                disabled={loading} // Removing ready check to allow restart if stuck
-                                className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-[#00ff00]/10 hover:bg-[#00ff00]/20 border border-[#00ff00]/50 text-[#00ff00] rounded-lg transition group shadow-[0_0_15px_rgba(0,255,0,0.1)] hover:shadow-[0_0_25px_rgba(0,255,0,0.2)]"
+                                disabled={loading}
+                                className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2 bg-[#00ff00]/10 hover:bg-[#00ff00]/20 border border-[#00ff00]/30 text-[#00ff00] rounded-lg transition shadow-lg shadow-green-900/20 font-mono text-xs"
                             >
-                                <Power size={18} className="group-hover:scale-110 transition" />
-                                {loading ? 'Processing...' : 'Start Service'}
+                                <Power size={14} />
+                                {loading ? 'STARTING...' : 'START SERVICE'}
                             </button>
                         )}
                     </div>
                  </div>
 
                  {/* Console / Info Area */}
-                 <div className="bg-black/50 rounded-lg p-4 font-mono text-sm border border-white/5">
-                    <div className="flex items-center justify-between mb-2">
-                        <span className="text-gray-500 text-xs uppercase tracking-wider">Service Output / Status</span>
-                        {services.hexstrike.status === 'running' && <span className="flex items-center gap-2 text-xs text-[#00ff00]"><div className="w-2 h-2 rounded-full bg-[#00ff00] animate-pulse"/> Live</span>}
+                 <div className="bg-black/80 rounded p-4 font-mono text-xs border border-[#333]">
+                    <div className="flex items-center justify-between mb-2 border-b border-[#222] pb-1">
+                        <span className="text-gray-500 uppercase tracking-wider">Service Output</span>
+                        {services.hexstrike.status === 'running' && <span className="flex items-center gap-2 text-[#00ff00]"><div className="w-1.5 h-1.5 rounded-full bg-[#00ff00] animate-pulse"/> Live</span>}
                     </div>
-                    <div className="text-gray-300">
+                    <div className="text-gray-300 whitespace-pre-wrap">
                         {services.hexstrike.message}
                     </div>
-                    {services.hexstrike.status === 'stopped' && (
-                        <div className="mt-2 text-yellow-600/70 text-xs">
-                           Tip: Ensure "hexstrike-ai" is installed in ~/iatools/hexstrike-ai/
-                        </div>
-                    )}
                  </div>
             </div>
 
         </div>
 
         {/* Footer */}
-        <div className="p-4 bg-[#111] border-t border-[#222] flex justify-end">
+        <div className="p-4 border-t border-[#333] bg-[#0a0a0a] flex justify-end">
           <button
             onClick={onClose}
-            className="px-6 py-2 bg-[#222] hover:bg-[#333] border border-[#444] rounded-lg text-white transition"
+            className="px-6 py-2 bg-[#111] hover:bg-[#222] border border-[#333] rounded text-gray-300 text-xs font-mono transition"
           >
             {t('common.close', 'Close')}
           </button>

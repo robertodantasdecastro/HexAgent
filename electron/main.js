@@ -77,7 +77,7 @@ function createWindow() {
     titleBarOverlay: {
         color: '#000000',
         symbolColor: '#00ff00',
-        height: 40
+        height: 50
     },
     // Vibrancy only works on macOS usually, but we can try transparency
     backgroundColor: '#0a0a0a',

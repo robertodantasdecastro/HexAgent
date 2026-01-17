@@ -1,4 +1,4 @@
-import { CheckCircle, Loader } from 'lucide-react';
+import { CheckCircle, Loader, Power, TriangleAlert } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from '../hooks/useTranslation';
 import APIClient from '../utils/APIClient';
@@ -25,14 +25,12 @@ const ShutdownModal = ({ isOpen, onShutdownComplete }) => {
       updateStep('check_files', 'running');
       try {
           const api = APIClient.getInstance();
-          // Fixed URL: /file/temp (singular) based on FileController
           const result = await api.get('/file/temp');
           
           if (result.success) {
             setTempFileCount(result.data.count || 0);
           } else {
             console.warn('Failed to check temp files:', result.message);
-            // Non-blocking failure / Falha não bloqueante
           }
           
           updateStep('check_files', 'completed');
@@ -52,35 +50,27 @@ const ShutdownModal = ({ isOpen, onShutdownComplete }) => {
   const startShutdown = async () => {
       setStatus('shutting_down');
       
-      // Step 1: Request Backend Shutdown
       updateStep('backend', 'running');
       try {
            const api = APIClient.getInstance();
-           
-           // Use very short timeout for shutdown
-           // Usar timeout muito curto para shutdown
            try {
                await api.post('/shutdown', {}, { timeout: 2000 });
            } catch (e) {
                console.log("Backend likely stopped/unresponsive (expected)", e);
            }
-           
            updateStep('backend', 'completed');
       } catch (e) {
            updateStep('backend', 'completed'); 
       }
 
-      // Step 2: HexStrike
       updateStep('hexstrike', 'running');
       await new Promise(r => setTimeout(r, 800)); 
       updateStep('hexstrike', 'completed');
 
-      // Step 3: Cleanup
       updateStep('cleanup', 'running');
       await new Promise(r => setTimeout(r, 500));
       updateStep('cleanup', 'completed');
 
-      // Finish
       setTimeout(onShutdownComplete, 500);
   };
 
@@ -91,48 +81,83 @@ const ShutdownModal = ({ isOpen, onShutdownComplete }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-[100] backdrop-blur-md">
-      <div className="w-[450px] p-6 bg-[#0a0a0a] border border-red-900/50 rounded-xl shadow-2xl flex flex-col items-center relative">
-        <img src="logo.png" className={`w-16 h-16 object-contain mb-4 ${status === 'shutting_down' ? 'animate-pulse opacity-80' : ''}`} alt="Shutdown" />
+    <div className="fixed inset-0 bg-black/95 flex items-center justify-center z-[100] backdrop-blur-md">
+      <div className="w-[450px] bg-[#0a0a0a] border border-red-500/30 rounded-lg shadow-[0_0_50px_rgba(255,0,0,0.1)] flex flex-col overflow-hidden">
         
-        {status === 'warning' ? (
-            <>
-                <h2 className="text-xl font-bold text-yellow-500 mb-2">{t('shutdown.warning_title', 'Unsaved Files Warning')}</h2>
-                <p className="text-sm text-gray-300 text-center mb-6">
-                    {t('shutdown.warning_message', 'You have')} <span className="text-white font-bold">{tempFileCount}</span> {t('shutdown.temp_files', 'temporary files in')}
-                    <br/><code className="bg-black/50 px-1 rounded text-gray-400">~/.hexagent-gui/tmp/files</code>
-                    <br/>{t('shutdown.might_include', 'These might include scripts or generated content.')}
-                </p>
-                <div className="flex gap-4 w-full">
-                    <button 
-                        className="flex-1 bg-gray-800 hover:bg-gray-700 text-white py-3 rounded font-bold transition"
-                        onClick={() => startShutdown()}
-                    >
-                        {t('shutdown.shutdown_button', 'Delete & Shutdown')}
-                    </button>
-                    {/* Ideally we would have a 'Cancel' button but the app state is already in 'showShutdown'. */}
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#333] bg-[#0a0a0a]">
+           <div className="flex items-center gap-3">
+              <Power className="text-red-500" size={20} />
+              <h2 className="text-lg font-bold text-white tracking-wide">
+                  {t('shutdown.title', 'DESLIGAR SISTEMA')}
+              </h2>
+           </div>
+        </div>
+
+        <div className="p-8 flex flex-col items-center">
+            
+            {status === 'warning' ? (
+                <div className="animate-in fade-in zoom-in-95 duration-200 w-full flex flex-col items-center">
+                    <div className="w-16 h-16 bg-yellow-500/10 rounded-full flex items-center justify-center mb-4 border border-yellow-500/20">
+                        <TriangleAlert size={32} className="text-yellow-500" />
+                    </div>
+                    
+                    <h2 className="text-xl font-bold text-white mb-2">{t('shutdown.warning_title', 'Aviso de Arquivos')}</h2>
+                    <p className="text-sm text-gray-400 text-center mb-6 leading-relaxed">
+                        Você possui <span className="text-white font-bold">{tempFileCount}</span> arquivos temporários não salvos em 
+                        <br/><code className="bg-[#111] px-1 py-0.5 rounded text-gray-300 font-mono text-xs border border-[#222]">~/.hexagent-gui/tmp/files</code>
+                    </p>
+                    
+                    <div className="w-full space-y-3">
+                        <button 
+                            className="w-full bg-red-600/20 hover:bg-red-600/30 text-red-500 border border-red-500/50 py-3 rounded font-bold transition-all text-sm uppercase tracking-wider"
+                            onClick={() => startShutdown()}
+                        >
+                            {t('shutdown.shutdown_button', 'Apagar & Desligar')}
+                        </button>
+                        <button 
+                            className="w-full bg-[#111] hover:bg-[#222] text-gray-400 border border-[#333] py-3 rounded font-bold transition-all text-sm uppercase tracking-wider"
+                            onClick={() => {/* Ideally Cancel, but app state handles this via parent */}}
+                        >
+                             Cancelar
+                        </button>
+                    </div>
+                     <p className="text-[10px] text-gray-600 mt-4 text-center">
+                        {t('shutdown.note', 'Nota: Use "/save session" para persistir dados importantes.')}
+                     </p>
                 </div>
-                 <p className="text-[10px] text-gray-500 mt-4">{t('shutdown.note', 'Note: Persistent storage is safer for important files.')}</p>
-            </>
-        ) : (
-            <>
-                <h2 className="text-xl font-bold text-white mb-6">{t('shutdown.title', 'System Shutdown')}</h2>
-                <div className="w-full space-y-4">
-                    {steps.map(step => (
-                        <div key={step.id} className="flex items-center gap-3">
-                            <div className="w-5 flex justify-center">
-                                {step.status === 'pending' && <div className="w-2 h-2 bg-gray-700 rounded-full" />}
-                                {step.status === 'running' && <Loader size={16} className="text-yellow-500 animate-spin" />}
-                                {step.status === 'completed' && <CheckCircle size={16} className="text-green-500" />}
+            ) : (
+                <div className="w-full">
+                    <div className="flex justify-center mb-8">
+                         <div className="relative">
+                            <div className="w-16 h-16 rounded-full border-2 border-[#333] flex items-center justify-center">
+                                <img src="logo.png" className="w-10 h-10 object-contain opacity-50 grayscale" alt="Logo" />
                             </div>
-                            <span className={`text-sm ${step.status === 'completed' ? 'text-gray-400' : 'text-gray-200'}`}>
-                                {step.label}
-                            </span>
-                        </div>
-                    ))}
+                            <div className="absolute inset-0 rounded-full border-t-2 border-red-500 animate-spin"></div>
+                         </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        {steps.map(step => (
+                            <div key={step.id} className="flex items-center gap-4 p-3 bg-[#111] rounded border border-[#222]">
+                                <div className="w-5 flex justify-center flex-shrink-0">
+                                    {step.status === 'pending' && <div className="w-2 h-2 bg-gray-700 rounded-full" />}
+                                    {step.status === 'running' && <Loader size={16} className="text-yellow-500 animate-spin" />}
+                                    {step.status === 'completed' && <CheckCircle size={16} className="text-[#00ff00]" />}
+                                </div>
+                                <span className={`text-xs font-mono uppercase tracking-wider ${step.status === 'completed' ? 'text-gray-500 line-through' : 'text-gray-200'}`}>
+                                    {step.label}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                    
+                    <div className="mt-8 text-center">
+                        <span className="text-[10px] text-gray-600 font-mono">SHUTDOWN SEQUENCE INITIATED</span>
+                    </div>
                 </div>
-            </>
-        )}
+            )}
+        </div>
       </div>
     </div>
   );

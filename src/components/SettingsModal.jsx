@@ -1,6 +1,5 @@
 import { Database, Globe, Save, Server, Settings, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import Draggable from 'react-draggable';
 
 const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
   const [localConfig, setLocalConfig] = useState(config || {});
@@ -16,8 +15,6 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
     onSave(localConfig);
     onClose();
   };
-
-
 
   const updateService = (field, value) => {
     setLocalConfig(prev => ({
@@ -45,110 +42,102 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
 
   if (!isOpen) return null;
 
-  console.log('[SettingsModal] Rendering with isOpen:', isOpen, 'config:', config);
-
-  // Ensure localConfig has values even if config is null
-  const activeConfig = localConfig || {
-    ai: { language: 'auto', max_iterations: 10, temperature: 0.7, model: 'openai/gpt-4-turbo', api_key: '', api_url: '', web_search_enabled: false, unlimited_iterations: false },
-    services: { flask_port: 5000, hexstrike_port: 8888, backend_host: '127.0.0.1' },
-    system: { theme: 'dark' },
-    ui: { custom_colors: {} }
-  };
+  // Tabs Definition
+  const tabs = [
+    { id: 'general', label: t ? t('settings.tabs.general', 'GENERAL') : 'GENERAL', icon: Settings },
+    { id: 'services', label: t ? t('settings.tabs.services', 'SERVICES') : 'SERVICES', icon: Server },
+    { id: 'appearance', label: t ? t('settings.tabs.appearance', 'APPEARANCE') : 'APPEARANCE', icon: Globe },
+    { id: 'system', label: t ? t('settings.tabs.system', 'SYSTEM') : 'SYSTEM', icon: Database }
+  ];
 
   return (
-    <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 backdrop-blur-md" onClick={onClose}>
-      <Draggable handle=".drag-handle" bounds="parent" defaultPosition={{x: 0, y: 0}}>
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
         <div 
-          className="bg-[#0a0a0a]/95 border border-[#00ff00] rounded-xl shadow-2xl flex flex-col overflow-hidden backdrop-blur-sm"
-          style={{
-            width: '75vw',
-            minWidth: '800px',
-            maxWidth: '95vw',
-            height: '80vh',
-            minHeight: '600px',
-            maxHeight: '95vh',
-            boxShadow: '0 0 30px rgba(0, 255, 0, 0.3)'
-          }}
+          className="bg-[#0a0a0a] border border-[#00ff00]/30 rounded-lg w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl"
           onClick={(e) => e.stopPropagation()}
         >
         
-        {/* Header - Draggable */}
-        <div className="drag-handle flex items-center justify-between px-6 py-4 border-b border-[#00ff00]/30 bg-gradient-to-r from-[#001a00] to-[#003300] cursor-move">
-          <h2 className="text-lg font-bold text-[#00ff00] flex items-center gap-2 font-mono select-none">
-            <Settings size={20} /> {t ? t('settings.title') : 'CONFIGURATION'}
-          </h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white transition hover:rotate-90">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#333]">
+          <div className="flex items-center gap-3">
+             <Settings className="text-cyan-400" size={20} />
+             <h2 className="text-lg font-bold text-white tracking-wide">
+                {t ? t('settings.title') : 'Configurações / Settings'}
+             </h2>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
             <X size={20} />
           </button>
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-[#333] bg-[#0f0f0f] overflow-x-auto">
-            <button 
-                onClick={() => setActiveTab('general')}
-                className={`flex-1 py-3 px-2 text-xs font-mono font-bold flex items-center justify-center gap-2 border-b-2 transition-colors ${activeTab === 'general' ? 'border-blue-500 text-blue-400 bg-blue-500/5' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
-            >
-                <Settings size={14} /> {t ? t('settings.tabs.general', 'GENERAL') : 'GENERAL'}
-            </button>
-
-            <button 
-                onClick={() => setActiveTab('services')}
-                className={`flex-1 py-3 px-2 text-xs font-mono font-bold flex items-center justify-center gap-2 border-b-2 transition-colors ${activeTab === 'services' ? 'border-cyan-500 text-cyan-400 bg-cyan-500/5' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
-            >
-                <Server size={14} /> {t ? t('settings.tabs.services', 'SERVICES') : 'SERVICES'}
-            </button>
-            <button 
-                onClick={() => setActiveTab('appearance')}
-                className={`flex-1 py-3 px-2 text-xs font-mono font-bold flex items-center justify-center gap-2 border-b-2 transition-colors ${activeTab === 'appearance' ? 'border-purple-500 text-purple-400 bg-purple-500/5' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
-            >
-                <Globe size={14} /> {t ? t('settings.tabs.appearance', 'APPEARANCE') : 'APPEARANCE'}
-            </button>
-            <button 
-                onClick={() => setActiveTab('system')}
-                className={`flex-1 py-3 px-2 text-xs font-mono font-bold flex items-center justify-center gap-2 border-b-2 transition-colors ${activeTab === 'system' ? 'border-yellow-500 text-yellow-400 bg-yellow-500/5' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
-            >
-                <Database size={14} /> {t ? t('settings.tabs.system', 'SYSTEM') : 'SYSTEM'}
-            </button>
+        <div className="flex gap-2 px-6 pt-4 border-b border-[#333] bg-[#0f0f0f]/50">
+           {tabs.map(tab => {
+             const Icon = tab.icon;
+             return (
+               <button 
+                 key={tab.id}
+                 onClick={() => setActiveTab(tab.id)}
+                 className={`flex items-center gap-2 px-4 py-2 rounded-t text-xs font-mono font-bold transition-all ${
+                    activeTab === tab.id 
+                    ? 'bg-cyan-500/10 text-cyan-400 border-b-2 border-cyan-400' 
+                    : 'text-gray-500 hover:text-gray-300 hover:bg-[#1a1a1a]'
+                 }`}
+               >
+                   <Icon size={14} /> {tab.label}
+               </button>
+             );
+           })}
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-[#0a0a0a]">
             
             {/* GENERAL TAB */}
             {activeTab === 'general' && (
-                <div className="space-y-5 animate-in fade-in zoom-in-95 duration-200">
-                    <div className="text-sm text-gray-400 mb-4">
-                        {t ? t('settings.general.description') : 'Core application settings and preferences'}
+                <div className="space-y-6 animate-in fade-in zoom-in-95 duration-200">
+                    <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded">
+                         <p className="text-xs text-blue-400 font-mono">
+                           ℹ️ {t ? t('settings.general.description') : 'Core application settings and preferences'}
+                         </p>
                     </div>
+
                     <div className="space-y-4">
-                        <div>
-                            <label className="block text-xs text-gray-400 mb-1.5 font-mono">{t ? t('settings.general.auto_save') : 'Auto Save Sessions'}</label>
-                            <div className="flex items-center gap-2">
+                        <div className="flex items-center justify-between p-3 bg-[#111] border border-[#222] rounded hover:border-[#333] transition">
+                            <div>
+                                <label className="block text-sm font-bold text-gray-200 mb-1">{t ? t('settings.general.auto_save') : 'Auto Save Sessions'}</label>
+                                <div className="text-xs text-gray-500">{t ? t('settings.general.auto_save_desc') : 'Automatically save chat sessions'}</div>
+                            </div>
+                            <div className="relative inline-block w-10 h-5">
                                 <input 
                                     type="checkbox" 
                                     checked={localConfig.system?.auto_save_session ?? true}
                                     onChange={(e) => updateSystem('auto_save_session', e.target.checked)}
-                                    className="w-4 h-4"
+                                    className="sr-only peer"
                                 />
-                                <span className="text-sm text-gray-300">{t ? t('settings.general.auto_save_desc') : 'Automatically save chat sessions'}</span>
+                                <div className="w-10 h-5 bg-[#333] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-cyan-500"></div>
                             </div>
                         </div>
-                        <div>
-                            <label className="block text-xs text-gray-400 mb-1.5 font-mono">{t ? t('settings.general.debug_mode') : 'Debug Mode'}</label>
-                            <div className="flex items-center gap-2">
+
+                        <div className="flex items-center justify-between p-3 bg-[#111] border border-[#222] rounded hover:border-[#333] transition">
+                            <div>
+                                <label className="block text-sm font-bold text-gray-200 mb-1">{t ? t('settings.general.debug_mode') : 'Debug Mode'}</label>
+                                <div className="text-xs text-gray-500">{t ? t('settings.general.debug_desc') : 'Enable detailed debug logging'}</div>
+                            </div>
+                            <div className="relative inline-block w-10 h-5">
                                 <input 
                                     type="checkbox" 
                                     checked={localConfig.system?.debug_mode ?? false}
                                     onChange={(e) => updateSystem('debug_mode', e.target.checked)}
-                                    className="w-4 h-4"
+                                    className="sr-only peer"
                                 />
-                                <span className="text-sm text-gray-300">{t ? t('settings.general.debug_desc') : 'Enable debug logging'}</span>
+                                <div className="w-10 h-5 bg-[#333] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-cyan-500"></div>
                             </div>
                         </div>
                         
-                        {/* Language Selector / Seletor de Idioma */}
+                        {/* Language Selector */}
                         <div>
-                            <label className="block text-xs text-gray-400 mb-1.5 font-mono">
+                            <label className="block text-xs font-mono text-cyan-400 mb-2 uppercase tracking-wider">
                                 {t ? t('settings.language') : 'Language / Idioma'}
                             </label>
                             <select
@@ -157,155 +146,17 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
                                     const newLang = e.target.value;
                                     updateSystem('language', newLang);
                                     
-                                    // Use TranslationManager for real-time update / Usar TranslationManager para atualização em tempo real
-                                const { default: TranslationManager } = await import('../utils/TranslationManager');
+                                    const { default: TranslationManager } = await import('../utils/TranslationManager');
                                     const tm = TranslationManager.getInstance();
                                     tm.setLanguage(newLang);
                                 }}
-                                className="w-full bg-black border border-[#333] rounded px-3 py-2 text-white text-sm focus:border-blue-500 focus:outline-none"
+                                className="w-full bg-[#111] border border-[#333] rounded px-3 py-2 text-white text-sm focus:border-cyan-500 focus:outline-none font-mono"
                             >
                                 <option value="auto">🌍 Auto Detect / Auto Detectar</option>
                                 <option value="en">🇬🇧 English</option>
                                 <option value="pt">🇧🇷 Português</option>
                                 <option value="es">🇪🇸 Español</option>
                             </select>
-                            <p className="text-xs text-gray-500 mt-1">
-                                Language updates instantly / Idioma atualiza instantaneamente
-                            </p>
-                        </div>
-                        
-                        <div className="text-xs text-yellow-500 mt-4">
-                            💡 {t ? t('settings.general.more_coming') : 'More general settings coming soon in ~/.hexagent-gui/config/'}
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* API KEYS TAB */}
-
-
-
-            
-
-            
-            {/* TERMINAL TAB */}
-            {activeTab === 'terminal' && (
-                <div className="space-y-5 animate-in fade-in zoom-in-95 duration-200">
-                    <div className="text-sm text-gray-400 mb-4">
-                        Terminal and shell configuration
-                    </div>
-                    <div className="space-y-4">
-                        <div>
-                            <label className="block text-xs text-gray-400 mb-1.5 font-mono">Shell Type</label>
-                            <select className="w-full bg-black border border-[#333] rounded px-3 py-2 text-white text-sm focus:border-green-500 focus:outline-none">
-                                <option value="auto">Auto-detect</option>
-                                <option value="bash">Bash</option>
-                                <option value="zsh">Zsh</option>
-                                <option value="fish">Fish</option>
-                                <option value="powershell">PowerShell</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-xs text-gray-400 mb-1.5 font-mono">Color Scheme</label>
-                            <select className="w-full bg-black border border-[#333] rounded px-3 py-2 text-white text-sm focus:border-green-500 focus:outline-none">
-                                <option value="kali-zsh">Kali Linux (zsh)</option>
-                                <option value="ubuntu">Ubuntu</option>
-                                <option value="dracula">Dracula</option>
-                                <option value="monokai">Monokai</option>
-                                <option value="custom">Custom</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-xs text-gray-400 mb-1.5 font-mono">Font Size</label>
-                            <input 
-                                type="number" 
-                                min="10" 
-                                max="24" 
-                                defaultValue="14"
-                                className="w-full bg-black border border-[#333] rounded px-3 py-2 text-white text-sm focus:border-green-500 focus:outline-none"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs text-gray-400 mb-1.5 font-mono">Command History</label>
-                            <div className="flex items-center gap-2 mb-2">
-                                <input type="checkbox" defaultChecked className="w-4 h-4"/>
-                                <span className="text-sm text-gray-300">Enable history</span>
-                            </div>
-                            <input 
-                                type="number" 
-                                placeholder="Max history size" 
-                                defaultValue="1000"
-                                className="w-full bg-black border border-[#333] rounded px-3 py-2 text-white text-sm focus:border-green-500 focus:outline-none"
-                            />
-                        </div>
-                        <div className="text-xs text-green-500 mt-4">
-                            🖥️ Config in ~/.hexagent-gui/config/terminal/
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* FEATURES TAB */}
-            {activeTab === 'features' && (
-                <div className="space-y-5 animate-in fade-in zoom-in-95 duration-200">
-                    <div className="text-sm text-gray-400 mb-4">
-                        Application features and capabilities
-                    </div>
-                    <div className="space-y-4">
-                        <div className="border border-[#333] rounded p-4">
-                            <div className="flex items-center justify-between mb-2">
-                                <div>
-                                    <div className="text-sm font-bold text-white">Web Search</div>
-                                    <div className="text-xs text-gray-400">Enable AI to search the web for information</div>
-                                </div>
-                                <div className="relative inline-block w-12 h-6">
-                                    <input type="checkbox" className="sr-only peer"/>
-                                    <div className="w-12 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-6 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500"></div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div className="border border-[#333] rounded p-4">
-                            <div className="flex items-center justify-between mb-2">
-                                <div>
-                                    <div className="text-sm font-bold text-white">Auto-Execute</div>
-                                    <div className="text-xs text-gray-400">Automatically run safe commands</div>
-                                </div>
-                                <div className="relative inline-block w-12 h-6">
-                                    <input type="checkbox" className="sr-only peer"/>
-                                    <div className="w-12 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-6 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-500"></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="border border-[#333] rounded p-4">
-                            <label className="block text-sm font-bold text-white mb-2">Max Iterations</label>
-                            <div className="text-xs text-gray-400 mb-3">Maximum number of AI reasoning iterations</div>
-                            <input 
-                                type="range" 
-                                min="1" 
-                                max="20" 
-                                defaultValue="6"
-                                className="w-full"
-                            />
-                            <div className="text-xs text-gray-300 mt-1">Current: 6</div>
-                        </div>
-
-                        <div className="border border-[#333] rounded p-4">
-                            <div className="flex items-center justify-between mb-2">
-                                <div>
-                                    <div className="text-sm font-bold text-white">Auto-Save Sessions</div>
-                                    <div className="text-xs text-gray-400">Automatically save chat sessions</div>
-                                </div>
-                                <div className="relative inline-block w-12 h-6">
-                                    <input type="checkbox" defaultChecked className="sr-only peer"/>
-                                    <div className="w-12 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-6 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="text-xs text-purple-500 mt-4">
-                            ⚡ Config in ~/.hexagent-gui/config/features/
                         </div>
                     </div>
                 </div>
@@ -315,39 +166,56 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
             {activeTab === 'appearance' && (
                 <div className="space-y-6 animate-in fade-in zoom-in-95 duration-200">
                     <div className="grid grid-cols-2 gap-6">
-                        <div>
-                             <label className="block text-xs text-gray-400 mb-2 font-mono">{t ? t('appearance.ai_text_color') : 'AI Text Color'}</label>
+                        <div className="p-4 bg-[#111] border border-[#222] rounded-lg">
+                             <label className="block text-xs text-cyan-400 mb-3 font-mono uppercase tracking-wider">{t ? t('appearance.ai_text_color') : 'AI Text Color'}</label>
                              <div className="flex items-center gap-3">
                                  <input 
                                     type="color" 
                                     value={localConfig.ui?.custom_colors?.ai_text || '#06b6d4'}
                                     onChange={(e) => updateUI('ai_text', e.target.value)}
-                                    className="w-10 h-10 rounded cursor-pointer bg-transparent border-none"
+                                    className="w-10 h-10 rounded cursor-pointer bg-transparent border border-[#333]"
                                  />
-                                 <span className="text-xs font-mono text-gray-500">{localConfig.ui?.custom_colors?.ai_text || '#06b6d4'}</span>
+                                 <span className="text-xs font-mono text-gray-400 bg-black px-2 py-1 rounded">{localConfig.ui?.custom_colors?.ai_text || '#06b6d4'}</span>
                              </div>
                         </div>
-                        <div>
-                             <label className="block text-xs text-gray-400 mb-2 font-mono">{t ? t('appearance.user_text_color') : 'User Text Color'}</label>
+                        <div className="p-4 bg-[#111] border border-[#222] rounded-lg">
+                             <label className="block text-xs text-[#00ff00] mb-3 font-mono uppercase tracking-wider">{t ? t('appearance.user_text_color') : 'User Text Color'}</label>
                              <div className="flex items-center gap-3">
                                  <input 
                                     type="color" 
                                     value={localConfig.ui?.custom_colors?.user_text || '#00ff00'}
                                     onChange={(e) => updateUI('user_text', e.target.value)}
-                                    className="w-10 h-10 rounded cursor-pointer bg-transparent border-none"
+                                    className="w-10 h-10 rounded cursor-pointer bg-transparent border border-[#333]"
                                  />
-                                 <span className="text-xs font-mono text-gray-500">{localConfig.ui?.custom_colors?.user_text || '#00ff00'}</span>
+                                 <span className="text-xs font-mono text-gray-400 bg-black px-2 py-1 rounded">{localConfig.ui?.custom_colors?.user_text || '#00ff00'}</span>
                              </div>
                         </div>
                     </div>
                     
-                    <div className="p-4 rounded border border-[#333] bg-[#000000] space-y-2">
-                        <div className="text-xs text-gray-500 mb-2">PREVIEW / PRÉVIA</div>
-                        <div className="font-mono text-sm" style={{ color: localConfig.ui?.custom_colors?.user_text || '#00ff00' }}>
-                            Hello System.
-                        </div>
-                        <div className="font-mono text-sm" style={{ color: localConfig.ui?.custom_colors?.ai_text || '#06b6d4' }}>
-                            Hello! How can I help you today?
+                    <div className="p-6 rounded-lg border border-[#333] bg-[#050505] space-y-4">
+                        <div className="text-xs text-gray-600 font-mono tracking-widest uppercase mb-2">Live Preview</div>
+                        
+                        {/* Mock Chat */}
+                        <div className="flex flex-col gap-4">
+                            <div className="self-end max-w-[80%]">
+                                <span className="text-[10px] text-gray-600 block text-right mb-1">USER</span>
+                                <div 
+                                    className="text-sm font-mono p-3 rounded-lg bg-[#111] border border-[#222]"
+                                    style={{ color: localConfig.ui?.custom_colors?.user_text || '#00ff00' }}
+                                >
+                                    Hello System. Status report?
+                                </div>
+                            </div>
+                            
+                            <div className="self-start max-w-[80%]">
+                                <span className="text-[10px] text-gray-600 block mb-1">HEXAGENT</span>
+                                <div 
+                                    className="text-sm font-mono p-3 rounded-lg bg-[#111] border border-[#222]"
+                                    style={{ color: localConfig.ui?.custom_colors?.ai_text || '#06b6d4' }}
+                                >
+                                    System online. All modules functioning within normal parameters.
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -356,8 +224,10 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
             {/* SERVICES TAB */}
             {activeTab === 'services' && (
                 <div className="space-y-6 animate-in fade-in zoom-in-95 duration-200">
-                    <div>
-                        <h3 className="text-xs font-bold text-gray-500 mb-3 uppercase tracking-wider border-b border-[#333] pb-1">Backend Configuration</h3>
+                    <div className="p-4 bg-[#111] border border-[#222] rounded-lg">
+                        <h3 className="text-xs font-bold text-cyan-400 mb-4 uppercase tracking-wider border-b border-[#333] pb-2 flex items-center gap-2">
+                            <Server size={14} /> Backend Configuration
+                        </h3>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-xs text-gray-400 mb-1.5 font-mono">Flask Port</label>
@@ -380,8 +250,10 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
                         </div>
                     </div>
 
-                    <div>
-                        <h3 className="text-xs font-bold text-gray-500 mb-3 uppercase tracking-wider border-b border-[#333] pb-1">HexStrike Configuration</h3>
+                    <div className="p-4 bg-[#111] border border-[#222] rounded-lg">
+                        <h3 className="text-xs font-bold text-[#00ff00] mb-4 uppercase tracking-wider border-b border-[#333] pb-2 flex items-center gap-2">
+                             HexStrike Configuration
+                        </h3>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-xs text-gray-400 mb-1.5 font-mono">HexStrike Port</label>
@@ -389,21 +261,21 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
                                     type="number" 
                                     value={localConfig.services?.hexstrike_port || 8888}
                                     onChange={(e) => updateService('hexstrike_port', parseInt(e.target.value))}
-                                    className="w-full bg-black border border-[#333] rounded px-3 py-2 text-white text-sm focus:border-cyan-500 focus:outline-none font-mono"
+                                    className="w-full bg-black border border-[#333] rounded px-3 py-2 text-white text-sm focus:border-[#00ff00] focus:outline-none font-mono"
                                 />
                             </div>
                         </div>
                     </div>
                     
-                    <div>
-                        <h3 className="text-xs font-bold text-gray-500 mb-3 uppercase tracking-wider border-b border-[#333] pb-1">Shell History</h3>
+                    <div className="p-4 bg-[#111] border border-[#222] rounded-lg">
+                        <h3 className="text-xs font-bold text-indigo-400 mb-4 uppercase tracking-wider border-b border-[#333] pb-2">Shell History</h3>
                         <div className="space-y-3">
                             <div>
                                 <label className="block text-xs text-gray-400 mb-1.5 font-mono">Shell Type</label>
                                 <select
                                     value={localConfig.system?.shell_type || 'auto'}
                                     onChange={(e) => updateSystem('shell_type', e.target.value)}
-                                    className="w-full bg-black border border-[#333] rounded px-3 py-2 text-white text-sm focus:border-cyan-500 focus:outline-none font-mono"
+                                    className="w-full bg-black border border-[#333] rounded px-3 py-2 text-white text-sm focus:border-indigo-500 focus:outline-none font-mono"
                                 >
                                     <option value="auto">Auto Detect</option>
                                     <option value="zsh">ZSH</option>
@@ -417,7 +289,7 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
                                     value={localConfig.system?.shell_history_path || ''}
                                     onChange={(e) => updateSystem('shell_history_path', e.target.value)}
                                     placeholder="~/.zsh_history or ~/.bash_history"
-                                    className="w-full bg-black border border-[#333] rounded px-3 py-2 text-white text-sm focus:border-cyan-500 focus:outline-none font-mono"
+                                    className="w-full bg-black border border-[#333] rounded px-3 py-2 text-white text-sm focus:border-indigo-500 focus:outline-none font-mono"
                                 />
                                 <p className="text-[10px] text-gray-600 mt-1">Leave empty for auto-detect</p>
                             </div>
@@ -429,36 +301,44 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
             {/* SYSTEM TAB */}
             {activeTab === 'system' && (
                 <div className="space-y-6 animate-in fade-in zoom-in-95 duration-200">
-                     <div className="text-center py-4">
-                        <img src="logo.png" className="w-16 h-16 mx-auto object-contain mb-4" alt="logo" />
-                        <h3 className="text-xl font-bold text-white">HexAgent GUI</h3>
-                        <p className="text-gray-500 font-mono text-sm mt-1">v1.0.0 Alpha</p>
+                     <div className="text-center py-6 flex flex-col items-center">
+                        <div className="w-20 h-20 bg-[#111] rounded-full flex items-center justify-center border border-[#333] mb-4 shadow-lg shadow-cyan-500/10">
+                            <img src="logo.png" className="w-12 h-12 object-contain" alt="logo" />
+                        </div>
+                        <h3 className="text-2xl font-bold text-white tracking-tight">HexAgent GUI</h3>
+                        <div className="flex items-center gap-2 mt-2">
+                             <span className="px-2 py-0.5 bg-cyan-500/10 text-cyan-400 text-[10px] font-mono rounded border border-cyan-500/20">v2.1.0</span>
+                             <span className="px-2 py-0.5 bg-[#222] text-gray-400 text-[10px] font-mono rounded border border-[#333]">ALPHA</span>
+                        </div>
                         
-                        <div className="mt-4 mb-6">
-                            <p className="text-sm text-gray-300">Developer: <span className="text-[#00ff00]">Roberto Dantas de Castro</span></p>
-                            <p className="text-xs text-gray-500">Email: robertodantasdecastro@gmail.com</p>
-                            <a href="https://github.com/robertodantasdecastro/HexAgent/wiki" target="_blank" rel="noreferrer" className="text-xs text-cyan-400 hover:text-cyan-300 underline block mt-1">
-                                 GitHub Wiki
-                            </a>
+                        <div className="w-full max-w-sm h-px bg-gradient-to-r from-transparent via-[#333] to-transparent my-6"></div>
+
+                        <div className="grid grid-cols-2 gap-4 w-full max-w-lg">
+                             <div className="p-4 bg-[#111] rounded border border-[#222] text-center">
+                                 <p className="text-xs text-gray-500 uppercase tracking-widest mb-1">Developer</p>
+                                 <p className="text-sm text-white font-medium">Roberto Dantas</p>
+                             </div>
+                             <div className="p-4 bg-[#111] rounded border border-[#222] text-center">
+                                 <p className="text-xs text-gray-500 uppercase tracking-widest mb-1">Contact</p>
+                                 <p className="text-xs text-cyan-400">robertodantasdecastro@gmail.com</p>
+                             </div>
+                        </div>
+                        
+                        <div className="mt-8 p-4 bg-[#080808] border border-[#222] rounded flex flex-col items-center max-w-sm w-full">
+                            <h4 className="text-xs font-bold text-yellow-500 mb-3 uppercase tracking-wider flex items-center gap-2">
+                                <Database size={12} /> Support Project
+                            </h4>
+                            <div className="p-1 bg-white rounded mb-2">
+                                <img src="qrcode.png" className="w-24 h-24 object-contain" alt="Bitcoin QR" />
+                            </div>
+                            <code className="text-[10px] text-gray-500 font-mono bg-black px-2 py-1 rounded w-full text-center break-all border border-[#222]">
+                                bc1qekh060wjfgspgt32vclmu3fcfx9fr7jh0akuwu
+                            </code>
                         </div>
 
-                        <div className="bg-[#111] p-4 rounded border border-[#333] flex flex-col items-center max-w-sm mx-auto mb-6">
-                            <h4 className="text-xs font-bold text-yellow-500 mb-3 uppercase tracking-wider">Support the Project / Apoie o Projeto</h4>
-                            <img src="qrcode.png" className="w-32 h-32 object-contain bg-white p-1 rounded mb-3" alt="Bitcoin QR" />
-                            <div className="text-[10px] text-gray-400 font-mono break-all text-center">
-                                BTC: bc1qekh060wjfgspgt32vclmu3fcfx9fr7jh0akuwu
-                            </div>
-                            <div className="text-[10px] text-gray-400 font-mono break-all text-center mt-2">
-                                PIX: robertodantasdecastro@gmail.com
-                            </div>
-                        </div>
-
-                        <div className="p-4 bg-[#111] rounded border border-[#333] text-left text-xs font-mono text-gray-400 space-y-2">
-                            <div className="flex justify-between"><span>Electron:</span> <span>v33.2.1</span></div>
-                            <div className="flex justify-between"><span>Chrome:</span> <span>v130.0.6723.137</span></div>
-                            <div className="flex justify-between"><span>Node:</span> <span>v20.18.1</span></div>
-                            <div className="flex justify-between"><span>V8:</span> <span>v13.0.245.17-electron.0</span></div>
-                            <div className="flex justify-between"><span>Platform:</span> <span>Linux arm64</span></div>
+                        <div className="mt-8 text-[10px] text-gray-600 font-mono">
+                            <p>Electron: v33.2.1 | Chrome: v130 | Node: v20.18.1</p>
+                            <p>Platform: Linux arm64</p>
                         </div>
                      </div>
                 </div>
@@ -467,23 +347,22 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-[#333] bg-[#0a0a0a] flex justify-end gap-3">
+        <div className="p-4 border-t border-[#333] bg-[#0a0a0a] flex justify-end gap-3 rounded-b-lg">
             <button 
                 onClick={onClose}
-                className="px-4 py-2 text-xs font-bold text-gray-400 hover:text-white transition-colors"
+                className="px-4 py-2 text-sm font-mono text-gray-400 hover:text-white transition-colors"
             >
                 {t ? t('settings.cancel') : 'CANCEL'}
             </button>
             <button 
                 onClick={handleSave}
-                className="px-6 py-2 bg-[#00ff00] text-black text-xs font-bold rounded hover:bg-[#00cc00] transition-colors flex items-center gap-2"
+                className="px-6 py-2 bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 text-sm font-mono font-bold rounded hover:bg-cyan-500/20 transition-all flex items-center gap-2"
             >
-                <Save size={14} /> {t ? t('settings.save') : 'SAVE SETTINGS'}
+                <Save size={16} /> {t ? t('settings.save') : 'SAVE CONFIGURATION'}
             </button>
         </div>
 
       </div>
-      </Draggable>
     </div>
   );
 };

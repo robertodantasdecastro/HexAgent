@@ -181,7 +181,7 @@ const App = () => {
          style={{ '--primary-color': colors.primary || '#00ff00' }}>
       
       {/* 1. Header Bar - Draggable Region */}
-      <header className="flex-none bg-[#0a0a0a] border-b border-[#333] px-4 py-3 flex items-center justify-between shadow-md z-10" style={{ WebkitAppRegion: 'drag' }}>
+      <header className="flex-none bg-[#0a0a0a] border-b border-[#333] pl-4 pr-[140px] h-[50px] flex items-center justify-between shadow-md z-10" style={{ WebkitAppRegion: 'drag' }}>
         <div className="flex items-center gap-3">
           <div className="relative group cursor-pointer" onClick={() => window.location.reload()} style={{ WebkitAppRegion: 'no-drag' }}>
              <Cpu className={`h-6 w-6 ${status === 'ONLINE' ? 'text-green-500 animate-pulse-slow' : 'text-red-500'}`} />
@@ -274,7 +274,7 @@ const App = () => {
         </div>
 
         {/* 3. Input Area */}
-        <div className="flex-none p-4 bg-[#0a0a0a] border-t border-[#333]"> 
+        <div className="flex-none p-4 bg-[#0a0a0a] border-t border-[#333] z-30 relative"> 
             <div className="max-w-4xl mx-auto relative group">
                 {/* Input Mode Toggle */}
                 <div className="absolute -top-8 left-0 flex gap-1">
@@ -305,7 +305,11 @@ const App = () => {
                          inputMode === 'command' ? manualExecute(input) && setInput('') : handleSend();
                        }
                      }}
-                     placeholder={inputMode === 'prompt' ? t('input.placeholder_ai') : t('input.placeholder_cmd')}
+                     placeholder={
+                       status === 'OFFLINE' ? "⚠️ System Offline (Backend Disconnected)" :
+                       isLoading ? "Generating response..." :
+                       inputMode === 'prompt' ? t('input.placeholder_ai') : t('input.placeholder_cmd')
+                     }
                      className="flex-1 bg-transparent border-none text-gray-200 p-3 max-h-32 focus:ring-0 resize-none font-mono text-sm placeholder-gray-600"
                      rows={1}
                      disabled={isLoading || status === 'OFFLINE'}
