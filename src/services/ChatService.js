@@ -331,8 +331,15 @@ class ChatService extends BaseService {
    * Notificar todos os handlers de mensagem
    * @private
    */
+  /**
+   * Notify all message handlers
+   * Notificar todos os handlers de mensagem
+   * @private
+   */
   #notifyMessage(chunk) {
-    this.#messageHandlers.forEach(handler => {
+    // Iterate over a copy to prevent issues if handlers unsubscribe during iteration
+    // Iterar sobre uma cópia para evitar problemas se handlers desinscreverem durante iteração
+    [...this.#messageHandlers].forEach(handler => {
       try {
         handler(chunk);
       } catch (error) {
@@ -347,7 +354,7 @@ class ChatService extends BaseService {
    * @private
    */
   #notifyError(error) {
-    this.#errorHandlers.forEach(handler => {
+    [...this.#errorHandlers].forEach(handler => {
       try {
         handler(error);
       } catch (err) {
@@ -362,7 +369,7 @@ class ChatService extends BaseService {
    * @private
    */
   #notifyComplete(metadata) {
-    this.#completeHandlers.forEach(handler => {
+    [...this.#completeHandlers].forEach(handler => {
       try {
         handler(metadata);
       } catch (error) {

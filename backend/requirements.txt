@@ -1,5 +1,6 @@
 flask
 flask-cors
+pytest
 python-dotenv
 requests
 textual>=0.70.0

@@ -106,49 +106,19 @@ Always respond in the same language as the user's input.
              return
 
         # Add user message to history
+        # Adiciona mensagem do usuário ao histórico
         self.history.append({"role": "user", "content": user_input})
-        
-        # Construct prompt from history (for providers that don't support history natively, 
-        # but our strategies assume single prompt usually, or we need to pass full history?
-        # Strategies like OpenAI/Claude handle arrays. 
-        # But our Strategy Interface 'chat_step' takes a 'prompt' string currently in BaseStrategy.
-        # We should update strategies to accept messages OR we concatenate history for now.)
-        
-        # Refactoring Note: BaseStrategy `chat_step` signature is `chat_step(prompt: str)`.
-        # Real implementation should ideally take messages. 
-        # For now, to keep it compatible with existing strategies, we will pass the Full History as prompt 
-        # OR update the provider interface. 
-        # Given OpenAIStrategy implementation `messages=[{"role": "user", "content": prompt}]`, it doesn't utilize history yet.
-        # To fix memory, we need to pass history.
-        
-        # For this refactor, let's assume we pass the latest prompt and let the strategy/provider handle context 
-        # OR we concat. 
-        # Best approach: Pass the full context. But strategies expect 'prompt'.
-        # Let's pass the raw user input to `chat_step` for now, assuming stateless or short-memory 
-        # OR relying on the provider to manage it? No, REST APIs are stateless. 
-        # We MUST send history.
-        
-        # FIX: We will modify the strategies to accept a prompt, but we really should be passing messages.
-        # For now, I will modify the 'prompt' argument to be the full conversation formatted as string 
-        # if the strategy assumes valid text completion, OR if the strategy is smart (like OpenAI), 
-        # we really should upgrade the interface.
-        
-        # However, to avoid breaking everything, I will format the history into a string prompt 
-        # for simplicity in this step, or just pass the last message if context isn't critical right now.
-        # The user wants a "Review".
-        
-        # Let's stick to passing the latest prompt, but keeping internal history.
-        # If we want context, we need to change Strategy Interface to accept `messages`.
-        # I will stick to `chat_step(prompt)` for now.
         
         try:
             full_content = ""
             # Delegate to provider
+            # Delegar ao provedor
             for chunk in self.provider.chat_step(user_input):
                  full_content += chunk
                  yield chunk
             
             # Add assistant response to history
+            # Adiciona resposta do assistente ao histórico
             self.history.append({"role": "assistant", "content": full_content})
             
         except Exception as e:
@@ -157,12 +127,18 @@ Always respond in the same language as the user's input.
             yield error_msg
     
     def chat_step(self, prompt: str) -> Generator[str, None, None]:
-        """Compatibility wrapper"""
+        """
+        Compatibility wrapper
+        Wrapper de compatibilidade
+        """
         for chunk in self.chat(prompt, stream=True):
             yield chunk
             
     def reset(self):
-        """Reset conversation history"""
+        """
+        Reset conversation history
+        Reinicia histórico de conversa
+        """
         self.history = [
             {"role": "system", "content": self.system_prompt}
         ]

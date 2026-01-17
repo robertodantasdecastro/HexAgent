@@ -54,7 +54,7 @@ const useBackendInit = () => {
         const data = await api.get('/status');
         if (!isMounted.current) return;
 
-        if (data.status === 'ok' || data.alive) {
+        if (data.status === 'ok' || data.status === 'healthy' || data.alive) {
           setStatus('ONLINE');
           setServiceStatus({
             flask: true,

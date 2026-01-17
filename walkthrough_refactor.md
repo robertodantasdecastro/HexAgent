@@ -21,17 +21,42 @@ Grande refatoração arquitetural para impor princípios de POO, centralizar ló
     - `AgentCore` delegates automated actions to Dispatcher.
     - `ChatController` delegates manual `/execute` actions to Dispatcher.
 
-## 3. Legacy Cleanup / Limpeza de Legado
+## 3. Frontend Optimization
+**Goal:** Fix race conditions and improve stability.
+**Changes:**
+- **`ChatService.js`:** Fixed Observer pattern race condition during unsubscribe (iterating over copy).
+- **`useChatManager.js`:** Added `isMounted` ref to prevent state updates on unmounted components.
+
+## 4. Initialization Sequence / Sequência de Inicialização
+**Goal:** Enforce startup order and clean shutdown.
+**Changes:**
+- **`start.sh`:** Updated sequence: Venv -> HexStrike (8888) -> Backend (5000) -> Frontend.
+- **Trap:** Added `trap cleanup EXIT` to ensure both Backend and HexStrike are killed when Frontend closes.
+
+## 5. Security & Firewall Configuration / Configuração de Segurança e Firewall
+**Goal:** Restrict access to ports 5000 and 8888 to localhost only.
+**Changes:**
+- **`app.py`:** Changed Flask bind address from `0.0.0.0` to `127.0.0.1`.
+- **`start.sh`:** Added export `HEXSTRIKE_HOST="127.0.0.1"` to enforce local binding for the AI engine.
+
+## 6. Bilingual Standardization
+**Goal:** Ensure 100% Eng/PT-BR comments.
+**Changes:**
+- **`hex_brain.py`:** Translated remaining monolingual comments.
+- **`inference_engine.py`:** Verified bilingual compliance.
+
+## 5. Legacy Cleanup / Limpeza de Legado
 **Goal:** Remove unused code.
 **Changes:**
 - **Deleted:** `backend/config_loader.py` (Redundant with `ConfigService`).
 - **Verified:** `SystemController` endpoints (`/shutdown`, `/health`) are robust.
 
-## 4. Verification steps / Passos de Verificação
-1.  **Rebuild:** Run `./install.sh` to rebuild dependencies (if new deps added - none here, but good practice).
+## 6. Verification steps / Passos de Verificação
+1.  **Rebuild:** Run `./install.sh` to rebuild dependencies.
 2.  **Start:** Run `./start.sh`.
-3.  **Test Manual Command:** In CLI mode, try `ls -la`. It should work via `/execute` -> `Dispatcher` -> `Executor` -> `HexStrike`.
-4.  **Test Agent Command:** Ask AI to "Check system uptime". It should propose and execute `uptime`.
+3.  **Test Chat:** Send a message and quickly navigate away (simulate unmount) -> check logs for errors (should be clean).
+4.  **Test Manual Command:** In CLI mode, try `ls -la`. It should work via `/execute` -> `Dispatcher`.
+
 
 ## Architecture Update / Atualização de Arquitetura
 ```mermaid

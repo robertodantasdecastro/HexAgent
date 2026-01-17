@@ -11,7 +11,7 @@
  * @author Roberto Dantas de Castro
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import ChatService from '../services/ChatService';
 import Logger from '../utils/Logger';
 
@@ -114,6 +114,14 @@ const useChatManager = (api, aiConfig) => {
     }]);
   }, [chatService]);
 
+  // Track mount status / Rastrear status de montagem
+  const isMounted = useRef(true);
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => { isMounted.current = false; };
+  }, []);
+
   // ========================================================================
   // ChatService Subscriptions
   // ========================================================================
@@ -122,6 +130,8 @@ const useChatManager = (api, aiConfig) => {
     logger.info('Setting up ChatService event handlers in useChatManager');
 
     const unsubMessage = chatService.onMessage((chunk) => {
+      if (!isMounted.current) return;
+      
       const { type, content, metadata } = chunk;
 
       switch (type) {
@@ -176,6 +186,7 @@ const useChatManager = (api, aiConfig) => {
     });
 
     const unsubError = chatService.onError((error) => {
+      if (!isMounted.current) return;
       logger.error('Chat error received', { error });
       setBlocks(prev => [...prev, {
         id: Date.now(),
@@ -187,6 +198,7 @@ const useChatManager = (api, aiConfig) => {
     });
 
     const unsubComplete = chatService.onComplete((metadata) => {
+      if (!isMounted.current) return;
       logger.info('Chat complete received', { metadata });
       setLoading(false);
       setBlocks(prev => {

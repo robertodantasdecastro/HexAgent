@@ -317,7 +317,7 @@ if __name__ == '__main__':
 
     app = create_app()
     app.run(
-        host='0.0.0.0',
+        host='127.0.0.1',  # Localhost only / Somente local (Firewall Security)
         port=5000,
         debug=False,
         threaded=True
