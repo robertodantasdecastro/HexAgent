@@ -11,10 +11,10 @@ import WorkflowManagerModal from './components/WorkflowManagerModal';
 import Block from './components/chat/Block';
 import useAIConfig from './hooks/useAIConfig';
 import useBackendInit from './hooks/useBackendInit';
+import useChatManager from './hooks/useChatManager';
 import useModalState from './hooks/useModalState';
 import useSystemConfig from './hooks/useSystemConfig';
 import { useTranslation } from './hooks/useTranslation';
-import ChatService from './services/ChatService';
 import SessionService from './services/SessionService';
 import APIClient from './utils/APIClient';
 import Logger from './utils/Logger';
@@ -23,7 +23,6 @@ const App = () => {
   // Service Instances / Instâncias de Serviço
   const api = APIClient.getInstance();
   const sessionService = SessionService.getInstance();
-  const chatService = ChatService.getInstance();
   const logger = Logger.getInstance();
 
   // Unified Backend Initialization Hook / Hook Unificado de Inicialização Backend
@@ -37,359 +36,93 @@ const App = () => {
     serviceStatus
   } = useBackendInit();
 
-  // State for Blocks (Chat History)
-  const [blocks, setBlocks] = useState([]); // Start empty
-  const [input, setInput] = useState('');
-  const [isLoading, setLoading] = useState(false);
-  const [inputMode, setInputMode] = useState('prompt'); // 'prompt' | 'command'
-  const [autoScroll, setAutoScroll] = useState(true);
-
-  // Configuration State (OOP with ConfigManager) / Estado de Configuração (POO com ConfigManager)
-  // Use SEPARATED config hooks / Usar hooks de config SEPARADOS
+  // Configuration State / Estado de Configuração
   const {
     systemConfig,
     loading: systemLoading,
-    error: systemError,
     saveSystemConfig
   } = useSystemConfig();
 
   const {
     aiConfig,
     loading: aiLoading,
-    error: aiError,
-    updateAIConfig,
     saveAIConfig,
-    updateAndSave  // Atomic update+save
   } = useAIConfig();
 
-  // Combined loading state / Estado de carregamento combinado
-  const configLoading = systemLoading || aiLoading;
-  const configError = systemError || aiError;
+  // Chat Manager Hook (The Core Refactor!)
+  // Hook de Gerenciamento de Chat (A Refatoração Principal!)
+  const {
+    blocks,
+    setBlocks,
+    isLoading,
+    inputMode,
+    setInputMode,
+    autoScroll,
+    setAutoScroll,
+    showIterationLimitReached,
+    sendMessage,
+    manualExecute,
+    stopGeneration
+  } = useChatManager(api, aiConfig);
+
+  const [input, setInput] = useState('');
   const scrollRef = useRef(null);
+  const bottomRef = useRef(null);
 
   // Translation Hook / Hook de Tradução
   const { t, language, setLanguage } = useTranslation();
   
-  // SIMPLIFIED iteration state - local first, save later (debounced)
-  // Estado de iteração SIMPLIFICADO - local primeiro, salvar depois (debounced)
-  const [maxIterations, setMaxIterations] = useState(10);
-  const [unlimitedIterations, setUnlimitedIterations] = useState(false);
-  
-  // Load from aiConfig once on mount
-  // Carregar do aiConfig uma vez ao montar
-  useEffect(() => {
-    if (aiConfig?.ai) {
-      setMaxIterations(aiConfig.ai.max_iterations || 10);
-      setUnlimitedIterations(aiConfig.ai.unlimited_iterations || false);
-    }
-  }, [aiConfig?.ai?.max_iterations, aiConfig?.ai?.unlimited_iterations]);
-  
-  // Debounced save to backend (1 second after user stops clicking)
-  // Salvamento debounced no backend (1 segundo após usuário parar de clicar)
-  useEffect(() => {
-    if (!aiConfig) return;
-    
-    const timer = setTimeout(() => {
-      const updated = {
-        ...aiConfig,
-        ai: {
-          ...aiConfig.ai,
-          max_iterations: maxIterations,
-          unlimited_iterations: unlimitedIterations
-        }
-      };
-      logger.debug('[App] Saving iterations to backend (debounced)...', {maxIterations, unlimitedIterations});
-      saveAIConfig(updated);
-    }, 1000); // 1 second debounce
-    
-    return () => clearTimeout(timer);
-  }, [maxIterations, unlimitedIterations]); // Only local state dependencies
+  // Derived AI Settings
+  const maxIterations = aiConfig?.ai?.max_iterations || 10;
+  const unlimitedIterations = aiConfig?.ai?.unlimited_iterations || false;
+  const [autoExecute, setAutoExecute] = useState(false);
 
-  // Sync language from systemConfig to TranslationManager
-  // Sincronizar idioma do systemConfig para TranslationManager
+  // Sync language
   useEffect(() => {
     if (systemConfig?.system?.language && systemConfig.system.language !== language) {
-      logger.debug('Syncing language from systemConfig', { 
-        from: language, 
-        to: systemConfig.system.language 
-      });
       setLanguage(systemConfig.system.language);
     }
   }, [systemConfig?.system?.language, language, setLanguage]);
 
-  // History State
-  const [historyIndex, setHistoryIndex] = useState(-1);
-  const [promptHistory, setPromptHistory] = useState([]); 
-
-  // UI State - Unified modal management with useModalState hook
-  // Estado de UI - Gerenciamento unificado de modais com hook useModalState
+  // UI State - Modals
   const settingsModal = useModalState();
   const helpModal = useModalState();
   const sessionModal = useModalState();
   const servicesModal = useModalState();
   const workflowModal = useModalState();
   const shutdownModal = useModalState();
-  const aiConfigModal = useModalState(); // New AI Config modal / Novo modal de config de IA
+  const aiConfigModal = useModalState();
   const [currentSessionName, setCurrentSessionName] = useState('');
 
-  // UI Enhancements State / Estados de Melhorias de UI
-  const [autoExecute, setAutoExecute] = useState(false); // Default false for safety
-  
-  // Iteration tracking
-  const [currentIteration, setCurrentIteration] = useState(0); // Current iteration count
-  const [showIterationLimitReached, setShowIterationLimitReached] = useState(false);
-  
-  // Refs for preventing memory leaks / Refs para prevenir vazamentos de memória
-  const abortControllerRef = useRef(null);
-  const bottomRef = useRef(null);
-
-  // Stop Generation Function / Função de Parar Geração
-  const stopGeneration = () => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
-      setLoading(false);
-      // Add cancellation block
-      setBlocks(prev => [...prev, {
-        id: Date.now(),
-        type: 'agent',
-        content: '⚠️ Generation stopped by user. / Geração interrompida pelo usuário.',
-        timestamp: new Date().toLocaleTimeString()
-      }]);
-    }
-  };
-
-  // Auto-Save Session using SessionService / Salvar Sessão Automaticamente usando SessionService
+  // Auto-Save Session
   useEffect(() => {
     if (blocks.length === 0) return;
-    sessionService.autoSave(blocks, 2000); // 2s debounce
-
+    sessionService.autoSave(blocks, 2000);
     return () => sessionService.clearAutoSaveTimer();
   }, [blocks, sessionService]);
 
-  // Auto-Save Session on window close / Salvar Sessão Automaticamente ao fechar a janela
+  // Auto-Save on Close
   useEffect(() => {
-    const handleBeforeUnload = async (e) => {
+    const handleBeforeUnload = async () => {
       if (blocks.length > 0) {
-        logger.info('Saving session before close');
-        try {
-          await api.post('/save_session', {
-            name: 'auto-save-' + Date.now(),
-            blocks
-          });
-        } catch (error) {
-          logger.error('AutoSave failed', { error });
-        }
+        await sessionService.saveBeforeClose(blocks);
       }
     };
-
     window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, [blocks, api]); // Depend on blocks and api
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [blocks, sessionService]);
 
-  // ========================================================================
-  // ChatService SSE Event Handlers Setup
-  // Configuração de Event Handlers SSE do ChatService
-  // ========================================================================
-  
-  useEffect(() => {
-    // Setup ChatService event listeners / Configurar event listeners do ChatService
-    logger.info('Setting up ChatService event handlers');
-
-    // Handle incoming message chunks / Tratar chunks de mensagem recebidos
-    const unsubMessage = chatService.onMessage((chunk) => {
-      const { type, content, metadata } = chunk;
-
-      switch (type) {
-        case 'text':
-          // Append AI text to last block or create new block
-          setBlocks(prev => {
-            const lastBlock = prev[prev.length - 1];
-            
-            if (lastBlock && lastBlock.type === 'agent' && !lastBlock.completed) {
-              return prev.map((block, idx) => 
-                idx === prev.length - 1
-                  ? { ...block, content: block.content + content }
-                  : block
-              );
-            } else {
-              return [...prev, {
-                id: Date.now(),
-                type: 'agent',
-                content,
-                timestamp: new Date().toLocaleTimeString(),
-                completed: false
-              }];
-            }
-          });
-          break;
-
-        case 'command_proposal':
-          setBlocks(prev => {
-            // Check if command is already proposed to avoid dupes
-            const lastBlock = prev[prev.length - 1];
-            if (lastBlock && lastBlock.type === 'proposal' && lastBlock.content === content) {
-              return prev;
-            }
-             return [...prev, {
-              id: Date.now(),
-              type: 'proposal',
-              content,
-              timestamp: new Date().toLocaleTimeString(),
-              executed: false
-            }];
-          });
-          break;
-
-        case 'command_result':
-           setBlocks(prev => {
-             // Find last proposal and mark executed
-             // Could be improved with IDs logic
-             return [...prev, {
-              id: Date.now(),
-              type: 'SHELL',
-              content: content || '', // Ensure valid string
-              timestamp: new Date().toLocaleTimeString(),
-              result: metadata
-            }];
-           });
-          break;
-      }
-    });
-
-    // Handle errors / Tratar erros
-    const unsubError = chatService.onError((error) => {
-      logger.error('Chat error received', { error });
-      setBlocks(prev => [...prev, {
-        id: Date.now(),
-        type: 'agent',
-        content: `❌ Error: ${error.message} / Erro: ${error.message}`,
-        timestamp: new Date().toLocaleTimeString()
-      }]);
-      setLoading(false);
-    });
-
-    // Handle completion / Tratar conclusão
-    const unsubComplete = chatService.onComplete((metadata) => {
-      logger.info('Chat complete received', { metadata });
-      setLoading(false);
-      setBlocks(prev => {
-        const lastBlock = prev[prev.length - 1];
-        if (lastBlock && lastBlock.type === 'agent') {
-          return prev.map((block, idx) => 
-            idx === prev.length - 1
-              ? { ...block, completed: true }
-              : block
-          );
-        }
-        return prev;
-      });
-
-      // Show iteration limit warn if applicable
-      if (metadata && metadata.stopped_early && metadata.iterations >= metadata.max_iterations) {
-         setShowIterationLimitReached(true);
-         setBlocks(prev => [...prev, {
-            id: Date.now(),
-            type: 'limit_prompt',
-            timestamp: new Date().toLocaleTimeString()
-         }]);
-      }
-    });
-
-    return () => {
-      logger.info('Cleaning up ChatService handlers');
-      unsubMessage();
-      unsubError();
-      unsubComplete();
-    };
-  }, [chatService, logger]);
-
-
-  // Handler: Send Message / Handler: Enviar Mensagem
+  // Handler: Send Message
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
-
     const prompt = input;
     setInput('');
-    setPromptHistory(prev => [prompt, ...prev]);
-    setHistoryIndex(-1);
-    setLoading(true);
-    setShowIterationLimitReached(false);
-
-    // Add User Block
-    setBlocks(prev => [...prev, {
-      id: Date.now(),
-      type: 'user',
-      content: prompt,
-      timestamp: new Date().toLocaleTimeString()
-    }]);
-
-    try {
-      const context = blocks.map(b => ({
-        role: b.type === 'user' ? 'user' : 'assistant',
-        content: b.content
-      }));
-
-      await chatService.sendMessage(prompt, context, {
-        autoExecute,
-        maxIterations: unlimitedIterations ? 100 : maxIterations,
-        stream: true
-      });
-      
-    } catch (error) {
-       // Handled by onError listener
-    }
+    await sendMessage(prompt, autoExecute, unlimitedIterations, maxIterations);
   };
 
-  // Handler: Execute Command (Manual) / Handler: Executar Comando (Manual)
-  const handleExecute = async (cmd) => {
-    // Add pending SHELL block
-    setBlocks(prev => {
-      // Mark proposal as executed
-      const updated = prev.map(b => 
-        b.type === 'proposal' && b.content === cmd 
-          ? { ...b, executed: true } 
-          : b
-      );
-      
-      return updated;
-    });
-
-    try {
-      const res = await api.post('/execute', { command: cmd });
-      // Result handled via chatService integration or direct response? 
-      // Architecture calls for unified flow, but manual execution implies direct API call.
-      // For consistency, we can add the block manually here if not streaming.
-      
-      setBlocks(prev => [...prev, {
-        id: Date.now(),
-        type: 'SHELL',
-        content: res.output,
-        timestamp: new Date().toLocaleTimeString(),
-        result: {
-            success: res.success,
-            exit_code: res.exit_code
-        }
-      }]);
-
-    } catch (e) {
-      setBlocks(prev => [...prev, {
-        id: Date.now(),
-        type: 'SHELL',
-        content: `Execution failed: ${e.message}`,
-        timestamp: new Date().toLocaleTimeString()
-      }]);
-    }
-  };
-
-
-  // Handler: Continue Iteration / Handler: Continuar Iteração
-  const handleContinue = (steps) => {
-      // Logic to resume chat loop
+  // Handler: Continue
+  const handleContinue = () => {
       alert("Feature Pending: Resume Chat Loop logic not fully implemented in frontend-backend bridge.");
-      setShowIterationLimitReached(false);
   }
 
   // Auto-scroll
@@ -399,6 +132,35 @@ const App = () => {
     }
   }, [blocks, autoScroll]);
 
+  // Shutdown Handler (Corrected)
+  // Memoized to prevent re-renders in children
+  const handleShutdownComplete = () => {
+    try {
+        const { ipcRenderer } = window.require('electron');
+        ipcRenderer.send('app-ready-to-quit');
+    } catch (e) {
+        console.error("IPC Shutdown failed", e);
+        window.close(); // Fallback
+    }
+  };
+
+  // Listen for shutdown request from Main
+  useEffect(() => {
+    let removeListener = () => {};
+    try {
+        const { ipcRenderer } = window.require('electron');
+        const handleCloseReq = () => {
+             shutdownModal.open();
+        };
+        ipcRenderer.on('app-close-requested', handleCloseReq);
+        removeListener = () => {
+             ipcRenderer.removeListener('app-close-requested', handleCloseReq);
+        };
+    } catch (e) {
+        // Not in electron or context isolation issue
+    }
+    return removeListener;
+  }, [shutdownModal.open]); // Only depend on the stable 'open' function
 
   if (isInitializing) {
     return (
@@ -407,28 +169,27 @@ const App = () => {
         initStatus={initStatus}
         error={initError}
         onRetry={() => window.location.reload()}
-        onContinue={() => setIsInitializing(false)} // This requires exposing setIsInitializing or similar
+        onContinue={() => setIsInitializing(false)}
       />
     );
   }
 
-  // Use Theme Colors / Usar Cores do Tema
   const colors = systemConfig?.theme?.colors || {};
 
   return (
     <div className={`flex flex-col h-screen text-gray-200 font-sans ${systemConfig?.theme?.mode === 'dark' ? 'bg-[#050505]' : 'bg-gray-900'}`}
          style={{ '--primary-color': colors.primary || '#00ff00' }}>
       
-      {/* 1. Header Bar / Barra de Cabeçalho */}
-      <header className="flex-none bg-[#0a0a0a] border-b border-[#333] px-4 py-3 flex items-center justify-between shadow-md z-10">
+      {/* 1. Header Bar - Draggable Region */}
+      <header className="flex-none bg-[#0a0a0a] border-b border-[#333] px-4 py-3 flex items-center justify-between shadow-md z-10" style={{ WebkitAppRegion: 'drag' }}>
         <div className="flex items-center gap-3">
-          <div className="relative group cursor-pointer" onClick={() => window.location.reload()}>
+          <div className="relative group cursor-pointer" onClick={() => window.location.reload()} style={{ WebkitAppRegion: 'no-drag' }}>
              <Cpu className={`h-6 w-6 ${status === 'ONLINE' ? 'text-green-500 animate-pulse-slow' : 'text-red-500'}`} />
              <div className="absolute -bottom-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-black"></div>
           </div>
           <div>
             <h1 className="font-bold text-lg tracking-tight bg-gradient-to-r from-green-400 to-cyan-500 bg-clip-text text-transparent">
-              HexAgent <span className="text-xs font-mono opacity-70 text-gray-400">v2.0</span>
+              HexAgent <span className="text-xs font-mono opacity-70 text-gray-400">v2.1</span>
             </h1>
             <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider font-mono">
                <span className={status === 'ONLINE' ? 'text-green-500' : 'text-red-500'}>{status}</span>
@@ -438,8 +199,8 @@ const App = () => {
           </div>
         </div>
 
-        {/* Action Buttons / Botões de Ação */}
-        <div className="flex items-center gap-2">
+        {/* Action Buttons - No Drag */}
+        <div className="flex items-center gap-2" style={{ WebkitAppRegion: 'no-drag' }}>
             <button
             onClick={servicesModal.open}
             className={`p-2 rounded hover:bg-[#1a1a1a] transition ${serviceStatus.brain ? 'text-green-400' : 'text-gray-500'}`}
@@ -454,7 +215,6 @@ const App = () => {
             title={t('header.ai_config')}
           >
             <Cpu size={18} />
-             {/* Indicator dot if AI settings differ from default */}
              {maxIterations !== 10 && <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-yellow-500 rounded-full"></span>}
           </button>
 
@@ -476,7 +236,7 @@ const App = () => {
         </div>
       </header>
 
-      {/* 2. Main Content Area / Área de Conteúdo Principal */}
+      {/* 2. Main Content Area */}
       <main className="flex-1 overflow-hidden relative flex flex-col">
         {status === 'OFFLINE' && (
            <div className="absolute top-0 left-0 right-0 bg-red-900/20 border-b border-red-500/20 p-2 text-center text-xs text-red-400 font-mono z-20">
@@ -484,7 +244,7 @@ const App = () => {
            </div>
         )}
 
-        {/* Chat Scroll Area / Área de Rolagem do Chat */}
+        {/* Chat Scroll Area */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-transparent" ref={scrollRef}>
           {blocks.length === 0 ? (
              <div className="h-full flex flex-col items-center justify-center text-gray-600 space-y-4 opacity-50">
@@ -501,19 +261,19 @@ const App = () => {
                 {...block}
                 isLast={index === blocks.length - 1}
                 isLoading={isLoading}
-                onExecute={handleExecute} // Pass manual execution handler
+                onExecute={manualExecute}
                 onContinue={handleContinue}
                 executed={block.executed}
                 colors={colors}
                 t={t}
-                aiConfig={aiConfig} // Pass config for limits
+                aiConfig={aiConfig}
               />
             ))
           )}
           <div ref={bottomRef} />
         </div>
 
-        {/* 3. Input Area / Área de Input */}
+        {/* 3. Input Area */}
         <div className="flex-none p-4 bg-[#0a0a0a] border-t border-[#333]"> 
             <div className="max-w-4xl mx-auto relative group">
                 {/* Input Mode Toggle */}
@@ -524,7 +284,7 @@ const App = () => {
                         onClick={() => setInputMode(mode)}
                         className={`text-xs px-3 py-1 rounded-t border-t border-x ${inputMode === mode ? 'bg-[#1a1a1a] border-[#333] text-green-400' : 'bg-transparent border-transparent text-gray-500 hover:text-gray-300'}`}
                       >
-                         {mode === 'prompt' ? 'AI Chat' : 'Shell Cmd'}
+                         {mode === 'prompt' ? t('input.mode.chat') : t('input.mode.prompt')}
                       </button>
                    ))}
                 </div>
@@ -542,7 +302,7 @@ const App = () => {
                      onKeyDown={(e) => {
                        if (e.key === 'Enter' && !e.shiftKey) {
                          e.preventDefault();
-                         handleSend();
+                         inputMode === 'command' ? manualExecute(input) && setInput('') : handleSend();
                        }
                      }}
                      placeholder={inputMode === 'prompt' ? t('input.placeholder_ai') : t('input.placeholder_cmd')}
@@ -557,7 +317,7 @@ const App = () => {
                             <Pause size={18} />
                          </button>
                       ) : (
-                         <button onClick={handleSend} disabled={!input.trim()} className="p-2 text-green-500 hover:bg-white/5 disabled:opacity-30 rounded-full transition-all">
+                         <button onClick={() => inputMode === 'command' ? manualExecute(input) && setInput('') : handleSend()} disabled={!input.trim()} className="p-2 text-green-500 hover:bg-white/5 disabled:opacity-30 rounded-full transition-all">
                             <Send size={18} />
                          </button>
                       )}
@@ -613,6 +373,7 @@ const App = () => {
         onSave={async (name) => {
            await sessionService.saveSession(name, blocks);
            setCurrentSessionName(name);
+           sessionModal.close();
         }}
       />
 
@@ -624,7 +385,10 @@ const App = () => {
 
       <HelpModal isOpen={helpModal.isOpen} onClose={helpModal.close} />
       <WorkflowManagerModal isOpen={workflowModal.isOpen} onClose={workflowModal.close} />
-      <ShutdownModal isOpen={shutdownModal.isOpen} onClose={shutdownModal.close} />
+      <ShutdownModal 
+        isOpen={shutdownModal.isOpen} 
+        onShutdownComplete={handleShutdownComplete}
+      />
     </div>
   );
 };

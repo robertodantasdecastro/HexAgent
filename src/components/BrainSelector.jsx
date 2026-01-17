@@ -8,6 +8,7 @@
 
 import { AlertCircle, Check, Download, ExternalLink, RefreshCw, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import APIClient from '../utils/APIClient';
 
 const BrainSelector = ({ onBrainChange, currentBrain }) => {
   const [brains, setBrains] = useState(null);
@@ -31,10 +32,11 @@ const BrainSelector = ({ onBrainChange, currentBrain }) => {
   const loadBrainDefinitions = async () => {
     try {
       // Try loading from backend first / Tentar carregar do backend primeiro
-      const response = await fetch('http://localhost:5000/config/user/ai/brains');
-      if (response.ok) {
-        const data = await response.json();
-        setBrains(data);
+      const api = APIClient.getInstance();
+      const result = await api.get('/config/user/ai/brains');
+      
+      if (result) { // APIClient returns data or throws
+        setBrains(result);
       } else {
         // Fallback to fetch from template file
         const templateResponse = await fetch('/config_templates/ai/brains.json');

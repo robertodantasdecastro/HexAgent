@@ -18,6 +18,18 @@
         "shutdown": "Shutdown",
         "optional": "Optional"
     },
+    "header": {
+        "no_session": "NO SESSION",
+        "services": "Services",
+        "ai_config": "AI Configuration",
+        "workflows": "Workflows",
+        "sessions": "Sessions",
+        "settings": "Settings",
+        "help": "Help"
+    },
+    "welcome": {
+        "ready": "HexAgent Ready. Connect a Brain to start."
+    },
     "nav": {
         "history": "History",
         "services": "Services",
@@ -37,6 +49,8 @@
     },
     "input": {
         "placeholder": "Type your request here...",
+        "placeholder_ai": "Ask the AI Agent...",
+        "placeholder_cmd": "Enter shell command...",
         "analyzing": "Analyzing...",
         "generating": "Generating...",
         "send": "Send Message",

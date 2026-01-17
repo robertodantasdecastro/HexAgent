@@ -1,6 +1,7 @@
 import { AlertTriangle, CheckCircle, ChevronDown, ChevronRight, Copy, Loader, RefreshCw, Terminal, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from '../hooks/useTranslation';
+import APIClient from '../utils/APIClient';
 
 /**
  * LoadingScreen Component
@@ -14,6 +15,10 @@ import { useTranslation } from '../hooks/useTranslation';
 const LoadingScreen = ({ initStatus, progress, error, onRetry, onContinue }) => {
   const { t } = useTranslation();
   const [showDetails, setShowDetails] = useState(false);
+
+  // ... (getStatusIcon and getStatusColor omitted but kept due to EndLine targeting)
+  // Re-implementing them here because I chose a large range. Actually, I should refine range.
+  // Wait, I am replacing lines 1 to 48. That covers IMPORTS and usage of fetch is at line 42.
 
   const getStatusIcon = (status) => {
     switch (status) {
@@ -39,10 +44,9 @@ const LoadingScreen = ({ initStatus, progress, error, onRetry, onContinue }) => 
         // Use Electron API if available or simpler clipboard + alert method for now, 
         // OR call backend to save file.
         // Let's call backend to save to logs
-        await fetch('http://localhost:5000/execute', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ command: `echo "${text.replace(/"/g, '\\"')}" > ~/.hexagent-gui/log/startup_error.log` })
+        const api = APIClient.getInstance();
+        await api.post('/execute', {
+            command: `echo "${text.replace(/"/g, '\\"')}" > ~/.hexagent-gui/log/startup_error.log`
         });
         alert("Logs saved to ~/.hexagent-gui/log/startup_error.log");
     } catch(e) {

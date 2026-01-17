@@ -32,6 +32,7 @@ import { useEffect, useState } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { AnsiRenderer, hasAnsiCodes } from '../utils/ansiRenderer';
+import APIClient from '../utils/APIClient';
 import { BlockType, detectBlockType, getBlockTypeName } from '../utils/blockTypeDetector';
 
 const SmartBlock = ({ 
@@ -61,11 +62,9 @@ const SmartBlock = ({
   
   const loadBlockRules = async (blockType) => {
     try {
-      const response = await fetch('http://localhost:5000/config/user/ui/block_rules');
-      if (response.ok) {
-        const config = await response.json();
-        return config.block_types?.[blockType] || getDefaultRules(blockType);
-      }
+      const api = APIClient.getInstance();
+      const config = await api.get('/config/system/ui/block_rules');
+      return config?.[blockType] || getDefaultRules(blockType);
     } catch (error) {
       console.warn('[SmartBlock] Failed to load rules, using defaults:', error);
     }

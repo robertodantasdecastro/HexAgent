@@ -314,14 +314,27 @@ class SystemController(BaseController):
             API key string or empty string
             String de chave API ou string vazia
         """
-        # Try environment variables first
-        # Tenta variáveis de ambiente primeiro
+        # 1. Try environment variables first
+        # 1. Tenta variáveis de ambiente primeiro
         api_key = os.getenv('OPENROUTER_API_KEY') or os.getenv('API_KEY')
-        
-        # TODO: Try loading from .env file if needed
-        # TODO: Tentar carregar de arquivo .env se necessário
-        
-        return api_key or ""
+        if api_key:
+            return api_key
+
+        # 2. Try loading from user config file
+        # 2. Tentar carregar do arquivo de config do usuário
+        try:
+            from pathlib import Path
+            import json
+            
+            config_path = Path.home() / '.hexagent-gui' / 'config.json'
+            if config_path.exists():
+                with open(config_path, 'r') as f:
+                    config = json.load(f)
+                    return config.get('ai', {}).get('api_key', '')
+        except Exception as e:
+            self.logger.error(f"Error reading config for API key: {e}")
+            
+        return ""
     
     def _start_hexstrike(self) -> bool:
         """

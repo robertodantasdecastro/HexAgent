@@ -18,6 +18,18 @@
         "shutdown": "Desligar",
         "optional": "Opcional"
     },
+    "header": {
+        "no_session": "SEM SESSÃO",
+        "services": "Serviços",
+        "ai_config": "Configuração IA",
+        "workflows": "Fluxos",
+        "sessions": "Sessões",
+        "settings": "Configurações",
+        "help": "Ajuda"
+    },
+    "welcome": {
+        "ready": "HexAgent Pronto. Conecte um Cérebro para começar."
+    },
     "nav": {
         "history": "Histórico",
         "services": "Serviços",
@@ -37,6 +49,8 @@
     },
     "input": {
         "placeholder": "Digite sua solicitação aqui...",
+        "placeholder_ai": "Pergunte ao Agente IA...",
+        "placeholder_cmd": "Digite comando shell...",
         "analyzing": "Analisando...",
         "generating": "Gerando...",
         "send": "Enviar Mensagem",

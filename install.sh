@@ -152,21 +152,40 @@ setup_user_config() {
     print_info "Setting up user configuration / Configurando usuário..."
     
     # Create config directories / Cria diretórios de configuração
-    USER_CONFIG_DIR="$HOME/.hexagent-gui/config"
-    mkdir -p "$USER_CONFIG_DIR"
-    mkdir -p "$HOME/.hexagent-gui/sessions"
-    mkdir -p "$HOME/.hexagent-gui/logs"
+    USER_CONFIG_DIR="$HOME/.hexagent-gui"
+    mkdir -p "$USER_CONFIG_DIR/sessions"
+    mkdir -p "$USER_CONFIG_DIR/logs"
     
-    # Use Python script to intelligently merge configs / Usa script Python para merge inteligente
-    if [ -f "scripts/merge_configs.py" ]; then
-        python3 scripts/merge_configs.py config_templates "$USER_CONFIG_DIR" 2>/dev/null || true
-    else
-        # Fallback: simple copy / Fallback: cópia simples
-        for config_file in colors.json theme.json terminal.json preferences.json; do
-            if [ ! -f "$USER_CONFIG_DIR/$config_file" ] && [ -f "config_templates/$config_file" ]; then
-                cp "config_templates/$config_file" "$USER_CONFIG_DIR/$config_file"
-            fi
-        done
+    # 1. Install system-config.json
+    if [ ! -f "$USER_CONFIG_DIR/system-config.json" ]; then
+        if [ -f "config_templates/system-config.json" ]; then
+            cp "config_templates/system-config.json" "$USER_CONFIG_DIR/system-config.json"
+            print_success "Created default system-config.json"
+        fi
+    fi
+
+    # 2. Install config.json (AI)
+    if [ ! -f "$USER_CONFIG_DIR/config.json" ]; then
+        if [ -f "config_templates/config.json" ]; then
+             cp "config_templates/config.json" "$USER_CONFIG_DIR/config.json"
+             print_success "Created default config.json (AI)"
+        fi
+    fi
+
+    # 3. Cleanup Legacy 'config/' folder if it exists
+    # Limpeza da pasta 'config/' legada se existir
+    if [ -d "$USER_CONFIG_DIR/config" ]; then
+        print_info "Migrating legacy config folder..."
+        # If specific valuable jsons exist, we might want to tell user, but for now we archive or remove
+        # We will separate AI keys if found, otherwise just warn
+        if [ -f "$USER_CONFIG_DIR/config/config.json" ] && [ ! -f "$USER_CONFIG_DIR/config.json" ]; then
+             cp "$USER_CONFIG_DIR/config/config.json" "$USER_CONFIG_DIR/config.json"
+             print_success "Migrated legacy config.json"
+        fi
+        
+        # Rename legacy folder to backup
+        mv "$USER_CONFIG_DIR/config" "$USER_CONFIG_DIR/config_legacy_backup_$(date +%s)"
+        print_success "Backed up legacy config folder"
     fi
     
     print_success "User configuration ready / Configuração do usuário pronta"
@@ -179,7 +198,7 @@ setup_user_config() {
 setup_configs() {
     print_info "Initializing backend configs / Inicializando configs do backend..."
     export HEXAGENT_SETUP_ONLY=1
-    python3 backend/server.py > /dev/null 2>&1 || true
+    python3 backend/app.py > /dev/null 2>&1 || true
 }
 
 # Build application / Compila aplicação

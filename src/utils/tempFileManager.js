@@ -6,12 +6,15 @@
  * Rastreia arquivos criados/modificados pela IA durante a sessão
  */
 
+import APIClient from './APIClient';
+
 class TempFileManager {
   constructor() {
     this.trackedFiles = new Map();
     this.sessionId = Date.now();
     this.config = this.getDefaultConfig(); // Use default initially / Usar padrão inicialmente
     this.initialized = false;
+    this.api = APIClient.getInstance();
   }
   
   /**
@@ -26,20 +29,16 @@ class TempFileManager {
   
   async loadConfig() {
     try {
-      const response = await fetch('http://localhost:5000/config/user/ui/temp_files', {
-        signal: AbortSignal.timeout(5000) // 5 second timeout / Timeout de 5 segundos
+      const config = await this.api.get('/config/user/ui/temp_files', {
+        timeout: 5000 // 5 second timeout / Timeout de 5 segundos
       });
-      if (response.ok) {
-        this.config = await response.json();
-        console.log('[TempFileManager] ✅ Config loaded from backend');
-      } else {
-        console.warn('[TempFileManager] ⚠️  Backend returned error, using defaults');
-        // Keep default config / Manter config padrão
-      }
+      
+      this.config = config;
+      console.log('[TempFileManager] ✅ Config loaded from backend');
     } catch (error) {
       // CRITICAL: Never throw - always use fallback / CRÍTICO: Nunca lançar exceção - sempre usar fallback
       console.warn('[TempFileManager] ⚠️  Using default config (backend unavailable):', error.message);
-      // Config já está com defaults do constructor
+      // Config already has defaults from constructor
     }
   }
   
@@ -128,13 +127,9 @@ class TempFileManager {
    */
   async syncToBackend() {
     try {
-      await fetch('http://localhost:5000/session/files', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          session_id: this.sessionId,
-          files: Array.from(this.trackedFiles.values())
-        })
+      await this.api.post('/session/files', {
+        session_id: this.sessionId,
+        files: Array.from(this.trackedFiles.values())
       });
     } catch (error) {
       console.warn('[TempFileManager] Failed to sync to backend:', error);

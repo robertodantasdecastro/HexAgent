@@ -1,6 +1,7 @@
 import { Code, Cpu, Key, RefreshCw, Sliders, X, Zap } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from '../hooks/useTranslation';
+import APIClient from '../utils/APIClient';
 
 /**
  * AIConfigModal - Dynamic AI/LLM Configuration with ProviderFactory Integration
@@ -58,15 +59,19 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
   const fetchAvailableModels = async (engine) => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:5000/engines/${engine}/models`);
-      if (response.ok) {
-        const data = await response.json();
-        setAvailableModels(data.models || []);
+      // Corrected endpoint: /config/engines/:engine/models
+      const api = APIClient.getInstance();
+      const result = await api.get(`/config/engines/${engine}/models`);
+      
+      if (result.success) {
+        setAvailableModels(result.data.models || []);
         
         // Set default model if current is empty / Define modelo padrão se atual está vazio
-        if (!aiConfig.model && data.models && data.models.length > 0) {
-          setAiConfig(prev => ({ ...prev, model: data.models[0] }));
+        if (!aiConfig.model && result.data.models && result.data.models.length > 0) {
+          setAiConfig(prev => ({ ...prev, model: result.data.models[0] }));
         }
+      } else {
+        throw new Error(result.message || 'Failed to fetch models');
       }
     } catch (error) {
       console.error('Failed to fetch models:', error);
@@ -132,17 +137,18 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
             model: aiConfig.model
           };
       
-      const response = await fetch('http://localhost:5000/engines/test', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          engine: aiConfig.engine,
-          config: testConfig
-        })
+      // Corrected endpoint: /config/engines/test
+      const api = APIClient.getInstance();
+      const result = await api.post('/config/engines/test', {
+        engine: aiConfig.engine,
+        config: testConfig
       });
       
-      const data = await response.json();
-      setConnectionTestResult(data);
+      if (result.success) {
+        setConnectionTestResult(result.data);
+      } else {
+        throw new Error(result.message || 'Test failed');
+      }
       
       setTimeout(() => setConnectionTestResult(null), 5000);
     } catch (error) {

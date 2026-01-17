@@ -110,14 +110,33 @@ class ConfigController(BaseController):
         # ============================================================================
         
         @self.blueprint.route('/system', methods=['GET'])
-        def get_system_config():
+        @self.blueprint.route('/system/<path:key_path>', methods=['GET'])
+        def get_system_config(key_path=None):
             """
-            Get system configuration ONLY
-            Obtém APENAS configuração do sistema
+            Get system configuration or sub-key
+            Obtém configuração do sistema ou sub-chave
+            
+            Example: /config/system/ui/block_rules
             """
             try:
-                self.log_request('GET /config/system')
+                self.log_request(f'GET /config/system/{key_path}' if key_path else 'GET /config/system')
                 config = self.system_service.load_system_config()
+                
+                if key_path:
+                    # Traverse keys / Percorrer chaves
+                    keys = key_path.split('/')
+                    current = config
+                    
+                    for k in keys:
+                        if isinstance(current, dict) and k in current:
+                            current = current[k]
+                        else:
+                            # Not found / Não encontrado
+                            self.log_error(f"Config key not found: {key_path}", None)
+                            return self.error_response(f"Config key not found: {key_path}", 404)
+                            
+                    return self.success_response(data=current) # Return direct data, not wrapped in {config: ...} if specific key
+                
                 return self.success_response(data={'config': config})
             except ConfigError as e:
                 return self.error_response(str(e), 400)

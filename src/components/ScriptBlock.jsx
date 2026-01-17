@@ -35,27 +35,11 @@ const ScriptBlock = ({
       const needsExec = scriptManager.needsExecutePermission(content);
       console.log('[ScriptBlock] Needs exec permission:', needsExec);
       
-      // Use new file management API / Usar nova API de gerenciamento de arquivos
-      const payload = {
-        content: content,
-        filename: filename,
-        path: savePath,
-        make_executable: needsExec,
-        overwrite: forceOverwrite,
-        is_temp: false
-      };
-      console.log('[ScriptBlock] Sending to /file/write:', payload);
+      const result = await scriptManager.saveScript(savePath, content, needsExec, forceOverwrite);
       
-      const result = await fetch('http://localhost:5000/file/write', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+      console.log('[ScriptBlock] Response from saveScript:', result);
       
-      const data = await result.json();
-      console.log('[ScriptBlock] Response from /file/write:', data);
-      
-      if (!data.success && data.error === 'file_exists') {
+      if (!result.success && result.error === 'file_exists') {
         // File exists, show overwrite confirmation / Arquivo existe, mostrar confirmação
         console.log('[ScriptBlock] File exists, showing overwrite dialog');
         setShowOverwriteDialog(true);
@@ -63,14 +47,14 @@ const ScriptBlock = ({
         return;
       }
       
-      if (data.success) {
+      if (result.success) {
         console.log('[ScriptBlock] ✅ File saved successfully');
         setSaved(true);
         setTimeout(() => setSaved(false), 2000);
         
-        if (onSaved) onSaved(data);
+        if (onSaved) onSaved(result);
       } else {
-        throw new Error(data.message || 'Failed to save file');
+        throw new Error(result.message || 'Failed to save file');
       }
     } catch (error) {
       console.error('[ScriptBlock] ❌ Save failed:', error);

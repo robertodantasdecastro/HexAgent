@@ -30,6 +30,7 @@ from controllers.file_controller import FileController
 from controllers.service_controller import ServiceController
 from controllers.history_controller import HistoryController
 from controllers.project_controller import ProjectController
+from controllers.workflow_controller import WorkflowController
 
 
 def create_app(core_ref=None, hexstrike_ref=None):
@@ -170,7 +171,8 @@ def create_app(core_ref=None, hexstrike_ref=None):
         FileController(),
         ServiceController(hexstrike_ref=None),
         HistoryController(),
-        ProjectController()
+        ProjectController(),
+        WorkflowController(core_ref=agent_core)
     ]
     
     # Register all blueprints / Registrar todos os blueprints
@@ -268,6 +270,51 @@ if __name__ == '__main__':
     Main entry point / Ponto de entrada principal
     Run Flask development server / Executar servidor de desenvolvimento Flask
     """
+    # Check for setup-only mode (used by install.sh)
+    # Verifica modo setup-only (usado por install.sh)
+    if os.environ.get('HEXAGENT_SETUP_ONLY'):
+        print("[Setup] Initializing configuration...")
+        app = create_app()
+        print("[Setup] Configuration initialized. Exiting setup mode.")
+        sys.exit(0)
+
+    # Start Parent PID Watchdog / Iniciar monitoramento do processo pai
+    # This prevents orphaned python processes if Electron crashes
+    try:
+        import threading
+        import time
+        import psutil
+        
+        def parent_watchdog():
+            ppid = os.getppid()
+            print(f"[Watchdog] Monitoring parent process {ppid}")
+            while True:
+                try:
+                    # Check if parent is alive / Verificar se pai está vivo
+                    if not psutil.pid_exists(ppid):
+                        print("[Watchdog] Parent process died. Exiting...")
+                        os._exit(0)
+                    
+                    # Check for adoption by init (PID 1) - Linux specific
+                    # Verificar adoção pelo init (PID 1) - Específico Linux
+                    current_ppid = os.getppid()
+                    if current_ppid != ppid and current_ppid == 1:
+                        print("[Watchdog] Process orphaned (adopted by init). Exiting...")
+                        os._exit(0)
+                        
+                    time.sleep(2)
+                except Exception as e:
+                    print(f"[Watchdog] Error: {e}")
+                    time.sleep(5)
+
+        # Start daemon thread / Iniciar thread daemon
+        if not os.environ.get('HEXAGENT_SETUP_ONLY'):
+            t = threading.Thread(target=parent_watchdog, daemon=True)
+            t.start()
+            
+    except ImportError:
+        print("[Watchdog] psutil not found. Process monitoring disabled.")
+
     app = create_app()
     app.run(
         host='0.0.0.0',

@@ -11,21 +11,15 @@
  * @version 1.0.0
  */
 
-import APIClient from '../utils/APIClient';
+import BaseService from './BaseService';
 
-class SessionService {
+class SessionService extends BaseService {
   /**
    * Singleton instance / Instância Singleton
    * @private
    * @static
    */
   static #instance = null;
-
-  /**
-   * API Client instance / Instância do Cliente API
-   * @private
-   */
-  #api;
 
   /**
    * Current session name / Nome da sessão atual
@@ -45,13 +39,13 @@ class SessionService {
    * @private
    */
   constructor() {
+    super();
     if (SessionService.#instance) {
       throw new Error(
         'SessionService is a singleton. Use SessionService.getInstance() instead. / ' +
         'SessionService é um singleton. Use SessionService.getInstance() ao invés disso.'
       );
     }
-    this.#api = APIClient.getInstance();
   }
 
   /**
@@ -78,13 +72,13 @@ class SessionService {
     }
 
     try {
-      console.log(`[SessionService] Loading session: ${name}`);
+      this._logger.info(`SessionService: Loading session: ${name}`);
       
-      const data = await this.#api.get(`/load_session?name=${encodeURIComponent(name)}`);
+      const data = await this._api.get(`/load_session?name=${encodeURIComponent(name)}`);
       
       if (data && data.blocks) {
         this.#currentSessionName = name;
-        console.log(`[SessionService] Session "${name}" loaded successfully`);
+        this._logger.info(`SessionService: Session "${name}" loaded successfully`);
         return {
           success: true,
           name,
@@ -94,7 +88,7 @@ class SessionService {
         throw new Error('No blocks found in session / Nenhum bloco encontrado na sessão');
       }
     } catch (error) {
-      console.error(`[SessionService] Failed to load session "${name}":`, error);
+      this._logger.error(`SessionService: Failed to load session "${name}":`, error);
       throw new Error(`Failed to load session: ${error.message}`);
     }
   }
@@ -116,15 +110,15 @@ class SessionService {
     }
 
     try {
-      console.log(`[SessionService] Saving session: ${name}`);
+      this._logger.info(`SessionService: Saving session: ${name}`);
       
-      await this.#api.post('/sessions', {
+      await this._api.post('/sessions', {
         name,
         blocks
       });
 
       this.#currentSessionName = name;
-      console.log(`[SessionService] Session "${name}" saved successfully`);
+      this._logger.info(`SessionService: Session "${name}" saved successfully`);
       
       return {
         success: true,
@@ -132,7 +126,7 @@ class SessionService {
         blockCount: blocks.length
       };
     } catch (error) {
-      console.error(`[SessionService] Failed to save session "${name}":`, error);
+      this._logger.error(`SessionService: Failed to save session "${name}":`, error);
       throw new Error(`Failed to save session: ${error.message}`);
     }
   }
@@ -144,21 +138,21 @@ class SessionService {
    */
   async listSessions() {
     try {
-      console.log('[SessionService] Listing all sessions');
+      this._logger.debug('SessionService: Listing all sessions');
       
-      const data = await this.#api.post('/sessions', {
+      const data = await this._api.post('/sessions', {
         action: 'list'
       });
 
       if (data && Array.isArray(data.sessions)) {
-        console.log(`[SessionService] Found ${data.sessions.length} sessions`);
+        this._logger.debug(`SessionService: Found ${data.sessions.length} sessions`);
         return data.sessions;
       } else {
-        console.warn('[SessionService] No sessions found');
+        this._logger.warn('SessionService: No sessions found');
         return [];
       }
     } catch (error) {
-      console.error('[SessionService] Failed to list sessions:', error);
+      this._logger.error('SessionService: Failed to list sessions:', error);
       throw new Error(`Failed to list sessions: ${error.message}`);
     }
   }
@@ -175,9 +169,9 @@ class SessionService {
     }
 
     try {
-      console.log(`[SessionService] Deleting session: ${name}`);
+      this._logger.info(`SessionService: Deleting session: ${name}`);
       
-      await this.#api.post('/sessions', {
+      await this._api.post('/sessions', {
         action: 'delete',
         name
       });
@@ -186,14 +180,14 @@ class SessionService {
         this.#currentSessionName = '';
       }
 
-      console.log(`[SessionService] Session "${name}" deleted successfully`);
+      this._logger.info(`SessionService: Session "${name}" deleted successfully`);
       
       return {
         success: true,
         name
       };
     } catch (error) {
-      console.error(`[SessionService] Failed to delete session "${name}":`, error);
+      this._logger.error(`SessionService: Failed to delete session "${name}":`, error);
       throw new Error(`Failed to delete session: ${error.message}`);
     }
   }
@@ -218,16 +212,16 @@ class SessionService {
     this.#autoSaveTimer = setTimeout(async () => {
       try {
         const autoSaveName = 'autosave';
-        console.log('[SessionService] Auto-saving session...');
+        this._logger.debug('SessionService: Auto-saving session...');
         
-        await this.#api.post('/save_session', {
+        await this._api.post('/save_session', {
           name: autoSaveName,
           blocks
         });
 
-        console.log('[SessionService] Auto-save successful');
+        this._logger.debug('SessionService: Auto-save successful');
       } catch (error) {
-        console.error('[SessionService] Auto-save failed:', error);
+        this._logger.error('SessionService: Auto-save failed:', error);
       }
     }, delay);
   }
@@ -244,16 +238,16 @@ class SessionService {
 
     try {
       const closeSaveName = `auto-save-${Date.now()}`;
-      console.log('[SessionService] Saving session before close...');
+      this._logger.info('SessionService: Saving session before close...');
       
-      await this.#api.post('/save_session', {
+      await this._api.post('/save_session', {
         name: closeSaveName,
         blocks
       });
 
-      console.log(`[SessionService] Session saved as "${closeSaveName}"`);
+      this._logger.info(`SessionService: Session saved as "${closeSaveName}"`);
     } catch (error) {
-      console.error('[SessionService] Save before close failed:', error);
+      this._logger.error('SessionService: Save before close failed:', error);
     }
   }
 
@@ -273,7 +267,7 @@ class SessionService {
   setCurrentSessionName(name) {
     if (typeof name === 'string') {
       this.#currentSessionName = name;
-      console.log(`[SessionService] Current session set to: ${name}`);
+      this._logger.debug(`SessionService: Current session set to: ${name}`);
     }
   }
 

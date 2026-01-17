@@ -34,7 +34,16 @@ DEFAULT_SYSTEM_CONFIG = {
     "ui": {
         "custom_colors": {},
         "animations_enabled": True,
-        "compact_mode": False
+        "compact_mode": False,
+        "block_rules": {
+            "text": { "actions": ["copy", "save"], "syntax_highlight": False },
+            "code": { "actions": ["copy", "save", "edit"], "syntax_highlight": True },
+            "shell": { "actions": ["copy", "execute", "save"], "syntax_highlight": True, "auto_execute_hides_button": True },
+            "thinking": { "actions": [], "syntax_highlight": False, "collapsed_by_default": True, "opacity": 0.6, "font_size": "0.7rem" },
+            "log": { "actions": ["copy", "save"], "syntax_highlight": False },
+            "readme": { "actions": ["copy", "save"], "syntax_highlight": True },
+            "error": { "actions": ["copy", "save"], "syntax_highlight": False }
+        }
     },
     "terminal": {
         "shell_type": "auto",

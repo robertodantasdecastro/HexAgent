@@ -9,6 +9,7 @@
 import { AlertCircle, FolderOpen, Save, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from '../hooks/useTranslation';
+import APIClient from '../utils/APIClient';
 
 const SaveFilesDialog = ({ files = [], onComplete }) => {
   const { t } = useTranslation();
@@ -39,17 +40,14 @@ const SaveFilesDialog = ({ files = [], onComplete }) => {
     
     try {
       const filesToSave = files.filter(f => selectedFiles.has(f.path));
+      const api = APIClient.getInstance();
       
       // Save each file via backend
       for (const file of filesToSave) {
-        await fetch('http://localhost:5000/session/files/save', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            filepath: file.path,
-            content: file.content,
-            destination: saveLocation
-          })
+        await api.post('/session/files/save', {
+          filepath: file.path,
+          content: file.content,
+          destination: saveLocation
         });
       }
       

@@ -14,69 +14,29 @@
  * @version 1.0.0
  */
 
-import APIClient from '../utils/APIClient';
+import BaseService from './BaseService';
 
-class ChatService {
+class ChatService extends BaseService {
   /**
-   * Singleton instance / Instância Singleton
+   * Singleton instance
    * @private
    * @static
    */
   static #instance = null;
 
-  /**
-   * API Client instance / Instância do Cliente API
-   * @private
-   */
-  #api;
-
-  /**
-   * Current EventSource for SSE / EventSource atual para SSE
-   * @private
-   */
+  // ... (private fields for Streaming)
   #currentEventSource = null;
-
-  /**
-   * Message event handlers (Observer pattern)
-   * Handlers de eventos de mensagem (padrão Observer)
-   * @private
-   */
   #messageHandlers = [];
-
-  /**
-   * Error event handlers
-   * Handlers de eventos de erro
-   * @private
-   */
   #errorHandlers = [];
-
-  /**
-   * Complete event handlers
-   * Handlers de eventos de conclusão
-   * @private
-   */
   #completeHandlers = [];
 
-  /**
-   * Private constructor (Singleton pattern)
-   * Construtor privado (padrão Singleton)
-   * @private
-   */
   constructor() {
+    super();
     if (ChatService.#instance) {
-      throw new Error(
-        'ChatService is a singleton. Use ChatService.getInstance() instead. / ' +
-        'ChatService é um singleton. Use ChatService.getInstance() ao invés disso.'
-      );
+      throw new Error('ChatService is a singleton. Use ChatService.getInstance().');
     }
-    this.#api = APIClient.getInstance();
   }
 
-  /**
-   * Get singleton instance / Obter instância singleton
-   * @static
-   * @returns {ChatService} ChatService instance / Instância do ChatService
-   */
   static getInstance() {
     if (!ChatService.#instance) {
       ChatService.#instance = new ChatService();
@@ -86,38 +46,34 @@ class ChatService {
 
   /**
    * Send chat message with SSE streaming
-   * Enviar mensagem de chat com streaming SSE
-   * 
-   * @param {string} prompt - User message / Mensagem do usuário
-   * @param {Array} context - Conversation context / Contexto da conversa
-   * @param {Object} options - Additional options / Opções adicionais
-   * @param {boolean} options.autoExecute - Auto-execute commands / Auto-executar comandos
-   * @param {number} options.maxIterations - Max AI→Command iterations / Máx iterações IA→Comando
-   * @param {boolean} options.stream - Enable streaming (default: true) / Habilitar streaming
-   * @returns {Promise<void>}
+   * ...
    */
   async sendMessage(prompt, context = [], options = {}) {
+    // ...
+    // Update usage of this.#api to this._api and this.#logger to this._logger
+    // ...
     const {
       autoExecute = false,
       maxIterations = 10,
       stream = true
     } = options;
 
-    // Close any existing connection / Fechar qualquer conexão existente
     this.abortCurrentRequest();
 
-    console.log('[ChatService] Sending message:', { prompt: prompt.substring(0, 50), autoExecute, maxIterations });
+    this._logger.info('ChatService: Sending message', { 
+      prompt: prompt.substring(0, 50) + (prompt.length > 50 ? '...' : ''), 
+      autoExecute, 
+      maxIterations 
+    });
 
     try {
       if (stream) {
-        // SSE Streaming mode / Modo streaming SSE
         await this.#initSSEConnection(prompt, context, { autoExecute, maxIterations });
       } else {
-        // Fallback: Non-streaming mode / Fallback: modo sem streaming
         await this.#sendNonStreamingMessage(prompt, context, { autoExecute, maxIterations });
       }
     } catch (error) {
-      console.error('[ChatService] Send message error:', error);
+      this._logger.error('ChatService: Send message error', error);
       this.#notifyError(error);
       throw error;
     }
@@ -145,9 +101,9 @@ class ChatService {
       params.append('context', JSON.stringify(context));
     }
 
-    const url = `${this.#api.baseURL}/chat?${params.toString()}`;
+    const url = `${this._api.baseURL}/chat?${params.toString()}`;
 
-    console.log('[ChatService] Initializing SSE connection:', url.substring(0, 100));
+    this._logger.debug(`ChatService: Initializing SSE connection: ${url.substring(0, 100)}...`);
 
     // Create EventSource for SSE / Criar EventSource para SSE
     this.#currentEventSource = new EventSource(url);
@@ -156,15 +112,18 @@ class ChatService {
     this.#currentEventSource.onmessage = (event) => {
       try {
         const chunk = JSON.parse(event.data);
-        console.log('[ChatService] SSE chunk received:', chunk.type);
+        // Reduce log noise in production / Reduzir ruído de log em produção
+        if (chunk.type !== 'text') {
+            this._logger.debug(`ChatService: SSE chunk received: ${chunk.type}`);
+        }
         this.#handleSSEChunk(chunk);
       } catch (error) {
-        console.error('[ChatService] SSE message parse error:', error);
+        this._logger.error('ChatService: SSE message parse error:', error);
       }
     };
 
     this.#currentEventSource.onerror = (error) => {
-      console.error('[ChatService] SSE error:', error);
+      this._logger.error('ChatService: SSE connection error', error);
       this.#notifyError(new Error('SSE connection error / Erro de conexão SSE'));
       this.abortCurrentRequest();
     };
@@ -179,9 +138,9 @@ class ChatService {
    * @private
    */
   async #sendNonStreamingMessage(prompt, context, options) {
-    console.log('[ChatService] Sending non-streaming message');
+    this._logger.info('ChatService: Sending non-streaming message');
 
-    const response = await this.#api.post('/chat', {
+    const response = await this._api.post('/chat', {
       prompt,
       context,
       stream: false,
@@ -248,13 +207,13 @@ class ChatService {
 
       case 'complete':
         // Streaming complete / Streaming completo
-        console.log('[ChatService] Streaming complete:', metadata);
+        this._logger.info('ChatService: Streaming complete', { metadata });
         this.#notifyComplete(metadata);
         this.abortCurrentRequest(); // Clean up / Limpar
         break;
 
       default:
-        console.warn('[ChatService] Unknown chunk type:', type);
+        this._logger.warn(`ChatService: Unknown chunk type: ${type}`);
     }
   }
 
@@ -264,7 +223,7 @@ class ChatService {
    */
   abortCurrentRequest() {
     if (this.#currentEventSource) {
-      console.log('[ChatService] Closing SSE connection');
+      this._logger.debug('ChatService: Closing SSE connection');
       this.#currentEventSource.close();
       this.#currentEventSource = null;
     }
@@ -359,7 +318,7 @@ class ChatService {
     this.#messageHandlers = [];
     this.#errorHandlers = [];
     this.#completeHandlers = [];
-    console.log('[ChatService] All handlers cleared');
+    this._logger.debug('ChatService: All handlers cleared');
   }
 
   // ========================================================================
@@ -377,7 +336,7 @@ class ChatService {
       try {
         handler(chunk);
       } catch (error) {
-        console.error('[ChatService] Message handler error:', error);
+        this._logger.error('ChatService: Message handler error:', error);
       }
     });
   }
@@ -392,7 +351,7 @@ class ChatService {
       try {
         handler(error);
       } catch (err) {
-        console.error('[ChatService] Error handler error:', err);
+        this._logger.error('ChatService: Error handler error:', err);
       }
     });
   }
@@ -407,7 +366,7 @@ class ChatService {
       try {
         handler(metadata);
       } catch (error) {
-        console.error('[ChatService] Complete handler error:', error);
+        this._logger.error('ChatService: Complete handler error:', error);
       }
     });
   }

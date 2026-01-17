@@ -6,7 +6,7 @@
  * Parte da separação limpa POO entre configurações de Sistema e IA
  */
 
-const API_BASE = 'http://localhost:5000/config/ai';
+import APIClient from './APIClient';
 
 class AIConfigManager {
   /**
@@ -30,6 +30,7 @@ class AIConfigManager {
     }
 
     this.config = null;
+    this.api = APIClient.getInstance();
     AIConfigManager.instance = this;
   }
 
@@ -41,16 +42,7 @@ class AIConfigManager {
     try {
       console.log('[AIConfigManager] Loading from backend...');
       
-      const response = await fetch(API_BASE, {
-        method: 'GET',
-        headers: {'Content-Type': 'application/json'}
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const result = await response.json();
+      const result = await this.api.get('/config/ai');
       
       if (result.success && result.data && result.data.config) {
         this.config = result.data.config;
@@ -83,17 +75,7 @@ class AIConfigManager {
       const model = dataToSave?.ai?.model;
       console.log(`[AIConfigManager] Saving model=${model}, has_api_key=${hasKey}`);
       
-      const response = await fetch(API_BASE, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({config: dataToSave})
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const result = await response.json();
+      const result = await this.api.post('/config/ai', {config: dataToSave});
       
       if (result.success) {
         console.log('[AIConfigManager] Save successful');

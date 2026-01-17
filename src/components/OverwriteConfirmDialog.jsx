@@ -14,6 +14,7 @@
 
 import { AlertTriangle, Check, Minus, Plus, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import APIClient from '../utils/APIClient';
 
 const OverwriteConfirmDialog = ({ 
   isOpen, 
@@ -41,16 +42,15 @@ const OverwriteConfirmDialog = ({
     setError(null);
     
     try {
-      const response = await fetch('http://localhost:5000/file/diff', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          path: filePath, 
-          content: newContent 
-        })
+      const api = APIClient.getInstance();
+      // Uses /file/diff endpoint
+      const data = await api.post('/file/diff', { 
+        path: filePath, 
+        content: newContent 
       });
       
-      const data = await response.json();
+      // APIClient returns the response data directly
+      // APIClient retorna os dados da resposta diretamente
       
       if (data.error) {
         setError(data.error);

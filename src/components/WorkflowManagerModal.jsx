@@ -9,6 +9,7 @@
 import { Activity, CheckCircle, Crosshair, GitBranch, Play, RefreshCw, Shield, Target, X } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from '../hooks/useTranslation';
+import APIClient from '../utils/APIClient';
 
 const WorkflowManagerModal = ({ isOpen, onClose }) => {
   const { t } = useTranslation();
@@ -70,21 +71,16 @@ const WorkflowManagerModal = ({ isOpen, onClose }) => {
     const workflow = workflows.find(w => w.id === selectedWorkflow);
 
     try {
-      const response = await fetch('http://localhost:5000' + workflow.endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          workflow_type: workflow.type,
-          target: target
-        })
+      const api = APIClient.getInstance();
+      const result = await api.post(workflow.endpoint, {
+        workflow_type: workflow.type,
+        target: target
       });
 
-      const data = await response.json();
-      
-      if (response.ok) {
-        setResult(data);
+      if (result.success) {
+        setResult(result.data || result); // Handle wrapped or raw data / Tratar dados encapsulados ou crus
       } else {
-        throw new Error(data.error || 'Execution failed');
+        throw new Error(result.message || 'Execution failed');
       }
     } catch (err) {
       setError(err.message);

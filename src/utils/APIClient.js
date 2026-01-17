@@ -274,6 +274,12 @@ class APIClient {
    * @private
    */
   buildURL(endpoint) {
+    // If endpoint is already a full URL, return it
+    // Se endpoint já é uma URL completa, retornar
+    if (endpoint.startsWith('http://') || endpoint.startsWith('https://')) {
+      return endpoint;
+    }
+
     // Ensure endpoint starts with / / Garantir que endpoint começa com /
     const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
     return `${this.baseURL}${normalizedEndpoint}`;

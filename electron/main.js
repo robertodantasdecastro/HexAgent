@@ -1,17 +1,42 @@
-import { spawn } from 'child_process';
+import { exec, spawn } from 'child_process';
 import { app, BrowserWindow, ipcMain } from 'electron';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-// import isDev from 'electron-is-dev'; // Removed
-// import isDev from 'electron-is-dev'; // Removed causing crash
-// Actually let's use app.isPackaged or process.env.NODE_ENV
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+function killPort(port) {
+    return new Promise((resolve) => {
+        if (process.platform === 'win32') {
+             resolve();
+        } else {
+            // Linux/Mac: kill process on port
+            // Use full path for lsof to be safe, or just try exec
+            exec(`lsof -t -i:${port}`, (err, stdout) => {
+                if (stdout) {
+                    const pids = stdout.trim().split('\n');
+                    console.log(`[Electron] Killing PIDs on port ${port}: ${pids.join(', ')}`);
+                    exec(`kill -9 ${pids.join(' ')}`, (kErr) => {
+                        if (kErr) console.error('[Electron] Error killing PID:', kErr);
+                        resolve();
+                    });
+                } else {
+                    resolve();
+                }
+            });
+        }
+    });
+}
+
 let mainWindow;
 let pythonProcess;
+
+// Disable GPU Acceleration to prevent crashes on Linux/VMs
+app.disableHardwareAcceleration();
+app.commandLine.appendSwitch('disable-software-rasterizer');
+app.commandLine.appendSwitch('disable-gpu');
 
 // Single Instance Lock
 const gotTheLock = app.requestSingleInstanceLock();
@@ -112,7 +137,21 @@ ipcMain.handle('save-file', async (event, options) => {
     return { success: false };
 });
 
-function startPythonBackend() {
+// killPort is defined at the top
+// killPort definido no topo
+
+async function startPythonBackend() {
+    if (pythonProcess) {
+        console.log('[Backend] Process already running (PID: ' + pythonProcess.pid + ')');
+        return;
+    }
+
+    try {
+        await killPort(5000);
+    } catch (e) {
+        console.error('[Electron] Error cleaning port:', e);
+    }
+
     // Determine app base path / Determinar caminho base do app
     const appPath = app.isPackaged 
         ? path.dirname(process.execPath)  // Packaged: use executable location

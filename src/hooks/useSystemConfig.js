@@ -7,6 +7,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
+import Logger from '../utils/Logger';
 import SystemConfigManager from '../utils/SystemConfigManager';
 
 const useSystemConfig = () => {
@@ -16,6 +17,7 @@ const useSystemConfig = () => {
 
   // Get manager instance / Obter instância do gerenciador
   const manager = SystemConfigManager.getInstance();
+  const logger = Logger.getInstance();
 
   /**
    * Load system configuration on mount
@@ -24,16 +26,16 @@ const useSystemConfig = () => {
   useEffect(() => {
     const loadConfig = async () => {
       try {
-        console.log('[useSystemConfig] Initial load...');
+        logger.debug('[useSystemConfig] Initial load...');
         setLoading(true);
         setError(null);
         
         const config = await manager.load();
         setSystemConfig(config);
         
-        console.log('[useSystemConfig] Loaded successfully');
+        logger.debug('[useSystemConfig] Loaded successfully');
       } catch (err) {
-        console.error('[useSystemConfig] Load error:', err);
+        logger.error('[useSystemConfig] Load error:', err);
         setError(err);
       } finally {
         setLoading(false);
@@ -49,14 +51,14 @@ const useSystemConfig = () => {
    */
   const saveSystemConfig = useCallback(async (newConfig) => {
     try {
-      console.log('[useSystemConfig] Saving config...');
+      logger.debug('[useSystemConfig] Saving config...');
       setError(null);
       
       const configToSave = newConfig || systemConfig;
       
       // Log what we're saving
       const debugMode = configToSave?.system?.debug_mode;
-      console.log(`[useSystemConfig] debug_mode = ${debugMode}`);
+      logger.debug(`[useSystemConfig] debug_mode = ${debugMode}`);
       
       // Save to backend
       await manager.save(configToSave);
@@ -65,11 +67,11 @@ const useSystemConfig = () => {
       const reloaded = await manager.load();
       setSystemConfig(reloaded);
       
-      console.log('[useSystemConfig] Save successful, reloaded');
+      logger.info('[useSystemConfig] Save successful, reloaded');
       return true;
       
     } catch (err) {
-      console.error('[useSystemConfig] Save error:', err);
+      logger.error('[useSystemConfig] Save error:', err);
       setError(err);
       return false;
     }

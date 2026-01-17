@@ -111,6 +111,39 @@ class AgentCore:
         self.inference_engine = InferenceEngine(self.provider, self.executor)
         logger.info(f"InferenceEngine initialized with {engine} provider")
     
+    def initialize(self, api_key: str) -> bool:
+        """
+        Re-initialize the agent with a new API key
+        Re-inicializa o agente com uma nova chave API
+        
+        Args:
+            api_key: New API key to use
+            
+        Returns:
+            bool: True if successful
+        """
+        try:
+            logger.info("Re-initializing AgentCore with new credentials")
+            
+            # Re-create provider with new key
+            # Re-cria provedor com nova chave
+            provider_config = {
+                'api_key': api_key,
+                'model': self.provider.get_default_model() if self.provider else None
+            }
+            
+            self.provider = ProviderFactory.create_provider(self.engine, provider_config)
+            
+            # Update inference engine
+            # Atualiza motor de inferência
+            self.inference_engine = InferenceEngine(self.provider, self.executor)
+            
+            logger.info("AgentCore re-initialized successfully")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to re-initialize AgentCore: {e}")
+            return False
+    
     def process_message(
         self, 
         user_input: str,

@@ -6,7 +6,7 @@
  * Parte da separação limpa POO entre configurações de Sistema e IA
  */
 
-const API_BASE = 'http://localhost:5000/config/system';
+import APIClient from './APIClient';
 
 class SystemConfigManager {
   /**
@@ -30,6 +30,7 @@ class SystemConfigManager {
     }
 
     this.config = null;
+    this.api = APIClient.getInstance();
     SystemConfigManager.instance = this;
   }
 
@@ -41,16 +42,7 @@ class SystemConfigManager {
     try {
       console.log('[SystemConfigManager] Loading from backend...');
       
-      const response = await fetch(API_BASE, {
-        method: 'GET',
-        headers: {'Content-Type': 'application/json'}
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const result = await response.json();
+      const result = await this.api.get('/config/system');
       
       if (result.success && result.data && result.data.config) {
         this.config = result.data.config;
@@ -82,17 +74,7 @@ class SystemConfigManager {
       console.log(`[SystemConfigManager] Saving debug_mode = ${debugMode}`);
       console.log('[SystemConfigManager] Payload:', JSON.stringify(dataToSave, null, 2));
       
-      const response = await fetch(API_BASE, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({config: dataToSave})
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const result = await response.json();
+      const result = await this.api.post('/config/system', {config: dataToSave});
       
       if (result.success) {
         console.log('[SystemConfigManager] Save successful');

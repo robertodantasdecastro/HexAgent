@@ -1,6 +1,7 @@
 import { CheckCircle, Loader } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from '../hooks/useTranslation';
+import APIClient from '../utils/APIClient';
 
 const ShutdownModal = ({ isOpen, onShutdownComplete }) => {
   const { t } = useTranslation();
@@ -23,12 +24,20 @@ const ShutdownModal = ({ isOpen, onShutdownComplete }) => {
   const checkFiles = async () => {
       updateStep('check_files', 'running');
       try {
-          const res = await fetch('http://localhost:5000/files/temp');
-          const data = await res.json();
-          setTempFileCount(data.count || 0);
+          const api = APIClient.getInstance();
+          // Fixed URL: /file/temp (singular) based on FileController
+          const result = await api.get('/file/temp');
+          
+          if (result.success) {
+            setTempFileCount(result.data.count || 0);
+          } else {
+            console.warn('Failed to check temp files:', result.message);
+            // Non-blocking failure / Falha não bloqueante
+          }
+          
           updateStep('check_files', 'completed');
           
-          if (data.count > 0) {
+          if (result.success && result.data.count > 0) {
               setStatus('warning');
           } else {
               startShutdown();
@@ -46,14 +55,15 @@ const ShutdownModal = ({ isOpen, onShutdownComplete }) => {
       // Step 1: Request Backend Shutdown
       updateStep('backend', 'running');
       try {
-           const controller = new AbortController();
-           const timeoutId = setTimeout(() => controller.abort(), 2000);
+           const api = APIClient.getInstance();
            
-           await fetch('http://localhost:5000/shutdown', { 
-               method: 'POST',
-               signal: controller.signal
-           }).catch(e => console.log("Backend likely stopped", e)); 
-           clearTimeout(timeoutId);
+           // Use very short timeout for shutdown
+           // Usar timeout muito curto para shutdown
+           try {
+               await api.post('/shutdown', {}, { timeout: 2000 });
+           } catch (e) {
+               console.log("Backend likely stopped/unresponsive (expected)", e);
+           }
            
            updateStep('backend', 'completed');
       } catch (e) {

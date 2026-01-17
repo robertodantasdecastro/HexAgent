@@ -37,8 +37,14 @@ const useBackendInit = () => {
   const [serviceStatus, setServiceStatus] = useState({ flask: false, hexstrike: false, brain: false });
 
   const statusIntervalRef = useRef(null);
+  const isMounted = useRef(true);
   const api = APIClient.getInstance();
   const logger = Logger.getInstance();
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => { isMounted.current = false; };
+  }, []);
 
   useEffect(() => {
     // Check Status and update service status details
@@ -46,6 +52,8 @@ const useBackendInit = () => {
     const checkStatus = async () => {
       try {
         const data = await api.get('/status');
+        if (!isMounted.current) return;
+
         if (data.status === 'ok' || data.alive) {
           setStatus('ONLINE');
           setServiceStatus({
@@ -58,6 +66,7 @@ const useBackendInit = () => {
           setServiceStatus({ flask: false, hexstrike: false, brain: false });
         }
       } catch (e) {
+        if (!isMounted.current) return;
         setStatus('DISCONNECTED');
         setServiceStatus({ flask: false, hexstrike: false, brain: false });
       }
@@ -66,6 +75,7 @@ const useBackendInit = () => {
     // Wait for backend to be ready with retries (60 seconds total)
     const waitForBackend = async (maxRetries = 60, delayMs = 1000) => {
       for (let i = 0; i < maxRetries; i++) {
+        if (!isMounted.current) return false;
         try {
           logger.debug('Checking backend', { attempt: i + 1, max: maxRetries });
           const isHealthy = await api.healthCheck();
@@ -84,13 +94,17 @@ const useBackendInit = () => {
 
     // Init Backend - MUST complete before user can chat
     const initBackend = async (retries = 3, delay = 15000) => {
+      if (!isMounted.current) return false;
       logger.info('Initializing backend');
       for (let i = 0; i < retries; i++) {
+        if (!isMounted.current) return false;
         try {
           if (i > 0) {
             // Update UI to show retry
             logger.debug('Retrying Brain init', { attempt: i + 1, retries });
-            setInitStatus(prev => ({ ...prev, brain: { status: 'loading', message: `Loading (${i + 1}/${retries})...` } }));
+            if (isMounted.current) {
+                setInitStatus(prev => ({ ...prev, brain: { status: 'loading', message: `Loading (${i + 1}/${retries})...` } }));
+            }
             await new Promise(r => setTimeout(r, delay));
           }
 
@@ -111,52 +125,137 @@ const useBackendInit = () => {
 
     const initialize = async () => {
       try {
-        // Step 1: Backend
-        setInitStatus(prev => ({ ...prev, backend: { status: 'loading', message: 'Starting Flask...' } }));
+        if (!isMounted.current) return;
+        
+        // Step 1: Backend Connection (Required Foundation)
+        // Passo 1: Conexão Backend (Fundação Necessária)
+        setInitStatus(prev => ({ ...prev, backend: { status: 'loading', message: 'Starting Server...' } }));
         setInitProgress(10);
 
         const backendReady = await waitForBackend();
+        if (!isMounted.current) return;
         if (!backendReady) {
           throw new Error('Backend failed to start');
         }
-        setInitStatus(prev => ({ ...prev, backend: { status: 'success', message: 'Running' } }));
-        setInitProgress(25);
+        setInitStatus(prev => ({ ...prev, backend: { status: 'success', message: 'Connected' } }));
+        setInitProgress(30);
 
-        // Step 2: Brain (optional in standalone mode)
-        setInitStatus(prev => ({ ...prev, brain: { status: 'loading', message: 'Loading Brain...' } }));
-        setInitProgress(40);
+        // Step 2: Load Configuration (Priority over Brain)
+        // Passo 2: Carregar Configuração (Prioridade sobre Cérebro)
+        setInitStatus(prev => ({ ...prev, config: { status: 'loading', message: 'Loading Config...' } }));
+        setInitProgress(50);
+        
+        let hasApiKey = false;
+        try {
+            // Fetch AI config to check for API Key presence
+            // Buscar config de IA para verificar presença da API Key
+            const aiConfigRes = await api.get('/config/ai');
+            const aiConfig = aiConfigRes.data.config || aiConfigRes.data;
+            hasApiKey = !!(aiConfig?.ai?.api_key || aiConfig?.api_key);
+            
+            setInitStatus(prev => ({ 
+                ...prev, 
+                config: { status: 'success', message: hasApiKey ? 'Loaded' : 'No API Key' } 
+            }));
+        } catch (e) {
+            logger.warn('Config load warning', e);
+            setInitStatus(prev => ({ 
+                ...prev, 
+                config: { status: 'warning', message: 'Default' } 
+            }));
+        }
+        setInitProgress(70);
+
+        // Step 3: Brain Initialization
+        // Passo 3: Inicialização do Cérebro
+        setInitStatus(prev => ({ ...prev, brain: { status: 'loading', message: 'Initializing Core...' } }));
+        setInitProgress(80);
 
         const initResult = await initBackend();
+        if (!isMounted.current) return;
+        
         if (!initResult) {
-          logger.warn('Brain initialization failed - continuing in standalone mode');
-          setInitStatus(prev => ({ ...prev, brain: { status: 'warning', message: 'Standalone Mode' } }));
+          if (!hasApiKey) {
+             // Expected failure if no key / Falha esperada se sem chave
+             setInitStatus(prev => ({ ...prev, brain: { status: 'warning', message: 'Waiting Key' } })); 
+          } else {
+             logger.warn('Brain initialization failed - continuing in standalone mode');
+             setInitStatus(prev => ({ ...prev, brain: { status: 'warning', message: 'Standalone Mode' } }));
+          }
         } else {
-          setInitStatus(prev => ({ ...prev, brain: { status: 'success', message: 'Loaded' } }));
+          setInitStatus(prev => ({ ...prev, brain: { status: 'success', message: 'Online' } }));
         }
-        setInitProgress(60);
-
-        // Step 3: Config
-        setInitStatus(prev => ({ ...prev, config: { status: 'loading', message: 'Loading...' } }));
-        setInitProgress(75);
-        // Note: Config is handled by its own hook in App.jsx, here we just show progress
-        setInitStatus(prev => ({ ...prev, config: { status: 'success', message: 'Loaded' } }));
-        setInitProgress(85);
-
-        // Step 4: HexStrike
-        setInitStatus(prev => ({ ...prev, hexstrike: { status: 'loading', message: 'Checking...' } }));
         setInitProgress(90);
 
+        // Step 4: HexStrike Auto-Start
+        // Passo 4: Inicialização Automática do HexStrike
+        setInitStatus(prev => ({ ...prev, hexstrike: { status: 'loading', message: 'Auto-starting Service...' } }));
+        setInitProgress(90);
+
+        const startHexStrike = async (maxRetries = 3) => {
+            for (let i = 0; i < maxRetries; i++) {
+                if (!isMounted.current) return false;
+                try {
+                    logger.debug(`HexStrike Auto-Start Attempt ${i + 1}/${maxRetries}`);
+                    
+                    // Check if already running first
+                    // Verifica se já está rodando primeiro
+                    const statusCheck = await api.get('/status/services');
+                    if (statusCheck.data?.hexstrike === 'running') {
+                        logger.info('HexStrike already running');
+                        return true;
+                    }
+
+                    // Attempt start
+                    // Tenta iniciar
+                    const res = await api.post('/start_service', { service: 'hexstrike' });
+                    if (res.success) {
+                        logger.info('HexStrike start command sent successfully');
+                        // Wait briefly to confirm status
+                        await new Promise(r => setTimeout(r, 2000));
+                        return true;
+                    }
+                } catch (e) {
+                    logger.warn(`HexStrike auto-start attempt ${i + 1} failed`, e);
+                }
+                
+                // Wait before retry if not last attempt
+                if (i < maxRetries - 1) {
+                    setInitStatus(prev => ({ 
+                        ...prev, 
+                        hexstrike: { status: 'loading', message: `Retry Start (${i + 1}/${maxRetries})...` } 
+                    }));
+                    await new Promise(r => setTimeout(r, 3000));
+                }
+            }
+            return false;
+        };
+
+        await startHexStrike(3);
+
+        // Final Status Check
         await checkStatus();
-        setInitStatus(prev => ({ ...prev, hexstrike: { status: 'pending', message: 'Offline' } }));
+        if (!isMounted.current) return;
+        
+        // Even if HexStrike failed to start, we proceed to load the app
+        // Mesmo se HexStrike falhar ao iniciar, prosseguimos com o carregamento do app
+        setInitStatus(prev => ({ ...prev, hexstrike: { status: 'pending', message: 'Ready' } }));
         setInitProgress(100);
 
         // Success - hide loading screen and start status polling
-        setTimeout(() => setIsInitializing(false), 500);
-        statusIntervalRef.current = setInterval(checkStatus, 5000);
+        setTimeout(() => {
+            if (isMounted.current) setIsInitializing(false);
+        }, 800);
+        
+        if (isMounted.current) {
+            statusIntervalRef.current = setInterval(checkStatus, 5000);
+        }
 
       } catch (error) {
         logger.error('Init error', { error });
-        setInitError({ message: error.message });
+        if (isMounted.current) {
+            setInitError({ message: error.message });
+        }
       }
     };
 

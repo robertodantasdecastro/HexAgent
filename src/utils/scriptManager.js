@@ -73,6 +73,7 @@ class ScriptManager {
    * @param {string} path - File path where script should be saved / Caminho onde salvar
    * @param {string} content - Script content / Conteúdo do script
    * @param {boolean} [makeExecutable=false] - Make file executable / Tornar executável
+   * @param {boolean} [overwrite=false] - Overwrite existing file / Sobrescrever arquivo existente
    * @returns {Promise<Object>} API response with success status / Resposta da API
    * 
    * @example
@@ -82,12 +83,14 @@ class ScriptManager {
    *   true
    * );
    */
-  async saveScript(path, content, makeExecutable = false) {
+  async saveScript(path, content, makeExecutable = false, overwrite = false) {
     try {
-      const response = await this.#api.post('/script/save', {
+      const response = await this.#api.post('/file/write', {
         path,
         content,
-        make_executable: makeExecutable
+        make_executable: makeExecutable,
+        overwrite: overwrite,
+        is_temp: false
       });
 
       return response;
