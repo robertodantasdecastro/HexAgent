@@ -243,8 +243,79 @@ class ConfigController(BaseController):
                 result = provider.test_connection()
                 
                 return self.success_response(data=result)
+                return self.success_response(data=result)
             except ValueError as e:
                 return self.error_response(str(e), 400)
             except Exception as e:
                 self.log_error('POST /engines/test', e)
                 return self.error_response(f"Test failed: {str(e)}", 500)
+
+        # ============================================================================
+        # UTILITIES - Validation and Maintenance
+        # Utilitários - Validação e Manutenção
+        # ============================================================================
+
+        @self.blueprint.route('/validate', methods=['POST'])
+        def validate_config():
+            """
+            Validate configuration integrity
+            Validar integridade da configuração
+            """
+            try:
+                self.log_request('POST /config/validate')
+                data = self.validate_request(['config'])
+                config = data['config']
+                
+                # Validate system config part
+                # Validar parte de configuração do sistema
+                system_valid = True
+                if 'system' in config:
+                    system_valid = self.system_service.validate_system_config(config)
+                
+                # TODO: Add AI config validation
+                
+                return self.success_response(
+                    data={"valid": system_valid},
+                    message="Configuration valid" if system_valid else "Configuration invalid"
+                )
+            except Exception as e:
+                self.log_error('POST /config/validate', e)
+                return self.error_response("Validation failed", 500)
+
+        @self.blueprint.route('/backups', methods=['GET'])
+        def list_backups():
+            """
+            List configuration backups
+            Listar backups de configuração
+            """
+            try:
+                self.log_request('GET /config/backups')
+                # Use standard FileManager logic via backup path listing
+                # Uses pathlib to list config-*.json backups
+                from pathlib import Path
+                backup_dir = Path.home() / '.hexagent-gui' / 'backups'
+                
+                backups = []
+                if backup_dir.exists():
+                    for date_dir in backup_dir.iterdir():
+                        if date_dir.is_dir():
+                            for f in date_dir.glob('*config*.json'):
+                                backups.append({
+                                    "filename": f.name,
+                                    "date": date_dir.name,
+                                    "path": str(f)
+                                })
+                
+                return self.success_response(data={"backups": backups})
+            except Exception as e:
+                self.log_error('GET /config/backups', e)
+                return self.error_response("Failed to list backups", 500)
+
+        @self.blueprint.route('/restore/<timestamp>', methods=['POST'])
+        def restore_backup(timestamp):
+            """
+            Restore configuration from backup
+            Restaurar configuração de backup
+            """
+            # Placeholder to prevent frontend 404s
+            return self.error_response("Restore not yet implemented in modular backend", 501)

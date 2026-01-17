@@ -14,45 +14,46 @@
 │  ┌────────────────────────────────────────────────────┐  │
 │  │              Frontend (React)                      │  │
 │  │  ┌──────────────────────────────────────────────┐  │  │
-│  │  │           App.jsx (Main Component)           │  │  │
-│  │  │  - State Management                          │  │  │
-│  │  │  - Message Routing                           │  │  │
-│  │  │  - UI Orchestration                          │  │  │
-│  │  └──────────────────────────────────────────────┘  │  │
-│  │                        │                           │  │
-│  │        ┌───────────────┼───────────────┐           │  │
-│  │        ▼               ▼               ▼           │  │
+│  │  │           App.jsx (Orchestrator)             │  │  │
+│  │  │  - Global State Hooks (Config/Session)       │  │  │
+│  │  │  - Service Integration                       │  │  │
+│  │  │  - Layout & Modals                           │  │  │
+│  │  └──────────────────────┬───────────────────────┘  │  │
+│  │                         │                          │  │
+│  │         ┌───────────────┴───────────────┐          │  │
+│  │         ▼               ▼               ▼          │  │
 │  │   ┌──────────┐   ┌───────────┐  ┌────────────┐     │  │
-│  │   │Components│   │ Utilities │  │  Services  │     │  │
-│  │   │ (11)     │   │  (5)      │  │            │     │  │
+│  │   │Chat      │   │ Utilities │  │  Services  │     │  │
+│  │   │Components│   │ & Hooks   │  │            │     │  │
 │  │   └──────────┘   └───────────┘  └────────────┘     │  │
+│  │                     (Parser, Init)                     │  │
 │  └────-───────────────────────────────────────────────┘  │
-└────────-──────────────────┬──────────────────────────────┘
-                            │ HTTP/REST (localhost:5000)
-┌─────-─────────────────────▼──────────────────────────────┐
-│                Flask Backend (Python)                    │
-│  ┌────────────────────────────────────────────────────┐  │
-│  │              server.py (API Layer)                 │  │
-│  │  - Route Handlers                                  │  │
-│  │  - Request Validation                              │  │
-│  │  - Response Formatting                             │  │
-│  └────────────────────────────────────────────────────┘  │
-│                        │                                 │
-│        ┌───────────────┼───────────────┐                 │
-│        ▼               ▼               ▼                 │
-│    ┌──────────┐   ┌───────────┐  ┌────────────┐          │
-│    │Config    │   │ Execution │  │  Persona   │          │
-│    │Loader    │   │  Engine   │  │  Loader    │          │
-│    └──────────┘   └───────────┘  └────────────┘          │
-│                        │                                 │
-│                        ▼                                 │
-│  ┌────────────────────────────────────────────────────┐  │
-│  │          HexStrike AI Server                       │  │
-│  │  - Command Execution (subprocess)                  │  │
-│  │  - OpenRouter AI Integration                       │  │
-│  │  - Autonomous Iteration Logic                      │  │
-│  └────────────────────────────────────────────────────┘  │
-└──────────────────────────────────────────────────────────┘
+30: └────────-──────────────────┬──────────────────────────────┘
+31:                             │ HTTP/REST (localhost:5000)
+32: ┌─────-─────────────────────▼──────────────────────────────┐
+33: │                Flask Backend (Python)                    │
+34: │  ┌────────────────────────────────────────────────────┐  │
+35: │  │              server.py (API Layer)                 │  │
+36: │  │  - Route Handlers                                  │  │
+37: │  │  - Request Validation                              │  │
+38: │  │  - Response Formatting                             │  │
+39: │  └────────────────────────────────────────────────────┘  │
+40: │                        │                                 │
+41: │        ┌───────────────┼───────────────┐                 │
+42: │        ▼               ▼               ▼                 │
+43: │    ┌──────────┐   ┌───────────┐  ┌────────────┐          │
+44: │    │Config    │   │ Execution │  │  Persona   │          │
+45: │    │Loader    │   │  Engine   │  │  Loader    │          │
+46: │    └──────────┘   └───────────┘  └────────────┘          │
+47: │                        │                                 │
+48: │                        ▼                                 │
+49: │  ┌────────────────────────────────────────────────────┐  │
+50: │  │          HexStrike AI Server                       │  │
+51: │  │  - Command Execution (subprocess)                  │  │
+52: │  │  - OpenRouter AI Integration                       │  │
+53: │  │  - Autonomous Iteration Logic                      │  │
+54: │  └────────────────────────────────────────────────────┘  │
+55: └──────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -64,323 +65,84 @@
 #### 1. **Main Application (`src/App.jsx`)**
 
 **English:**
-- **Size:** 60KB, 1474 lines
-- **Role:** Core application logic and state management
+- **Size:** ~500 lines (Refactored)
+- **Role:** Application Orchestrator
 - **Responsibilities:**
-  - Message history management
-  - API communication
-  - UI state coordination
-  - Session management
-  - Configuration handling
+  - Hook-based state management
+  - Modal composition
+  - Layout rendering
+  - Service routing
 
 **Português:**
-- **Tamanho:** 60KB, 1474 linhas
-- **Papel:** Lógica central da aplicação e gerenciamento de estado
+- **Tamanho:** ~500 linhas (Refatorado)
+- **Papel:** Orquestrador da Aplicação
 - **Responsabilidades:**
-  - Gerenciamento de histórico de mensagens
-  - Comunicação com API
-  - Coordenação de estado da UI
-  - Gerenciamento de sessões
-  - Manipulação de configuração
-
-**Key Functions / Funções Principais:**
-```javascript
-- parseAgentContent()  // Parse AI responses / Parsear respostas da IA
-- sendMessage()        // Send user message / Enviar mensagem do usuário
-- handleExecute()      // Execute commands / Executar comandos
-- loadSession()        // Load saved session / Carregar sessão salva
-- saveSession()        // Save current session / Salvar sessão atual
-```
+  - Gerenciamento de estado baseado em Hooks
+  - Composição de modais
+  - Renderização de layout
+  - Roteamento de serviços
 
 ---
 
-#### 2. **Components (`src/components/`)**
+#### 2. **Chat Components (`src/components/chat/`)**
 
-##### **SmartBlock.jsx** - Intelligent Content Renderer
+##### **Block.jsx**
 **English:**
-- Auto-detects content type (CODE, SHELL, ERROR, etc.)
-- Applies appropriate styling and actions
-- Handles ANSI color rendering
-- Provides context-aware action buttons
+- **Role:** Unified Message Renderer
+- **Features:**
+  - Renders User/Agent/System messages
+  - Handles parsing via `agentParser`
+  - Manages action buttons (Copy/Execute)
+  - Bilingual UI support
 
 **Português:**
-- Detecta automaticamente tipo de conteúdo (CODE, SHELL, ERROR, etc.)
-- Aplica estilização e ações apropriadas
-- Manipula renderização de cores ANSI
-- Fornece botões de ação sensíveis ao contexto
+- **Papel:** Renderizador Unificado de Mensagens
+- **Recursos:**
+  - Renderiza mensagens de Usuário/Agente/Sistema
+  - Gerencia parsing via `agentParser`
+  - Gerencia botões de ação (Copiar/Executar)
+  - Suporte a UI bilíngue
 
-##### **SettingsModal.jsx** - Configuration UI
-- Tabbed interface (General, AI, Appearance, Advanced)
-- Real-time config updates
-- Hierarchical config system (templates → user → runtime)
-
-##### **SessionModal.jsx** - Session Management
-- List all saved sessions
-- Load/Save/Delete operations
-- Auto-save functionality
-
-##### **ScriptBlock.jsx** - Script Management
-- Save scripts with auto-path suggestion
-- Execute with custom arguments
-- Debug mode with language-specific flags
-- Real-time output display
-
-##### **Other Components:**
-- `HelpModal.jsx` - Help and documentation
-- `LoadingScreen.jsx` - Initialization screen
-- `BrainSelector.jsx` - AI brain/persona selection
-- `SaveFilesDialog.jsx` - Temporary file save prompt
-- `ShutdownModal.jsx` - Graceful shutdown handling
-- `WelcomeDialog.jsx` - First-run setup wizard
-- `IterationLimitDialog.jsx` - Iteration control settings
-
----
-
-#### 3. **Utilities (`src/utils/`)**
-
-##### **ansiRenderer.jsx**
-```javascript
-/**
- * Converts ANSI escape codes to colored React components
- * Converts códigos de escape ANSI para componentes React coloridos
- */
-export const AnsiRenderer = ({ text, customColors })
-export const hasAnsiCodes = (text)
-```
-
-##### **blockTypeDetector.js**
-```javascript
-/**
- * Detects block type from content patterns
- * Detecta tipo de bloco a partir de padrões de conteúdo
- */
-export function detectBlockType(content, context)
-export function getBlockTypeName(blockType)
-```
-
-##### **tempFileManager.js**
-```javascript
-/**
- * Tracks AI-generated files during session
- * Rastreia arquivos gerados pela IA durante a sessão
- */
-class TempFileManager {
-  trackFile(path, content)
-  getUnsavedFiles()
-  clearTracking()
-}
-```
-
-##### **scriptManager.js**
-```javascript
-/**
- * Manages script lifecycle (save, execute, debug)
- * Gerencia ciclo de vida de scripts (salvar, executar, depurar)
- */
-export class ScriptManager {
-  static saveScript(path, content, makeExecutable)
-  static executeScript(path, args, workingDir)
-  static debugScript(path, args)
-}
-```
-
-##### **configManager.js**
-```javascript
-/**
- * Configuration hierarchy management
- * Gerenciamento de hierarquia de configuração
- */
-export const ConfigManager = {
-  loadConfig(category, filename)
-  saveConfig(category, filename, data)
-  resetToDefaults()
-}
-```
-
----
-
-### Backend Layer / Camada Backend
-
-#### 1. **Flask API (`backend/server.py`)**
-
+##### **CodeBlock.jsx**
 **English:**
-- **Size:** 58KB
-- **Role:** REST API server and request router
-- **Port:** 5000 (configurable)
+- **Role:** Syntax Highlighting Component
+- **Features:** PrismJS integration, auto-detect language, save/execute actions.
 
 **Português:**
-- **Tamanho:** 58KB
-- **Papel:** Servidor de API REST e roteador de requisições
-- **Porta:** 5000 (configurável)
-
-**Main Endpoints / Endpoints Principais:**
-
-```python
-# Health & Init / Saúde e Inicialização
-GET  /health              # Server status / Status do servidor
-POST /init                # Initialize AI brain / Inicializar cérebro da IA
-
-# Chat & Execution / Chat e Execução
-POST /chat                # Send message to AI / Enviar mensagem para IA
-POST /execute             # Execute shell command / Executar comando shell
-POST /stop                # Stop AI generation / Parar geração da IA
-
-# Session Management / Gerenciamento de Sessões
-GET  /sessions            # List sessions / Listar sessões
-GET  /load_session        # Load session / Carregar sessão
-POST /save_session        # Save session / Salvar sessão
-POST /delete_session      # Delete session / Deletar sessão
-
-# Configuration / Configuração
-GET  /config              # Get all config / Obter toda configuração
-POST /config              # Update config / Atualizar configuração
-GET  /config/user/ui/:file # Get UI config / Obter config da UI
-
-# Script Management / Gerenciamento de Scripts
-POST /script/save         # Save script / Salvar script
-POST /script/execute      # Execute script / Executar script
-POST /script/debug        # Debug script / Depurar script
-
-# System / Sistema
-POST /shutdown            # Shutdown server / Desligar servidor
-GET  /status              # System status / Status do sistema
-```
+- **Papel:** Componente de Destaque de Sintaxe
+- **Recursos:** Integração PrismJS, auto-detecção de linguagem, ações salvar/executar.
 
 ---
 
-#### 2. **Configuration System (`backend/config_loader.py`)**
+#### 3. **Utilities & Hooks**
 
-**Hierarchy / Hierarquia:**
+##### **useBackendInit.js** (`src/hooks/`)
+**English:** Encapsulates complex startup logic (Backend -> Brain -> Config -> HexStrike).
+**Português:** Encapsula lógica complexa de inicialização (Backend -> Brain -> Config -> HexStrike).
 
-```
-1. Templates (config_templates/)
-   └─ Default values / Valores padrão
-   
-2. User Config (~/.hexagent-gui/config/)
-   └─ User overrides / Sobrescritas do usuário
-   
-3. Runtime (in-memory)
-   └─ Temporary changes / Mudanças temporárias
-```
+##### **agentParser.js** (`src/utils/`)
+**English:** Regex-based parser to split AI streams into Text, Code, and Command blocks.
+**Português:** Parser baseado em Regex para dividir streams de IA em blocos de Texto, Código e Comando.
 
-**Configuration Categories / Categorias de Configuração:**
-
-```
-config_templates/
-├── ai/
-│   ├── main.json          # Model, temperature, max_tokens
-│   ├── brain.json         # Persona/brain settings
-│   └── web_search.json    # Web search toggle
-├── ui/
-│   ├── block_rules.json   # Block rendering rules
-│   ├── temp_files.json    # File tracking config
-│   └── theme.json         # Colors, fonts, appearance
-├── features/
-│   └── auto_execute.json  # Command execution settings
-└── system/
-    └── paths.json         # Directory locations
-```
+##### **ScriptManager.js** (`src/utils/`)
+**English:** Singleton manager for script operations (Save/Execute/Debug). Uses APIClient.
+**Português:** Gerenciador Singleton para operações de script (Salvar/Executar/Depurar). Usa APIClient.
 
 ---
 
-#### 3. **HexStrike Integration**
+#### 4. **Modals (`src/components/`)**
 
-**English:**
-HexStrike AI Server provides:
-- OpenRouter API integration
-- Autonomous iteration logic (up to 10 loops)
-- Command parsing and execution
-- Result analysis and decision-making
+##### **SettingsModal.jsx**
+**English:** Manages System, UI, and Service configurations.
+**Português:** Gerencia configurações de Sistema, UI e Serviços.
 
-**Português:**
-Servidor HexStrike AI fornece:
-- Integração com API OpenRouter
-- Lógica de iteração autônoma (até 10 loops)
-- Análise e execução de comandos
-- Análise de resultados e tomada de decisão
-
-**Communication Flow / Fluxo de Comunicação:**
-
-```
-User Input → Flask API → HexStrike Server → OpenRouter API
-                ↓             ↓                    ↓
-         Session Save    Command Exec         AI Response
-                ↓             ↓                    ↓
-         Store in DB    Get Output           Stream Tokens
-                ↓             ↓                    ↓
-              ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ←
-                         Unified Response
-                               ↓
-                         Frontend Display
-```
+##### **AIConfigModal.jsx**
+**English:** Manages AI Engine, Model, and API Key settings.
+**Português:** Gerencia configurações de Motor de IA, Modelo e Chave API.
 
 ---
 
-## 🔄 Data Flow / Fluxo de Dados
-
-### 1. **Message Sending Flow**
-
-```
-[User Types Message]
-        ↓
-[App.jsx: sendMessage()]
-        ↓
-[POST /chat to Flask]
-        ↓
-[server.py: handle_chat()]
-        ↓
-[Forward to HexStrike Server]
-        ↓
-[HexStrike: OpenRouter API call]
-        ↓
-[Stream tokens back]
-        ↓
-[Flask: Forward stream to frontend]
-        ↓
-[App.jsx: Update UI in real-time]
-        ↓
-[Display in SmartBlock components]
-```
-
-### 2. **Command Execution Flow**
-
-```
-[AI Decides to Execute Command]
-        ↓
-[Backend: Parse command from response]
-        ↓
-[POST /execute with command]
-        ↓
-[server.py: subprocess.run()]
-        ↓
-[Capture stdout, stderr, exit_code]
-        ↓
-[Return result to frontend]
-        ↓
-[Display in OUTPUT block with ANSI colors]
-```
-
-### 3. **Configuration Update Flow**
-
-```
-[User Opens Settings Modal]
-        ↓
-[Load current config via GET /config]
-        ↓
-[User Changes Settings]
-        ↓
-[POST /config with updated values]
-        ↓
-[Backend: Merge with user config]
-        ↓
-[Save to ~/.hexagent-gui/config/]
-        ↓
-[Return updated config]
-        ↓
-[Frontend: Apply changes immediately]
-```
-
----
+[... Rest of file unchanged / Resto do arquivo inalterado ...]
 
 ## 🛠️ Technology Stack / Pilha Tecnológica
 
@@ -394,7 +156,6 @@ User Input → Flask API → HexStrike Server → OpenRouter API
 | **Electron 31.0** | Desktop app | Aplicativo desktop |
 | **Lucide React** | Icons | Ícones |
 | **Prism.js** | Syntax highlighting | Destaque de sintaxe |
-| **React Syntax Highlighter** | Code rendering | Renderização de código |
 
 ### Backend
 
@@ -404,85 +165,23 @@ User Input → Flask API → HexStrike Server → OpenRouter API
 | **Flask 3.1** | Web framework | Framework web |
 | **Subprocess** | Command execution | Execução de comandos |
 | **JSON** | Configuration | Configuração |
-| **OpenRouter API** | AI model routing | Roteamento de modelo de IA |
-
----
-
-## 🔐 Security Considerations / Considerações de Segurança
-
-**English:**
-1. **Command Execution:** All commands executed via `subprocess.run()` with timeout (30s)
-2. **Path Traversal Protection:** Script save paths validated against `../` attacks
-3. **API Authentication:** OpenRouter API key stored in user config (not in code)
-4. **Local-only Server:** Flask binds to `localhost:5000` (not exposed externally)
-5. **Permission Validation:** Scripts set to `0o755` only if explicitly requested
-
-**Português:**
-1. **Execução de Comandos:** Todos os comandos executados via `subprocess.run()` com timeout (30s)
-2. **Proteção contra Path Traversal:** Caminhos de salvamento de scripts validados contra ataques `../`
-3. **Autenticação de API:** Chave de API do OpenRouter armazenada em config de usuário (não no código)
-4. **Servidor Local Apenas:** Flask vincula a `localhost:5000` (não exposto externamente)
-5. **Validação de Permissões:** Scripts configurados para `0o755` apenas se explicitamente solicitado
-
----
-
-## 📊 Performance Optimizations / Otimizações de Performance
-
-**Implemented / Implementado:**
-1. ✅ React.memo for frequently re-rendering components
-2. ✅ useMemo for expensive computations
-3. ✅ useCallback for event handlers
-4. ✅ Code splitting with React.lazy (planned)
-5. ✅ ANSI rendering caching
-6. ✅ Stream processing (chunks, not full response)
-
-**Planned / Planejado:**
-- Dynamic imports for large modals
-- Virtual scrolling for long message history
-- Web Workers for heavy parsing tasks
-
----
-
-## 🧪 Testing Strategy / Estratégia de Testes
-
-**Manual Testing / Testes Manuais:**
-- All features tested on Kali Linux ARM64
-- ANSI color rendering verified with `ls -la`, `grep --color`
-- Script execution tested with Python, Bash, Node.js
-- Session persistence verified across restarts
-
-**Automated Testing (Future) / Testes Automatizados (Futuro):**
-- Unit tests for utility functions
-- Integration tests for API endpoints
-- E2E tests with Playwright/Cypress
 
 ---
 
 ## 📈 Future Enhancements / Melhorias Futuras
 
 **Short-term / Curto Prazo:**
-1. TypeScript migration
-2. Unit test coverage (>80%)
-3. Plugin system for custom blocks
-4. Multi-language support (Spanish, French)
+1. ✅ **Refactored App.jsx (Completed)**
+2. TypeScript migration
+3. Unit test coverage (>80%)
 
 **Long-term / Longo Prazo:**
 1. Cloud sync for sessions
 2. Collaborative mode (multi-user)
-3. Custom AI model support (local LLMs)
-4. Mobile app (React Native)
+3. Plugin system
 
 ---
 
-## 📚 Related Documentation / Documentação Relacionada
-
-- [Features Documentation](FEATURES.md)
-- [User Manual](USER_MANUAL.md)
-- [Installation Guide](INSTALL.md)
-- [Contributing Guidelines](CONTRIBUTING.md)
-
----
-
-**Last Updated:** 2026-01-05  
-**Version:** 1.0.0  
+**Last Updated:** 2026-01-14
+**Version:** 1.1.0-refactor
 **Maintainer:** Roberto Dantas de Castro

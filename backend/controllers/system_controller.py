@@ -243,19 +243,26 @@ class SystemController(BaseController):
             """
             Gracefully shutdown the system
             Desliga o sistema graciosamente
-            
-            Note: This endpoint may not work in all deployment modes
-            Nota: Este endpoint pode não funcionar em todos os modos de implantação
             """
             try:
                 self.log_request('POST /shutdown')
                 self.logger.info("Shutdown requested")
                 
-                # Cleanup operations
-                # Operações de limpeza
-                # TODO: Add cleanup logic here
+                # Shutdown AgentCore if initialized
+                # Desligar AgentCore se inicializado
+                if self.core:
+                    self.logger.info("Shutting down AgentCore...")
+                    try:
+                        self.core.shutdown()
+                    except Exception as e:
+                        self.logger.error(f"Error shutting down core: {e}")
                 
-                return self.success_response(message="Shutting down...")
+                # Setup shutdown timer for Flask
+                # Configurar timer de desligamento para Flask
+                # Note: We rely on the frontend to close the Electron window 
+                # or the process manager to kill the process after this response.
+                
+                return self.success_response(message="System shutting down...")
             except Exception as e:
                 self.log_error('POST /shutdown', e)
                 return self.error_response("Shutdown failed", 500)

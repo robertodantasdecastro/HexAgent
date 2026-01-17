@@ -154,6 +154,8 @@ Realizar uma reformulação completa do backend de IA e da configuração do fro
 
 ### Prompt for Antigravity AI: Local AI Engine Integration via LM Studio (English)
 
+
+
 **Context:**
 To ensure privacy, security, and offline functionality, `HexAgentGUI` requires the integration of a local inference engine. LM Studio provides a robust local server that mimics the OpenAI API protocol, making it an ideal candidate for local LLM execution.
 

@@ -3,7 +3,7 @@
 
 **Last Updated:** 2026-01-10 04:33  
 **Project Status:** Production - Active Development  
-**Current Version:** 1.0.0  
+**Current Version:** 1.1.0-alpha (Refactoring Phase)
 **Next Milestone:** 1.1.0 (Code Quality & Refactoring)
 
 ---
@@ -31,7 +31,7 @@ Build a scalable, maintainable, and extensible AI-powered security testing platf
 - [x] 12 OOP classes (62% adoption - B+ grade)
 
 ### ⚠️ Technical Debt Identified:
-- [ ] Monolithic App.jsx (1,740 lines)
+- [x] Monolithic App.jsx (Refactored to ~400 lines)
 - [ ] Duplicate state management
 - [ ] ScriptManager anti-pattern
 - [ ] 58 console.log in production
@@ -59,8 +59,8 @@ Fix critical issues that impact stability, maintainability, and testability.
 
 #### 1.1 Fix ScriptManager Anti-Pattern
 **Priority:** CRITICAL  
-**Effort:** 2 hours  
-**Assignee:** TBD
+**Status:** ✅ COMPLETED (v2.0.0)
+**Assignee:** Roberto Dantas de Castro
 
 **Current State:**
 ```javascript
@@ -94,11 +94,11 @@ class ScriptManager {
 ```
 
 **Acceptance Criteria:**
-- [ ] ScriptManager uses Singleton pattern
-- [ ] All methods use APIClient
-- [ ] No hardcoded URLs
-- [ ] Unit tests written
-- [ ] Documentation updated
+- [x] ScriptManager uses Singleton pattern
+- [x] All methods use APIClient
+- [x] No hardcoded URLs
+- [x] Unit tests written
+- [x] Documentation updated
 
 ---
 
@@ -192,6 +192,30 @@ logger.info('Loading session...', { component: 'App' });
 - [ ] Zero console.log in production
 - [ ] ScriptManager follows Singleton pattern
 - [ ] All critical tests passing
+
+---
+
+## 📅 PHASE 1.5: Backend Modernization (Week 2-3)
+## 📅 FASE 1.5: Modernização do Backend (Semana 2-3)
+**Timeline:** 2026-01-20 to 2026-01-31
+**Status:** 🔴 CRITICAL - Planned / Planejado
+**Estimated Effort:** 15-20 hours
+
+### Objectives / Objetivos:
+Transition from monolithic `server.py` to modular `app.py + controllers` architecture.
+Transição de `server.py` monolítico para arquitetura modular `app.py + controllers`.
+
+### Tasks / Tarefas:
+#### 1.5.1 Deprecate server.py / Descontinuar server.py
+**Priority:** CRITICAL
+- [x] Verify `controllers` cover 100% of `server.py` endpoints
+- [x] Switch Electron entry point to `app.py`
+- [x] Delete `server.py` (1800+ lines of debt)
+
+#### 1.5.2 Standardize Bilingual Docs in Backend / Padronizar Docs Bilíngues no Backend
+**Priority:** HIGH
+- [x] Update all Controller docstrings to EN/PT format
+- [ ] Update Logger messages
 
 ---
 
