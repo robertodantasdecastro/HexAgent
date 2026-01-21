@@ -1,7 +1,12 @@
-import { Code, Cpu, Key, RefreshCw, Sliders, X, Zap } from 'lucide-react';
+import { Code, Cpu, Key, RefreshCw, Shield, Sliders, X, Zap } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from '../hooks/useTranslation';
 import APIClient from '../utils/APIClient';
+// ... (imports)
+
+// ...
+
+// Tabs definition moved inside component to access 't'
 
 /**
  * AIConfigModal - Dynamic AI/LLM Configuration with ProviderFactory Integration
@@ -15,46 +20,44 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
   const [loading, setLoading] = useState(false);
   const [connectionTestResult, setConnectionTestResult] = useState(null);
   
-  const [aiConfig, setAiConfig] = useState({
-    engine: 'openai',
-    model: '',
-    api_key: '',
-    host: 'http://localhost',      // LM Studio/5ire server host
-    port: 1234,                     // LM Studio/5ire server port  
-    timeout: 60,                    // Request timeout (seconds)
-    temperature: 0.7,
-    max_tokens: 4000,
-    max_iterations: 10,
-    unlimited_iterations: false,
-    auto_execute: false,
-    system_prompt: ''
-  });
+  // State for the form draft, initialized as null
+  // Estado para o rascunho do formulário, inicializado como null
+  const [aiConfig, setAiConfig] = useState(null);
 
+  // Hydrate state from props (Single Source of Truth)
+  // Hidratar estado das props (Fonte Única da Verdade)
   useEffect(() => {
-    if (config?.ai) {
+    if (config) {
+      console.log('[AIConfigModal] Hydrating from persistence:', config);
+      const source = config.ai || config;
+      
+      // Map explicit values from file, strictly avoiding code-defined overrides where possible
+      // Mapear valores explícitos do arquivo, evitando estritamente sobrescritas definidas no código onde possível
       setAiConfig({
-        engine: config.ai.engine || 'hexsecgpt',
-        model: config.ai.model || '',
-        api_key: config.ai.api_key || '',
-        host: config.ai.host || 'http://localhost',
-        port: config.ai.port || 1234,
-        timeout: config.ai.timeout || 60,
-        temperature: config.ai.temperature || 0.7,
-        max_tokens: config.ai.max_tokens || 4000,
-        max_iterations: config.ai.max_iterations || 10,
-        unlimited_iterations: config.ai.unlimited_iterations || false,
-        auto_execute: config.ai.auto_execute || false,
-        system_prompt: config.ai.system_prompt || ''
+        engine: source.engine || 'openai',
+        model: source.model || '',
+        api_key: source.api_key || '',
+        host: source.host || 'http://localhost',
+        port: source.port || 1234,
+        timeout: source.timeout || 60,
+        temperature: source.temperature ?? 0.7, // Use ?? to allow 0
+        max_tokens: source.max_tokens || 4000,
+        max_iterations: source.max_iterations || 10,
+        unlimited_iterations: source.unlimited_iterations || false,
+        auto_execute: source.auto_execute || false,
+        system_prompt: source.system_prompt || ''
       });
     }
-  }, [config, isOpen]);
+  }, [config]);
 
   // Fetch available models when engine changes / Busca modelos quando engine muda
   useEffect(() => {
-    if (isOpen && aiConfig.engine) {
+    // Safe access with optional chaining
+    if (isOpen && aiConfig?.engine) {
+      console.log('[AIConfigModal] Fetching models for engine:', aiConfig.engine);
       fetchAvailableModels(aiConfig.engine);
     }
-  }, [aiConfig.engine, isOpen]);
+  }, [aiConfig?.engine, isOpen]);
 
   const fetchAvailableModels = async (engine) => {
     try {
@@ -75,18 +78,8 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
       }
     } catch (error) {
       console.error('Failed to fetch models:', error);
-      // Fallback for HexSecGPT / Fallback para HexSecGPT
-      if (engine === 'hexsecgpt') {
-        const fallbackModels = [
-          'google/gemini-2.0-flash-exp:free',
-          'google/gemini-pro',
-          'meta-llama/llama-3.2-90b-vision-instruct:free'
-        ];
-        setAvailableModels(fallbackModels);
-        if (!aiConfig.model) {
-          setAiConfig(prev => ({ ...prev, model: fallbackModels[0] }));
-        }
-      }
+      setAvailableModels([]);
+      // Only set error message, do NOT fallback to magic values
     } finally {
       setLoading(false);
     }
@@ -161,9 +154,23 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
 
   if (!isOpen) return null;
 
+  // Show loading if config is not yet available
+  // Mostrar carregando se config ainda não estiver disponível
+  if (!aiConfig) {
+      return (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
+             <div className="flex flex-col items-center gap-4">
+                 <RefreshCw size={32} className="animate-spin text-cyan-400" />
+                 <p className="text-white font-mono text-sm">Loading Configuration / Carregando Configuração...</p>
+             </div>
+        </div>
+      );
+  }
+
   const tabs = [
     { id: 'engine', label: t('aiconfig.tabs.engine', 'Motor'), icon: Cpu },
     { id: 'api', label: t('aiconfig.tabs.api', 'API'), icon: Key },
+    { id: 'hexstrike', label: 'HexStrike', icon: Shield },
     { id: 'params', label: t('aiconfig.tabs.params', 'Parâmetros'), icon: Sliders },
     { id: 'behavior', label: t('aiconfig.tabs.behavior', 'Comportamento'), icon: Zap },
     { id: 'advanced', label: t('aiconfig.tabs.advanced', 'Avançado'), icon: Code }
@@ -492,7 +499,7 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
             </div>
           )}
 
-          {/* Advanced Tab */}
+            {/* Advanced Tab */}
           {activeTab === 'advanced' && (
             <div className="space-y-4">
               <div>
@@ -510,6 +517,47 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
                   Deixe vazio para usar prompt padrão / Leave empty for default prompt
                 </p>
               </div>
+            </div>
+          )}
+
+          {/* HexStrike Tab */}
+          {activeTab === 'hexstrike' && (
+            <div className="space-y-6">
+                <div className="p-4 bg-green-900/10 border border-green-500/20 rounded-lg">
+                    <h3 className="text-sm font-bold text-green-400 mb-2">HexStrike AI Integration</h3>
+                    <p className="text-xs text-gray-400 mb-4">
+                        Configuration for the vulnerability scanner and command execution engine.
+                    </p>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                             <label className="block text-xs font-mono text-gray-300 mb-1">Status</label>
+                             <div className="text-xs font-mono text-green-400 bg-black/40 px-2 py-1 rounded inline-block border border-green-500/20">
+                                 ACTIVE (Managed by System)
+                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-mono text-gray-300 mb-2">HexStrike URL</label>
+                         <div className="flex gap-2">
+                            <input
+                                type="text"
+                                value="http://localhost:8888" 
+                                disabled
+                                className="w-full bg-[#111] border border-[#333] rounded px-3 py-2 text-gray-500 font-mono text-sm cursor-not-allowed"
+                            />
+                            <div className="p-2 bg-[#222] rounded border border-[#333] text-gray-400 text-xs flex items-center">
+                                Locked
+                            </div>
+                         </div>
+                         <p className="text-[10px] text-gray-600 mt-1">
+                             Managed by System Config. To change port, go to Settings `{'>'}` Services.
+                         </p>
+                    </div>
+                </div>
             </div>
           )}
         </div>

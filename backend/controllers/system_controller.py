@@ -108,6 +108,22 @@ class SystemController(BaseController):
                         "hexstrike": self.hexstrike is not None
                     }
                 }
+
+                # Add detailed agent status if available
+                # Adiciona status detalhado do agente se disponível
+                if agent_initialized and self.core:
+                     try:
+                        agent_status = self.core.get_status()
+                        status["brain"] = {
+                            "ready": agent_status.get("brain_ready", False),
+                            "provider": agent_status.get("provider", "unknown"),
+                            "engine": agent_status.get("engine", "unknown"),
+                            "model": agent_status.get("model", "unknown"),
+                            "status": "ready" if agent_status.get("brain_ready") else "error"
+                        }
+                     except Exception as e:
+                        self.logger.error(f"Error getting agent status: {e}")
+                        status["brain"] = {"ready": False, "status": "error", "message": str(e)}
                 
                 return self.success_response(data=status)
             except Exception as e:
@@ -147,15 +163,34 @@ class SystemController(BaseController):
                         message="Running in STANDALONE mode. AI features disabled. Configure API key in Settings to enable."
                     )
                 
-                # FULL MODE: Try to get API key and initialize
-                # MODO COMPLETO: Tenta obter chave API e inicializar
+                # FULL MODE: Get API key and check engine type
+                # MODO COMPLETO: Obter chave API e verificar tipo de motor
                 api_key = self._get_api_key()
                 
-                if not api_key:
+                # Check if we are running a local engine that doesn't need a key
+                # Verifica se estamos rodando um motor local que não precisa de chave
+                from services.ai_config_service import AIConfigService
+                ai_service = AIConfigService()
+                config = ai_service.load_ai_config()
+                engine = config.get('ai', {}).get('engine', 'openai').lower()
+                
+                # List of engines that don't STRICTLY require an API key
+                # Lista de motores que não exigem ESTRITAMENTE uma chave API
+                # Note: 'hexsecgpt' might be local or remote, typically local/hybrid
+                local_engines = ['lmstudio', 'ollama', 'localai', '5ire', 'text-generation-webui']
+                is_local = engine in local_engines
+                
+                # Only enforce API Key if NOT local
+                # Apenas exige Chave API se NÃO for local
+                if not api_key and not is_local:
                     return self.error_response(
-                        "API Key not found. Please configure it in Settings.",
+                        f"API Key not found for engine '{engine}'. Please configure it in Settings.",
                         400
                     )
+                
+                # Log for debugging
+                if is_local and not api_key:
+                    self.logger.info(f"Initializing local engine '{engine}' without API Key (Allowed)")
                 
                 # Initialize core with API key
                 # Inicializa core com chave API
@@ -315,34 +350,30 @@ class SystemController(BaseController):
     
     def _get_api_key(self) -> str:
         """
-        Get API key from environment or config
-        Obtém chave API do ambiente ou config
+        Get API key via AIConfigService (Single Source of Truth)
+        Obtém chave API via AIConfigService (Fonte Única da Verdade)
         
         Returns:
             API key string or empty string
-            String de chave API ou string vazia
         """
-        # 1. Try environment variables first
-        # 1. Tenta variáveis de ambiente primeiro
-        api_key = os.getenv('OPENROUTER_API_KEY') or os.getenv('API_KEY')
-        if api_key:
-            return api_key
-
-        # 2. Try loading from user config file
-        # 2. Tentar carregar do arquivo de config do usuário
         try:
-            from pathlib import Path
-            import json
+            # 1. Try environment variables (Override)
+            # 1. Tenta variáveis de ambiente (Sobrescrita)
+            env_key = os.getenv('OPENROUTER_API_KEY') or os.getenv('API_KEY')
+            if env_key:
+                return env_key
+
+            # 2. Use AI Config Service
+            # 2. Usa Serviço de Config de IA
+            from services.ai_config_service import AIConfigService
+            ai_service = AIConfigService()
+            config = ai_service.load_ai_config()
             
-            config_path = Path.home() / '.hexagent-gui' / 'config.json'
-            if config_path.exists():
-                with open(config_path, 'r') as f:
-                    config = json.load(f)
-                    return config.get('ai', {}).get('api_key', '')
+            return config.get('ai', {}).get('api_key', '')
+            
         except Exception as e:
-            self.logger.error(f"Error reading config for API key: {e}")
-            
-        return ""
+            self.logger.error(f"Error getting API key: {e}")
+            return ""
     
     def _start_hexstrike(self) -> bool:
         """

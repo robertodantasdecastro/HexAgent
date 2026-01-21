@@ -29,7 +29,12 @@ DEFAULT_SYSTEM_CONFIG = {
     "services": {
         "flask_port": 5000,
         "hexstrike_port": 8888,
-        "backend_host": "127.0.0.1"
+        "backend_host": "127.0.0.1",
+        "hexstrike_host": "127.0.0.1",
+        "hexstrike_app_path": "/home/d4r13n/iatools/hexstrike-ai"
+    },
+    "environment": {
+        "venv_path": "/home/d4r13n/iatools/HexAgentGUI/venv"
     },
     "ui": {
         "custom_colors": {},

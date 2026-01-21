@@ -52,17 +52,62 @@ if (!gotTheLock) {
   });
 
   // Create window only if we have the lock
-  app.on('ready', () => {
+  app.on('ready', async () => {
       // Enable console logging for debugging / Habilitar logs do console para debug
       console.log('[Electron] Starting HexAgentGUI...');
       console.log('[Electron] isPackaged:', app.isPackaged);
       console.log('[Electron] execPath:', process.execPath);
       console.log('[Electron] cwd:', process.cwd());
       
+      await startPythonBackend();
+      
+      // Wait for backend to be ready before creating window
+      // Aguarda backend estar pronto antes de criar janela
+      console.log('[Electron] Waiting for backend to be ready...');
+      await waitForBackend();
+      
       createWindow();
-      startPythonBackend();
   });
 }
+
+const waitForBackend = async () => {
+    const maxRetries = 30; // 30 attempts * 500ms = 15 seconds max
+    let retries = 0;
+    
+    return new Promise((resolve) => {
+        const check = () => {
+            const { get } = Promise.resolve().then(() => import('http'));
+            
+            // Use simple http request to check health
+            const http =  import('http'); 
+            http.then(h => {
+                const req = h.get('http://127.0.0.1:5000/health', (res) => {
+                    if (res.statusCode === 200) {
+                        console.log('[Electron] Backend is ready!');
+                        resolve();
+                    } else {
+                        retry();
+                    }
+                });
+                
+                req.on('error', () => retry());
+                req.end();
+            });
+        };
+        
+        const retry = () => {
+            retries++;
+            if (retries >= maxRetries) {
+                console.error('[Electron] Backend failed to start in time. Launching anyway.');
+                resolve(); // Launch anyway to show UI errors if needed
+            } else {
+                setTimeout(check, 500);
+            }
+        };
+        
+        check();
+    });
+};
 
 function createWindow() {
   mainWindow = new BrowserWindow({

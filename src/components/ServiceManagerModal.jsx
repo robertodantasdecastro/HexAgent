@@ -51,15 +51,18 @@ const ServiceManagerModal = ({ isOpen, onClose }) => {
           logger.warn('ServiceManager: Failed to fetch services status', e);
       }
       
-      if (isMounted.current) {
+      if (isMounted.current && systemData.success) {
+        const data = systemData.data || {};
+        const servicesData = servicesStatus.data || {};
+        
         setServices({
-          backend: systemData.backend || { ready: true, status: 'running', message: 'Core System Online' },
+          backend: data.backend || { ready: true, status: 'running', message: 'Core System Online' },
           hexstrike: {
-              ready: servicesStatus.hexstrike === 'running',
-              status: servicesStatus.hexstrike || 'stopped',
-              message: servicesStatus.hexstrike === 'running' ? 'Active & Listening (Port 8888)' : (servicesStatus.hexstrike === 'starting' ? 'Initializing...' : 'Service Stopped')
+              ready: servicesData.hexstrike === 'running',
+              status: servicesData.hexstrike || 'stopped',
+              message: servicesData.hexstrike === 'running' ? 'Active & Listening (Port 8888)' : (servicesData.hexstrike === 'starting' ? 'Initializing...' : 'Service Stopped')
           },
-          brain: systemData.brain || { ready: false, status: 'pending', message: 'AI Engine Loading...' }
+          brain: data.brain || { ready: false, status: 'pending', message: 'AI Engine Loading...' }
         });
       }
     } catch (error) {
@@ -200,11 +203,11 @@ const ServiceManagerModal = ({ isOpen, onClose }) => {
                     </span>
                 </div>
                 <p className="text-xs text-gray-400 mb-4 h-8 font-mono">
-                   AI Provider Factory Status. Active Strategy: {services.brain.provider || 'Auto'}
+                   AI Provider Factory Status. Active Strategy: <span className="text-blue-400">{services.brain.engine || 'Auto'}</span>
                 </p>
                 <div className="pt-3 border-t border-[#333] flex justify-between items-center text-[10px] font-mono text-gray-500">
-                    <span>Model: {services.brain.model || 'Configured'}</span>
-                    <span>Provider: Standard</span>
+                    <span>Model: <span className="text-gray-300">{services.brain.model || 'Configured'}</span></span>
+                    <span>Provider: <span className="text-gray-300">{services.brain.provider || 'Standard'}</span></span>
                 </div>
             </div>
 

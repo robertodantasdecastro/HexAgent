@@ -456,6 +456,8 @@ class AgentCore:
             "hexstrike_available": self.hexstrike_available,
             "conversation_length": 0,  # TODO: Provider-specific
             "model": self.provider.get_default_model() if self.provider else None,
+            "provider": self.provider.get_provider_name() if self.provider else None,
+            "engine": self.engine,
             "hexstrike_url": self.hexstrike.base_url
         }
     

@@ -103,6 +103,23 @@ def create_app(core_ref=None, hexstrike_ref=None):
             
             # Load active configuration (flattened and ready)
             # Carregar configuração ativa (achatada e pronta)
+            # Load System Config for HexStrike URL
+            from services.system_config_service import SystemConfigService
+            system_service = SystemConfigService()
+            sys_conf = system_service.load_system_config()
+            
+            # Default to env var if set (docker/container), else config
+            hexstrike_url = os.getenv('HEXSTRIKE_URL') or sys_conf.get('services', {}).get('hexstrike_host', 'http://127.0.0.1:8888')
+            
+            # Formatting correction if needed (ensure http prefix and port)
+            if not hexstrike_url.startswith('http'):
+                hexstrike_url = f"http://{hexstrike_url}"
+             
+            # If config has separate host/port, construct it
+            if 'services' in sys_conf:
+                host = sys_conf['services'].get('hexstrike_host', '127.0.0.1')
+                port = sys_conf['services'].get('hexstrike_port', 8888)
+                hexstrike_url = f"http://{host}:{port}"
             engine, provider_config = ai_service.get_active_provider_config()
             
             # Check if we can proceed (API key present OR local engine)
@@ -137,11 +154,7 @@ def create_app(core_ref=None, hexstrike_ref=None):
                 app.logger.info(f"   - AI Provider: {agent_core.provider.get_provider_name()}")
                 app.logger.info(f"   - AI Model: {agent_core.provider.get_default_model()}")
                 app.logger.info(f"   - HexStrike: {'✓ Available' if agent_core.hexstrike_available else '✗ Unavailable'}")
-            else:
-                app.logger.warning("⚠️  No API key found - AgentCore not initialized")
-                app.logger.warning("   Set API key in ~/.hexagent-gui/config.json or OPENROUTER_API_KEY environment variable")
-                app.logger.warning("   Get key at: https://openrouter.ai/keys")
-                agent_core = None
+
                 
         except ImportError as e:
             app.logger.error(f"Failed to import AgentCore modules: {e}")

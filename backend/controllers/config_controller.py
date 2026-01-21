@@ -256,10 +256,6 @@ class ConfigController(BaseController):
                 self.log_request(f'GET /engines/{engine}/models')
                 from core.providers import ProviderFactory
                 
-            try:
-                self.log_request(f'GET /engines/{engine}/models')
-                from core.providers import ProviderFactory
-                
                 # Use simplified helper from AI Config Service
                 # Usar helper simplificado do Serviço de Configuração de IA
                 active_engine, provider_config = self.ai_service.get_active_provider_config()

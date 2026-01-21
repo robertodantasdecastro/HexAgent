@@ -21,15 +21,21 @@ AI_CONFIG_FILE = CONFIG_DIR / 'ai-config.json'
 # Default AI configuration / Configuração padrão de IA
 DEFAULT_AI_CONFIG = {
     "ai": {
+        "engine": "lmstudio",
         "language": "auto",
-        "model": "openai/gpt-4-turbo",
+        "model": "mistralai/ministral-3-3b",
         "api_key": "",
-        "api_url": "",
+        "host": "http://192.168.0.6",
+        "port": 1234,
+        "timeout": 60,
+        "temperature": 0.7,
+        "max_tokens": 4096,
         "max_iterations": 10,
         "unlimited_iterations": False,
-        "temperature": 0.7,
+        "auto_execute": False,
         "web_search_enabled": False,
-        "streaming_enabled": True
+        "stream_responses": True,
+        "system_prompt": ""
     }
 }
 
@@ -86,7 +92,7 @@ class AIConfigService:
             self.logger.error(f"[AI-SERVICE] Invalid JSON: {e}")
             raise ConfigError(f"Invalid AI configuration file: {e}")
         except Exception as e:
-            self.logger.error(f"[AI-SERVICE] Error loading: {e}")
+            self.logger.warning(f"[AI-SERVICE] Error loading config ({e}), using internal defaults")
             return DEFAULT_AI_CONFIG.copy()
     
     def save_ai_config(self, config: Dict[str, Any]):

@@ -228,7 +228,7 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
                         <h3 className="text-xs font-bold text-cyan-400 mb-4 uppercase tracking-wider border-b border-[#333] pb-2 flex items-center gap-2">
                             <Server size={14} /> Backend Configuration
                         </h3>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 gap-4 mb-4">
                             <div>
                                 <label className="block text-xs text-gray-400 mb-1.5 font-mono">Flask Port</label>
                                 <input 
@@ -247,6 +247,19 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
                                     className="w-full bg-black border border-[#333] rounded px-3 py-2 text-white text-sm focus:border-cyan-500 focus:outline-none font-mono"
                                 />
                             </div>
+                        </div>
+                        <div>
+                            <label className="block text-xs text-gray-400 mb-1.5 font-mono">Main Application Venv Path (Unified)</label>
+                            <input 
+                                type="text" 
+                                value={localConfig.environment?.venv_path || ''}
+                                onChange={(e) => setLocalConfig(prev => ({ ...prev, environment: { ...prev.environment, venv_path: e.target.value } }))}
+                                placeholder="/path/to/hexagent/venv"
+                                className="w-full bg-black border border-[#333] rounded px-3 py-2 text-white text-sm focus:border-cyan-500 focus:outline-none font-mono"
+                            />
+                            <p className="text-[10px] text-gray-600 mt-1">
+                                Path to the shared virtual environment for HexAgentGUI and HexStrike
+                            </p>
                         </div>
                     </div>
 

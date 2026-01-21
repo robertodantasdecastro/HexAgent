@@ -156,20 +156,16 @@ setup_user_config() {
     mkdir -p "$USER_CONFIG_DIR/sessions"
     mkdir -p "$USER_CONFIG_DIR/logs"
     
-    # 1. Install system-config.json
-    if [ ! -f "$USER_CONFIG_DIR/system-config.json" ]; then
-        if [ -f "config_templates/system-config.json" ]; then
-            cp "config_templates/system-config.json" "$USER_CONFIG_DIR/system-config.json"
-            print_success "Created default system-config.json"
-        fi
+    # 1. Install/Update system-config.json
+    if [ -f "config_templates/system-config.json" ]; then
+        print_info "Verifying system-config.json..."
+        python3 scripts/verify_config.py "$USER_CONFIG_DIR/system-config.json" "config_templates/system-config.json"
     fi
 
-    # 2. Install config.json (AI)
-    if [ ! -f "$USER_CONFIG_DIR/config.json" ]; then
-        if [ -f "config_templates/config.json" ]; then
-             cp "config_templates/config.json" "$USER_CONFIG_DIR/config.json"
-             print_success "Created default config.json (AI)"
-        fi
+    # 2. Install/Update ai-config.json (AI)
+    if [ -f "config_templates/ai-config.json" ]; then
+        print_info "Verifying ai-config.json (AI)..."
+        python3 scripts/verify_config.py "$USER_CONFIG_DIR/ai-config.json" "config_templates/ai-config.json"
     fi
 
     # 3. Cleanup Legacy 'config/' folder if it exists

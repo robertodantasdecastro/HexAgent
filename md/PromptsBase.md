@@ -29,6 +29,42 @@ Realizar uma análise profunda do projeto HexAgentGUI para sincronizar o estado 
 
 
 
+**Objetivo:**
+Realizar uma análise profunda do projeto HexAgentGUI para sincronizar o estado atual com o plano de desenvolvimento de longo prazo, garantindo padrões POO, escalabilidade e sincronização total de todas as variáveis atuais da interface GUI.
+
+**Instruções:**
+
+1.  **Mapeamento e Sincronização de Variáveis GUI:**
+    *   Identifique e mapeie todas as variáveis atuais na interface GUI. Garanta que sejam inicializadas corretamente, sincronizadas com a lógica do backend e sigam os princípios de encapsulamento POO. Esta é uma tarefa de alta prioridade.
+
+2.  **Análise Recursiva e Auditoria POO:**
+    *   Escaneie todos os arquivos do projeto para identificar a lógica central e dependências de componentes. Avalie o progresso da migração POO e refatore códigos procedurais legados em classes modulares.
+
+3.  **Documentação Multilíngue e Padrões:**
+    *   Atualize toda a documentação (arquivos .md) e comentários de código para seguir rigorosamente o formato Inglês (Primário) / Português-BR (Secundário). Garanta que a logo, referências de desenvolvimento e links de doação sejam preservados e atualizados.
+
+4.  **Detecção de Redundância e Bugs:**
+    *   Localize funções duplicadas e unifique a lógica redundante. Identifique variáveis não utilizadas ou recursos desativados para evitar a obsolescência de recursos.
+
+5.  **Mapeamento Arquitetural:**
+    *   Gere uma Árvore de Arquivos, Diagrama de Classes e Stack de Bibliotecas (dependências e papéis) atualizados.
+
+6.  **Atualização do Roadmap de Desenvolvimento:**
+    *   Atualize a lista de TAREFAS e o ROADMAP com base nas descobertas, priorizando a escalabilidade e a integração multi-desenvolvedor (humano/IA).
+
+**Formato de Saída:**
+*   **Resumo das Descobertas:** Status das variáveis GUI, progresso POO e bugs identificados.
+*   **Roadmap de Refatoração:** Guia passo a passo para a próxima fase de desenvolvimento.
+*   **Doc de Arquitetura Atualizada:** Arquivo Markdown descrevendo a estrutura do sistema.
+
+
+
+
+
+
+
+
+
 ### Prompt for Antigravity AI: Restoration and OOP Refactoring of Inference Engine (English)
 
 **Context:**

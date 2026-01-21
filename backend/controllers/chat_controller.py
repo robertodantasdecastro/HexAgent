@@ -153,7 +153,17 @@ class ChatController(BaseController):
                     # Fallback: Modo OpenRouter simples sem AgentCore
                     self.logger.warning("AgentCore not available, using simple fallback mode")
                     
-                    api_key = os.getenv('OPENROUTER_API_KEY') or os.getenv('API_KEY')
+                    # Load API Key from Service (Single Source of Truth)
+                    from services.ai_config_service import AIConfigService
+                    ai_service = AIConfigService()
+                    ai_config_full = ai_service.load_ai_config()
+                    
+                    # 1. Config File
+                    api_key = ai_config_full.get('ai', {}).get('api_key')
+                    
+                    # 2. Env Var Override
+                    if not api_key:
+                        api_key = os.getenv('OPENROUTER_API_KEY') or os.getenv('API_KEY')
                     
                     if not api_key:
                         # Standalone mode message / Mensagem modo standalone
