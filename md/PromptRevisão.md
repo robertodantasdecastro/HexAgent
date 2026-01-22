@@ -139,3 +139,29 @@ Revisar toda a estrutura do projeto para atualizar as metas principais da task. 
     *   **Personalização:** Crie uma task para evoluir o modelo de personalização (sincronizado via `install.sh` e `config_templates`), com integração na GUI e refatoração completa dos sistemas de configuração.
 
 ****Sincronizar o estado atual com o plano de desenvolvimento de longo prazo, garantindo padrões POO, escalabilidade e sincronização total de todas as variáveis atuais da interface GUI.****
+
+
+### Prompt Complementar: Atualização do Cronograma de Longo Prazo
+
+**Objetivo:** Realize uma análise profunda de todo o projeto e histórico de chat para atualizar o roadmap de desenvolvimento.
+
+**Instruções de Execução:**
+
+1.  **Análise de Estado Atual:**
+    *   Avalie a implementação final da interface GUI e a sincronização com o backend `hexstrike-ai`.
+    *   Verifique a integridade dos arquivos em `~/.hexagent-gui/` e a eficácia do script `install.sh`.
+
+2.  **Atualização do Roadmap (Long Term):**
+    *   **Fase de Monitoramento:** Detalhe os marcos para o "Módulo de Monitoramento Passivo", definindo requisitos de rede e triggers de detecção.
+    *   **Ecossistema MCP:** Planeje a integração sequencial de servidores MCP (ex: `mcp-kali-server`, `mcp-filesystem`) para expandir a capacidade de execução do agente.
+    *   **Personalização Dinâmica:** Proponha um sistema de "Plugins de Comportamento" ou "Profiles de Engajamento" que possam ser alterados via GUI.
+
+3.  **Critérios de Qualidade:**
+    *   Mantenha a conformidade rigorosa com **POO** e **SOLID**.
+    *   Garanta que toda nova funcionalidade proposta seja agnóstica a SO (multiplataforma), mas otimizada para o ambiente base Kali Linux.
+    *   Documente as dependências futuras para evitar quebras de retrocompatibilidade.
+
+4.  **Entrega:**
+    *   Gere um arquivo `ROADMAP.md` atualizado ou uma seção detalhada de cronograma, dividida por marcos (Milestones), priorizando segurança, performance e independência offline.
+
+**Sincronize todas as variáveis de estado da GUI com este novo plano para garantir que o desenvolvimento futuro seja refletido na interface de usuário de forma nativa.**
