@@ -241,8 +241,12 @@ const ServiceManagerModal = ({ isOpen, onClose }) => {
                                 </div>
                                 <h3 className="font-bold text-sm text-gray-200 uppercase tracking-wider">AI Engine</h3>
                             </div>
-                            <span className="px-2 py-1 rounded text-[10px] font-mono font-bold uppercase border border-blue-500/30 bg-blue-500/10 text-blue-400">
-                                READY
+                            <span className={`px-2 py-1 rounded text-[10px] font-mono font-bold uppercase border ${
+                                services.brain.status === 'ready' || services.brain.status === 'running' 
+                                ? 'border-[#00ff00]/30 bg-[#00ff00]/10 text-[#00ff00]' 
+                                : 'border-red-500/30 bg-red-500/10 text-red-500'
+                            }`}>
+                                {services.brain.status === 'ready' ? 'RUNNING' : (services.brain.status || 'OFFLINE')}
                             </span>
                         </div>
                         <p className="text-xs text-gray-400 mb-4 h-8 font-mono">
