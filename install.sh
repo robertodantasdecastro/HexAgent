@@ -134,14 +134,39 @@ check_deps() {
 }
 
 # Configure theme based on OS / Configura tema baseado no SO
-configure_theme() {
-    mkdir -p "$CONFIG_DIR"
-    THEME="dark"
-    if grep -q "Kali" /etc/os-release 2>/dev/null; then THEME="kali-dark"; fi
-    if [ "$OS" = "darwin" ]; then THEME="macos-dark"; fi
+
+
+# Detect HexStrike Location / Detecta localização do HexStrike
+detect_hexstrike_location() {
+    print_info "Detecting HexStrike-AI location..."
     
-    if [ ! -f "$CONFIG_DIR/config.json" ]; then
-        echo "{\"ui\": {\"theme\": \"$THEME\"}}" > "$CONFIG_DIR/config.json"
+    # Check sibling directory
+    POTENTIAL_PATH="$(dirname "$(pwd)")/hexstrike-ai"
+    
+    if [ -d "$POTENTIAL_PATH" ]; then
+        HEXSTRIKE_PATH="$POTENTIAL_PATH"
+        HEXSTRIKE_VENV="$HEXSTRIKE_PATH/venv"
+        print_success "Found HexStrike-AI at: $HEXSTRIKE_PATH"
+        
+        TEMPLATE_FILE="config_templates/system-config.json"
+        if [ -f "$TEMPLATE_FILE" ]; then
+             print_info "Updating config template with detected paths..."
+             # Escape paths for sed
+             ESC_PATH=$(echo "$HEXSTRIKE_PATH" | sed 's/\//\\\//g')
+             ESC_VENV=$(echo "$HEXSTRIKE_VENV" | sed 's/\//\\\//g')
+             
+             sed -i "s/\"hexstrike_app_path\": \".*\"/\"hexstrike_app_path\": \"$ESC_PATH\"/" "$TEMPLATE_FILE"
+             sed -i "s/\"hexstrike_venv_path\": \".*\"/\"hexstrike_venv_path\": \"$ESC_VENV\"/" "$TEMPLATE_FILE"
+        fi
+    else
+        print_warning "HexStrike-AI not found automatically."
+        # Interactive prompt if needed, or leave default
+        echo -e "${YELLOW}Please enter path to HexStrike-AI (or press Enter to skip):${NC}"
+        read -t 10 -p "> " USER_PATH
+        if [ ! -z "$USER_PATH" ]; then
+             ESC_PATH=$(echo "$USER_PATH" | sed 's/\//\\\//g')
+             sed -i "s/\"hexstrike_app_path\": \".*\"/\"hexstrike_app_path\": \"$ESC_PATH\"/" "$TEMPLATE_FILE"
+        fi
     fi
 }
 
@@ -168,18 +193,22 @@ setup_user_config() {
         python3 scripts/verify_config.py "$USER_CONFIG_DIR/ai-config.json" "config_templates/ai-config.json"
     fi
 
-    # 3. Cleanup Legacy 'config/' folder if it exists
+    # 3. Install/Update user_profile.json
+    if [ -f "config_templates/user_profile.json" ]; then
+        print_info "Verifying user_profile.json..."
+        python3 scripts/verify_config.py "$USER_CONFIG_DIR/user_profile.json" "config_templates/user_profile.json"
+    fi
+
+    # 4. Install/Update mcp_config.json (MCP Registry)
+    if [ -f "config_templates/mcp_config.json" ]; then
+        print_info "Verifying mcp_config.json..."
+        python3 scripts/verify_config.py "$USER_CONFIG_DIR/mcp_config.json" "config_templates/mcp_config.json"
+    fi
+
+    # 5. Cleanup Legacy 'config/' folder if it exists
     # Limpeza da pasta 'config/' legada se existir
     if [ -d "$USER_CONFIG_DIR/config" ]; then
-        print_info "Migrating legacy config folder..."
-        # If specific valuable jsons exist, we might want to tell user, but for now we archive or remove
-        # We will separate AI keys if found, otherwise just warn
-        if [ -f "$USER_CONFIG_DIR/config/config.json" ] && [ ! -f "$USER_CONFIG_DIR/config.json" ]; then
-             cp "$USER_CONFIG_DIR/config/config.json" "$USER_CONFIG_DIR/config.json"
-             print_success "Migrated legacy config.json"
-        fi
-        
-        # Rename legacy folder to backup
+        print_warning "Found legacy 'config/' folder. Backing up..."
         mv "$USER_CONFIG_DIR/config" "$USER_CONFIG_DIR/config_legacy_backup_$(date +%s)"
         print_success "Backed up legacy config folder"
     fi
@@ -254,6 +283,20 @@ build_app() {
     mkdir -p "$INSTALL_DIR"
     cp -r "$SRC_DIR/"* "$INSTALL_DIR/"
     print_success "Installed to / Instalado em: $INSTALL_DIR"
+    
+    # Re-create venv in target to ensure valid paths
+    # Re-criar venv no alvo para garantir caminhos válidos
+    print_info "Finalizing Python environment in target / Finalizando ambiente Python no alvo..."
+    if [ -d "$INSTALL_DIR/resources/backend" ]; then
+        pushd "$INSTALL_DIR/resources" > /dev/null
+        rm -rf venv
+        python3 -m venv venv
+        ./venv/bin/pip install --upgrade pip
+        ./venv/bin/pip install -r backend/requirements.txt
+        popd > /dev/null
+        print_success "Target Python environment ready / Ambiente Python do alvo pronto"
+    fi
+    
     print_success "App is STANDALONE (no external dependencies) / App é AUTÔNOMO"
 }
 
@@ -445,7 +488,7 @@ main() {
     detect_system
     check_deps
     cleanup_old_versions
-    configure_theme
+    detect_hexstrike_location
     setup_user_config
     setup_configs
     build_app

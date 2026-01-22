@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nmaprun>
+<?xml-stylesheet href="file:///usr/share/nmap/nmap.xsl" type="text/xsl"?>
+<!-- Nmap 7.98 scan initiated Sat Jan  3 23:58:39 2026 as: /usr/lib/nmap/nmap -&#45;privileged -sV -O -&#45;top-ports 50 -oN service_scan_corrected.txt -oX service_scan_corrected.xml .0/24 -->
+<nmaprun scanner="nmap" args="/usr/lib/nmap/nmap -&#45;privileged -sV -O -&#45;top-ports 50 -oN service_scan_corrected.txt -oX service_scan_corrected.xml .0/24" start="1767495519" startstr="Sat Jan  3 23:58:39 2026" version="7.98" xmloutputversion="1.05">
+<scaninfo type="syn" protocol="tcp" numservices="50" services="21-23,25-26,53,80-81,110-111,113,135,139,143,179,199,443,445,465,514-515,548,554,587,646,993,995,1025-1027,1433,1720,1723,2000-2001,3306,3389,5060,5666,5900,6001,8000,8008,8080,8443,8888,10000,32768,49152,49154"/>
+<verbose level="0"/>
+<debugging level="0"/>
+<runstats><finished time="1767495523" timestr="Sat Jan  3 23:58:43 2026" summary="Nmap done at Sat Jan  3 23:58:43 2026; 0 IP addresses (0 hosts up) scanned in 4.90 seconds" elapsed="4.90" exit="success"/><hosts up="0" down="0" total="0"/>
+</runstats>
+</nmaprun>

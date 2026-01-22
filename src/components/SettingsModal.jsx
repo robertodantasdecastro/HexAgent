@@ -1,9 +1,14 @@
-import { Database, Globe, Save, Server, Settings, X } from 'lucide-react';
+import { Database, Globe, Save, Server, Settings, User, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import useProfile from '../hooks/useProfile';
 
 const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
   const [localConfig, setLocalConfig] = useState(config || {});
   const [activeTab, setActiveTab] = useState('general');
+  
+  // Profile Hook Integration
+  const { profile, saveProfile, updateProfile } = useProfile();
+  const [localProfile, setLocalProfile] = useState(null);
 
   useEffect(() => {
     if (config) {
@@ -11,8 +16,22 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
     }
   }, [config]);
 
-  const handleSave = () => {
+  // Sync profile when loaded
+  useEffect(() => {
+     if (profile) {
+         setLocalProfile(profile);
+     }
+  }, [profile]);
+
+  const handleSave = async () => {
+    // Save System Config
     onSave(localConfig);
+    
+    // Save Profile if changed
+    if (localProfile) {
+        await saveProfile(localProfile);
+    }
+    
     onClose();
   };
 
@@ -40,11 +59,30 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
     }));
   }
 
+  // Profile Update Helper
+  const updateProfileField = (section, field, value) => {
+      setLocalProfile(prev => ({
+          ...prev,
+          [section]: {
+              ...prev[section],
+              [field]: value
+          }
+      }));
+  };
+  
+  const updateProfileRoot = (field, value) => {
+      setLocalProfile(prev => ({
+          ...prev,
+          [field]: value
+      }));
+  };
+
   if (!isOpen) return null;
 
   // Tabs Definition
   const tabs = [
     { id: 'general', label: t ? t('settings.tabs.general', 'GENERAL') : 'GENERAL', icon: Settings },
+    { id: 'personal', label: t ? t('settings.tabs.personal', 'PERSONAL') : 'PERSONAL', icon: User },
     { id: 'services', label: t ? t('settings.tabs.services', 'SERVICES') : 'SERVICES', icon: Server },
     { id: 'appearance', label: t ? t('settings.tabs.appearance', 'APPEARANCE') : 'APPEARANCE', icon: Globe },
     { id: 'system', label: t ? t('settings.tabs.system', 'SYSTEM') : 'SYSTEM', icon: Database }
@@ -92,6 +130,104 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-[#0a0a0a]">
+            
+            {/* SECURITY WARNING FOR PERSONALIZATION */}
+            {activeTab === 'personal' && (
+                <div className="p-3 bg-indigo-500/10 border border-indigo-500/30 rounded flex items-start gap-3">
+                    <User className="text-indigo-400 mt-1" size={16} />
+                    <div>
+                        <h4 className="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-1">Context Injection</h4>
+                        <p className="text-[11px] text-gray-400">
+                           Information added here will be injected into the AI's System Prompt. 
+                           This helps the AI know who you are and your environment context.
+                           <br/><span className="text-red-400/80">Warning: This data is sent to the AI Provider.</span>
+                        </p>
+                    </div>
+                </div>
+            )}
+
+            {/* PERSONAL TAB */}
+            {activeTab === 'personal' && localProfile && (
+                <div className="space-y-6 animate-in fade-in zoom-in-95 duration-200">
+                    
+                    {/* Identity */}
+                    <div className="p-4 bg-[#111] border border-[#222] rounded-lg">
+                        <h3 className="text-xs font-bold text-indigo-400 mb-4 uppercase tracking-wider border-b border-[#333] pb-2">
+                             Identity
+                        </h3>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs text-gray-400 mb-1.5 font-mono">My Name</label>
+                                <input 
+                                    type="text" 
+                                    value={localProfile.user?.name || ''}
+                                    onChange={(e) => updateProfileField('user', 'name', e.target.value)}
+                                    placeholder="e.g., Neo"
+                                    className="w-full bg-black border border-[#333] rounded px-3 py-2 text-white text-sm focus:border-indigo-500 focus:outline-none font-mono"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs text-gray-400 mb-1.5 font-mono">My Role</label>
+                                <input 
+                                    type="text" 
+                                    value={localProfile.user?.role || ''}
+                                    onChange={(e) => updateProfileField('user', 'role', e.target.value)}
+                                    placeholder="e.g., Pentester"
+                                    className="w-full bg-black border border-[#333] rounded px-3 py-2 text-white text-sm focus:border-indigo-500 focus:outline-none font-mono"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Environment */}
+                    <div className="p-4 bg-[#111] border border-[#222] rounded-lg">
+                        <h3 className="text-xs font-bold text-green-500 mb-4 uppercase tracking-wider border-b border-[#333] pb-2">
+                             Environment Concept
+                        </h3>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-xs text-gray-400 mb-1.5 font-mono">Environment Notes</label>
+                                <textarea 
+                                    value={localProfile.environment?.notes || ''}
+                                    onChange={(e) => updateProfileField('environment', 'notes', e.target.value)}
+                                    placeholder="e.g., Target subnet is 192.168.1.0/24. Gateway is .1."
+                                    rows={3}
+                                    className="w-full bg-black border border-[#333] rounded px-3 py-2 text-white text-sm focus:border-green-500 focus:outline-none font-mono resize-none"
+                                />
+                                <p className="text-[10px] text-gray-600 mt-1">Facts about your current working environment.</p>
+                            </div>
+                            <div>
+                                <label className="block text-xs text-gray-400 mb-1.5 font-mono">Forbidden Scopes (Comma separated)</label>
+                                <input 
+                                    type="text" 
+                                    value={localProfile.environment?.forbidden_scopes?.join(', ') || ''}
+                                    onChange={(e) => updateProfileField('environment', 'forbidden_scopes', e.target.value.split(',').map(s=>s.trim()))}
+                                    placeholder="production, hr-server"
+                                    className="w-full bg-black border border-[#333] rounded px-3 py-2 text-white text-sm focus:border-green-500 focus:outline-none font-mono"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Custom Instructions */}
+                    <div className="p-4 bg-[#111] border border-[#222] rounded-lg">
+                        <h3 className="text-xs font-bold text-yellow-500 mb-4 uppercase tracking-wider border-b border-[#333] pb-2">
+                             Custom Behavior
+                        </h3>
+                        <div>
+                            <label className="block text-xs text-gray-400 mb-1.5 font-mono">Global Custom Instructions</label>
+                            <textarea 
+                                value={localProfile.custom_instructions || ''}
+                                onChange={(e) => updateProfileRoot('custom_instructions', e.target.value)}
+                                placeholder="e.g., Always explain commands before executing. Use JSON format for reports."
+                                rows={4}
+                                className="w-full bg-black border border-[#333] rounded px-3 py-2 text-white text-sm focus:border-yellow-500 focus:outline-none font-mono resize-none"
+                            />
+                            <p className="text-[10px] text-gray-600 mt-1">These instructions are appended to every system prompt.</p>
+                        </div>
+                    </div>
+                </div>
+            )}
             
             {/* GENERAL TAB */}
             {activeTab === 'general' && (
@@ -249,7 +385,7 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
                             </div>
                         </div>
                         <div>
-                            <label className="block text-xs text-gray-400 mb-1.5 font-mono">Main Application Venv Path (Unified)</label>
+                            <label className="block text-xs text-gray-400 mb-1.5 font-mono">HexAgent Venv Path</label>
                             <input 
                                 type="text" 
                                 value={localConfig.environment?.venv_path || ''}
@@ -257,8 +393,18 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
                                 placeholder="/path/to/hexagent/venv"
                                 className="w-full bg-black border border-[#333] rounded px-3 py-2 text-white text-sm focus:border-cyan-500 focus:outline-none font-mono"
                             />
+                        </div>
+                        <div className="mt-4">
+                            <label className="block text-xs text-gray-400 mb-1.5 font-mono">HexStrike Venv Path</label>
+                            <input 
+                                type="text" 
+                                value={localConfig.services?.hexstrike_venv_path || ''}
+                                onChange={(e) => updateService('hexstrike_venv_path', e.target.value)}
+                                placeholder="/path/to/hexstrike/venv"
+                                className="w-full bg-black border border-[#333] rounded px-3 py-2 text-white text-sm focus:border-cyan-500 focus:outline-none font-mono"
+                            />
                             <p className="text-[10px] text-gray-600 mt-1">
-                                Path to the shared virtual environment for HexAgentGUI and HexStrike
+                                Path to the dedicated HexStrike virtual environment
                             </p>
                         </div>
                     </div>

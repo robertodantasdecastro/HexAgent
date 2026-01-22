@@ -4,9 +4,16 @@
 The `HexAgentGUI` project requires a structural consolidation to align with its new operational concept: a multi-platform interface for AI customization backed by `hexstrike-ai`, focusing on security and offline capabilities (Kali Linux base). The current configuration, lifecycle management, and dependency integration need synchronization and optimization.
 
 **Objective:**
-Revise the entire project structure to update the main task goals. Focus on synchronizing the user configuration structure (`~/.hexagent-gui/`), unifying communication with the dependent `hexstrike-ai` application, optimizing the application lifecycle (Load/Connect/Close), and rewriting the core documentation to reflect the new "HexStrike-AI" identity.
+Revise the entire project structure to update the main task goals. **Perform a Deep Structural Analysis** of the codebase, enforcing **Strict OOP Compliance** to ensure scalability and evolution. Focus on synchronizing the user configuration structure (`~/.hexagent-gui/`), unifying communication with the dependent `hexstrike-ai` application, optimizing the application lifecycle (Load/Connect/Close), and rewriting the core documentation to reflect the new "HexStrike-AI" identity.
 
 **Instructions:**
+
+0.  **Codebase Hygiene & Architecture (Deep Analysis):**
+    *   **Full Scan:** Analyze EVERY file in the `hexagent-gui` structure.
+    *   **Strict OOP:** Refactor any procedural code into robust, modular classes.
+    *   **Cleanup:** Identifiy and remove ALL redundancies, duplicate functions, and obsolete code.
+    *   **Consistency:** Ensure naming conventions and logic are consistent throughout to prevent future technical debt.
+    *   **Security:** Verify that the architecture promotes secure data handling and execution.
 
 1.  **Language Policy:**
     *   **Strict Rule:** All code comments and documentation MUST be in **Portuguese (BR)** and **English**.
@@ -68,9 +75,16 @@ Revise the entire project structure to update the main task goals. Focus on sync
 O projeto `HexAgentGUI` requer uma consolidação estrutural para se alinhar ao seu novo conceito operacional: uma interface multiplataforma para personalização de IA apoiada pelo `hexstrike-ai`, com foco em segurança e capacidades offline (base Kali Linux). A configuração atual, o gerenciamento do ciclo de vida e a integração de dependências precisam de sincronização e otimização.
 
 **Objetivo:**
-Revisar toda a estrutura do projeto para atualizar as metas principais da task. Focar na sincronização da estrutura de configuração do usuário (`~/.hexagent-gui/`), unificar a comunicação com a aplicação dependente `hexstrike-ai`, otimizar o ciclo de vida da aplicação (Load/Connect/Close) e reescrever a documentação central para refletir a nova identidade "HexStrike-AI".
+Revisar toda a estrutura do projeto para atualizar as metas principais da task. **Realizar uma Análise Estrutural Profunda** da base de código, impondo **Conformidade Estrita com POO** para garantir escalabilidade e evolução. Focar na sincronização da estrutura de configuração do usuário (`~/.hexagent-gui/`), unificar a comunicação com a aplicação dependente `hexstrike-ai`, otimizar o ciclo de vida da aplicação (Load/Connect/Close) e reescrever a documentação central para refletir a nova identidade "HexStrike-AI".
 
 **Instruções:**
+
+0.  **Higiene da Base de Código e Arquitetura (Análise Profunda):**
+    *   **Varredura Completa:** Analise CADA arquivo na estrutura do `hexagent-gui`.
+    *   **POO Estrita:** Refatore qualquer código procedural em classes modulares e robustas.
+    *   **Limpeza:** Identifique e remova TODAS as redundâncias, funções duplicadas e códigos obsoletos.
+    *   **Consistência:** Garanta que convenções de nomenclatura e lógica sejam consistentes em todo o projeto para prevenir dívida técnica futura.
+    *   **Segurança:** Verifique se a arquitetura promove o manuseio seguro de dados e execução.
 
 1.  **Política de Idioma:**
     *   **Regra Rígida:** Todos os comentários de código e documentação DEVEM estar em **Português (BR)** e **Inglês**.
@@ -123,3 +137,5 @@ Revisar toda a estrutura do projeto para atualizar as metas principais da task. 
     *   **Monitoramento Passivo:** Prepare a arquitetura para um módulo futuro de monitoramento passivo completo (detecção de invasão, identificação de atacante, contra-medidas).
     *   **Integração de Serviços MCP:** Prepare a arquitetura para integrar **Serviços MCP** que agem em conjunto com o `hexstrike-ai` para controle do sistema operacional e aplicativos (ex: `mcp-kali-server`).
     *   **Personalização:** Crie uma task para evoluir o modelo de personalização (sincronizado via `install.sh` e `config_templates`), com integração na GUI e refatoração completa dos sistemas de configuração.
+
+****Sincronizar o estado atual com o plano de desenvolvimento de longo prazo, garantindo padrões POO, escalabilidade e sincronização total de todas as variáveis atuais da interface GUI.****

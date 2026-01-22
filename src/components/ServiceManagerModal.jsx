@@ -6,15 +6,17 @@
  * Modal para gerenciar todos os serviços do HexAgentGUI
  */
 
-import { Box, Power, RefreshCw, Server, Shield, XCircle, Zap } from 'lucide-react';
+import { Box, Power, RefreshCw, Server, Settings, Shield, XCircle, Zap } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from '../hooks/useTranslation';
 
 import APIClient from '../utils/APIClient';
 import Logger from '../utils/Logger';
+import MCPRegistry from './MCPRegistry';
 
 const ServiceManagerModal = ({ isOpen, onClose }) => {
   const { t } = useTranslation();
+  const [activeTab, setActiveTab] = useState('services'); // services | mcp
   const [services, setServices] = useState({
     backend: { ready: false, status: 'pending', message: 'Checking...' },
     hexstrike: { ready: false, status: 'pending', message: 'Checking...' },
@@ -30,13 +32,13 @@ const ServiceManagerModal = ({ isOpen, onClose }) => {
   }, []);
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && activeTab === 'services') {
       fetchServiceStatus();
-      // Auto-refresh every 3 seconds for faster feedback
+      // Auto-refresh every 3 seconds for faster feedback (only on services tab)
       const interval = setInterval(fetchServiceStatus, 3000);
       return () => clearInterval(interval);
     }
-  }, [isOpen]);
+  }, [isOpen, activeTab]);
 
   const fetchServiceStatus = async () => {
     try {
@@ -141,20 +143,43 @@ const ServiceManagerModal = ({ isOpen, onClose }) => {
         
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#333]">
-          <div className="flex items-center gap-3">
-             <Server className="text-cyan-400" size={20} />
-             <h2 className="text-lg font-bold text-white tracking-wide">
-                {t('service.manager', 'Service Manager')}
-             </h2>
+          <div className="flex items-center gap-6">
+             <div className="flex items-center gap-3">
+                <Server className="text-cyan-400" size={20} />
+                <h2 className="text-lg font-bold text-white tracking-wide">
+                    {t('service.manager', 'Service Manager')}
+                </h2>
+             </div>
+
+             {/* Navigation Tabs */}
+             <div className="flex items-center gap-1 bg-black/40 rounded p-1 border border-[#222]">
+                 <button 
+                    onClick={() => setActiveTab('services')}
+                    className={`px-3 py-1 rounded text-xs font-mono transition flex items-center gap-2 ${activeTab === 'services' ? 'bg-[#222] text-white shadow' : 'text-gray-500 hover:text-gray-300'}`}
+                 >
+                     <Zap size={12} />
+                     Services
+                 </button>
+                 <button 
+                    onClick={() => setActiveTab('mcp')}
+                    className={`px-3 py-1 rounded text-xs font-mono transition flex items-center gap-2 ${activeTab === 'mcp' ? 'bg-[#222] text-white shadow' : 'text-gray-500 hover:text-gray-300'}`}
+                 >
+                     <Settings size={12} />
+                     MCP Registry
+                 </button>
+             </div>
           </div>
+
           <div className="flex gap-2">
-            <button
-                onClick={fetchServiceStatus}
-                className="text-gray-400 hover:text-cyan-400 transition"
-                title={t('service.refresh', 'Refresh')}
-            >
-                <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-            </button>
+            {activeTab === 'services' && (
+                <button
+                    onClick={fetchServiceStatus}
+                    className="text-gray-400 hover:text-cyan-400 transition"
+                    title={t('service.refresh', 'Refresh')}
+                >
+                    <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+                </button>
+            )}
             <button
                 onClick={onClose}
                 className="text-gray-400 hover:text-white transition"
@@ -164,107 +189,115 @@ const ServiceManagerModal = ({ isOpen, onClose }) => {
           </div>
         </div>
 
-        {/* Content: Card Grid */}
-        <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-6 bg-[#0a0a0a]">
+        {/* Content Area */}
+        <div className="flex-1 overflow-y-auto p-6 bg-[#0a0a0a]">
             
-            {/* Backend Service Card */}
-            <div className={`rounded-lg p-5 border transition-all ${getStatusBg(services.backend.status)}`}>
-                <div className="flex justify-between items-start mb-4">
-                    <div className="flex items-center gap-3">
-                         <div className="p-2 bg-black/40 rounded border border-[#333]">
-                            <Box size={20} className="text-blue-400" />
-                         </div>
-                         <h3 className="font-bold text-sm text-gray-200 uppercase tracking-wider">Backend Core</h3>
-                    </div>
-                    <span className={`px-2 py-1 rounded text-[10px] font-mono font-bold uppercase border bg-black/50 ${getStatusColor(services.backend.status)} border-transparent`}>
-                        {services.backend.status}
-                    </span>
-                </div>
-                <p className="text-xs text-gray-400 mb-4 h-8 font-mono">
-                    Flask API Server running on port 5000. Handles all request routing.
-                </p>
-                <div className="pt-3 border-t border-[#333] flex justify-between items-center text-[10px] font-mono text-gray-500">
-                    <span>Host: 127.0.0.1</span>
-                    <span>Internal</span>
-                </div>
-            </div>
-
-            {/* Brain/AI Service Card */}
-            <div className={`rounded-lg p-5 border transition-all ${getStatusBg(services.brain.status)}`}>
-                <div className="flex justify-between items-start mb-4">
-                    <div className="flex items-center gap-3">
-                         <div className="p-2 bg-black/40 rounded border border-[#333]">
-                            <Zap size={20} className="text-yellow-400" />
-                         </div>
-                         <h3 className="font-bold text-sm text-gray-200 uppercase tracking-wider">AI Engine</h3>
-                    </div>
-                    <span className="px-2 py-1 rounded text-[10px] font-mono font-bold uppercase border border-blue-500/30 bg-blue-500/10 text-blue-400">
-                        READY
-                    </span>
-                </div>
-                <p className="text-xs text-gray-400 mb-4 h-8 font-mono">
-                   AI Provider Factory Status. Active Strategy: <span className="text-blue-400">{services.brain.engine || 'Auto'}</span>
-                </p>
-                <div className="pt-3 border-t border-[#333] flex justify-between items-center text-[10px] font-mono text-gray-500">
-                    <span>Model: <span className="text-gray-300">{services.brain.model || 'Configured'}</span></span>
-                    <span>Provider: <span className="text-gray-300">{services.brain.provider || 'Standard'}</span></span>
-                </div>
-            </div>
-
-            {/* HexStrike Service Card - THE MAIN ONE */}
-            <div className={`md:col-span-2 rounded-lg p-6 border transition-all ${getStatusBg(services.hexstrike.status)}`}>
-                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-                    <div className="flex items-center gap-4">
-                         <div className="p-3 bg-black/40 rounded border border-[#333]">
-                            <Shield size={24} className={services.hexstrike.ready ? "text-[#00ff00]" : "text-gray-400"} />
-                         </div>
-                         <div>
-                            <h3 className="font-bold text-lg text-white">HexStrike AI</h3>
-                            <p className="text-[10px] text-gray-400 uppercase tracking-widest">Vulnerability Scanner & Command Engine</p>
-                         </div>
-                    </div>
-
-                    <div className="flex items-center gap-4 w-full md:w-auto">
-                        <div className="flex flex-col items-end mr-4 hidden md:flex">
-                             <span className={`text-xs font-bold font-mono tracking-wider uppercase ${getStatusColor(services.hexstrike.status)}`}>
-                                {services.hexstrike.status}
-                             </span>
-                             <span className="text-[10px] text-gray-500">Port: 8888</span>
+            {activeTab === 'services' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Backend Service Card */}
+                    <div className={`rounded-lg p-5 border transition-all ${getStatusBg(services.backend.status)}`}>
+                        <div className="flex justify-between items-start mb-4">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-black/40 rounded border border-[#333]">
+                                    <Box size={20} className="text-blue-400" />
+                                </div>
+                                <h3 className="font-bold text-sm text-gray-200 uppercase tracking-wider">Backend Core</h3>
+                            </div>
+                            <span className={`px-2 py-1 rounded text-[10px] font-mono font-bold uppercase border bg-black/50 ${getStatusColor(services.backend.status)} border-transparent`}>
+                                {services.backend.status}
+                            </span>
                         </div>
-                        
-                        {services.hexstrike.status === 'running' ? (
-                            <button
-                                onClick={() => controlService('hexstrike', 'stop')}
-                                disabled={loading}
-                                className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 rounded-lg transition font-mono text-xs"
-                            >
-                                <Power size={14} />
-                                STOP SERVICE
-                            </button>
-                        ) : (
-                            <button
-                                onClick={() => controlService('hexstrike', 'start')}
-                                disabled={loading}
-                                className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2 bg-[#00ff00]/10 hover:bg-[#00ff00]/20 border border-[#00ff00]/30 text-[#00ff00] rounded-lg transition shadow-lg shadow-green-900/20 font-mono text-xs"
-                            >
-                                <Power size={14} />
-                                {loading ? 'STARTING...' : 'START SERVICE'}
-                            </button>
-                        )}
+                        <p className="text-xs text-gray-400 mb-4 h-8 font-mono">
+                            Flask API Server running on port 5000. Handles all request routing.
+                        </p>
+                        <div className="pt-3 border-t border-[#333] flex justify-between items-center text-[10px] font-mono text-gray-500">
+                            <span>Host: 127.0.0.1</span>
+                            <span>Internal</span>
+                        </div>
                     </div>
-                 </div>
 
-                 {/* Console / Info Area */}
-                 <div className="bg-black/80 rounded p-4 font-mono text-xs border border-[#333]">
-                    <div className="flex items-center justify-between mb-2 border-b border-[#222] pb-1">
-                        <span className="text-gray-500 uppercase tracking-wider">Service Output</span>
-                        {services.hexstrike.status === 'running' && <span className="flex items-center gap-2 text-[#00ff00]"><div className="w-1.5 h-1.5 rounded-full bg-[#00ff00] animate-pulse"/> Live</span>}
+                    {/* Brain/AI Service Card */}
+                    <div className={`rounded-lg p-5 border transition-all ${getStatusBg(services.brain.status)}`}>
+                        <div className="flex justify-between items-start mb-4">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-black/40 rounded border border-[#333]">
+                                    <Zap size={20} className="text-yellow-400" />
+                                </div>
+                                <h3 className="font-bold text-sm text-gray-200 uppercase tracking-wider">AI Engine</h3>
+                            </div>
+                            <span className="px-2 py-1 rounded text-[10px] font-mono font-bold uppercase border border-blue-500/30 bg-blue-500/10 text-blue-400">
+                                READY
+                            </span>
+                        </div>
+                        <p className="text-xs text-gray-400 mb-4 h-8 font-mono">
+                        AI Provider Factory Status. Active Strategy: <span className="text-blue-400">{services.brain.engine || 'Auto'}</span>
+                        </p>
+                        <div className="pt-3 border-t border-[#333] flex justify-between items-center text-[10px] font-mono text-gray-500">
+                            <span>Model: <span className="text-gray-300">{services.brain.model || 'Configured'}</span></span>
+                            <span>Provider: <span className="text-gray-300">{services.brain.provider || 'Standard'}</span></span>
+                        </div>
                     </div>
-                    <div className="text-gray-300 whitespace-pre-wrap">
-                        {services.hexstrike.message}
+
+                    {/* HexStrike Service Card */}
+                    <div className={`md:col-span-2 rounded-lg p-6 border transition-all ${getStatusBg(services.hexstrike.status)}`}>
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-black/40 rounded border border-[#333]">
+                                    <Shield size={24} className={services.hexstrike.ready ? "text-[#00ff00]" : "text-gray-400"} />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-lg text-white">HexStrike AI</h3>
+                                    <p className="text-[10px] text-gray-400 uppercase tracking-widest">Vulnerability Scanner & Command Engine</p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-4 w-full md:w-auto">
+                                <div className="flex flex-col items-end mr-4 hidden md:flex">
+                                    <span className={`text-xs font-bold font-mono tracking-wider uppercase ${getStatusColor(services.hexstrike.status)}`}>
+                                        {services.hexstrike.status}
+                                    </span>
+                                    <span className="text-[10px] text-gray-500">Port: 8888</span>
+                                </div>
+                                
+                                {services.hexstrike.status === 'running' ? (
+                                    <button
+                                        onClick={() => controlService('hexstrike', 'stop')}
+                                        disabled={loading}
+                                        className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 rounded-lg transition font-mono text-xs"
+                                    >
+                                        <Power size={14} />
+                                        STOP SERVICE
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={() => controlService('hexstrike', 'start')}
+                                        disabled={loading}
+                                        className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2 bg-[#00ff00]/10 hover:bg-[#00ff00]/20 border border-[#00ff00]/30 text-[#00ff00] rounded-lg transition shadow-lg shadow-green-900/20 font-mono text-xs"
+                                    >
+                                        <Power size={14} />
+                                        {loading ? 'STARTING...' : 'START SERVICE'}
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Console / Info Area */}
+                        <div className="bg-black/80 rounded p-4 font-mono text-xs border border-[#333]">
+                            <div className="flex items-center justify-between mb-2 border-b border-[#222] pb-1">
+                                <span className="text-gray-500 uppercase tracking-wider">Service Output</span>
+                                {services.hexstrike.status === 'running' && <span className="flex items-center gap-2 text-[#00ff00]"><div className="w-1.5 h-1.5 rounded-full bg-[#00ff00] animate-pulse"/> Live</span>}
+                            </div>
+                            <div className="text-gray-300 whitespace-pre-wrap">
+                                {services.hexstrike.message}
+                            </div>
+                        </div>
                     </div>
-                 </div>
-            </div>
+                </div>
+            )}
+
+            {activeTab === 'mcp' && (
+                <MCPRegistry />
+            )}
 
         </div>
 

@@ -8,7 +8,7 @@
 
 **An Autonomous AI-Powered Cybersecurity Agent with GUI**
 
-*Powered by HexSecGPT Brain & HexStrike Execution Engine*
+*Powered by HexStrike-AI & Backend Orchestration*
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS-lightgrey)]()
@@ -24,33 +24,25 @@
 
 ### 🎯 What is HexAgentGUI?
 
-HexAgentGUI is an **autonomous AI agent specialized in cybersecurity** with a modern graphical interface. It combines the intelligence of **HexSecGPT** (AI brain) with the execution power of **HexStrike** (command execution engine) to create a truly autonomous security assistant.
+### 🎯 What is HexAgentGUI?
 
-Unlike simple chatbots, HexAgentGUI **thinks, plans, and executes complex multi-step tasks autonomously**, analyzing results and adapting its approach until the objective is complete.
+HexAgentGUI is a **Multi-Engine AI Platform** specialized in cybersecurity. It serves as an autonomous intelligence hub that orchestrates **HexStrike-AI** (Kali Linux-based execution engine) while allowing deep personalization of the AI brain.
+
+Acting as a bridge between high-level reasoning and low-level execution, it enables you to switch dynamically between **Online Engines** (OpenAI, DeepSeek, Claude) and **Private Local Models** (LM Studio, Ollama), ensuring flexibility for critical security environments.
 
 ### ✨ Key Features
 
 - 🤖 **True Autonomous Agent**: Executes complex tasks with interdependent commands
+- 🔄 **HexStrike-AI Integration**: Seamlessly controls local security tools (Nmap, Nuclei, Metasploit, etc.)
+- 🛡️ **Offline & Secure**: Works fully offline with local LLMs (LM Studio/Ollama) - No data leaves your machine
 - 🔄 **Iterative Feedback Loop**: AI analyzes results and decides next steps (up to 10 iterations)
 - 🎨 **Modern Dark UI**: Cyberpunk-inspired interface with color-coded responses
-- 🌐 **Web Search Integration**: Optional real-time web search to enhance AI knowledge
 - 🇧🇷 **Portuguese & English**: Bilingual support with automatic detection
 - ⚡ **Real-time Streaming**: See AI thinking and command execution in real-time
-- 🛑 **Stop Generation**: Instantly abort AI responses with a click
-- 📜 **Autoscroll Control**: Toggle auto-scrolling behavior
 - 🔧 **Visual Differentiation**: 
   - Cyan: AI explanations
   - Yellow: Command execution
   - **Terminal**: Realistic shell styling (Green on Black)
-
-### 🧬 Project Origin
-
-HexAgentGUI was born from the integration of two powerful projects:
-
-1. **HexSecGPT**: An AI assistant specialized in cybersecurity, created to provide expert guidance on security tasks
-2. **HexStrike**: A robust command execution engine designed for security operations
-
-The idea emerged during development sessions with HexSecGPT itself, where the need for a **graphical interface** and **autonomous execution capabilities** became clear. Instead of just suggesting commands, why not execute them autonomously and iterate until the task is complete?
 
 ### 🏗️ Architecture
 
@@ -61,7 +53,6 @@ The idea emerged during development sessions with HexSecGPT itself, where the ne
 │  │      React UI (App.jsx)           │  │
 │  │  - Dark cyberpunk theme           │  │
 │  │  - Real-time streaming display    │  │
-│  │  - Web search toggle              │  │
 │  └───────────────────────────────────┘  │
 └──────────────┬──────────────────────────┘
                │ HTTP/JSON (localhost:5000)
@@ -70,11 +61,11 @@ The idea emerged during development sessions with HexSecGPT itself, where the ne
 │  ┌───────────────────────────────────┐  │
 │  │      AgentCore                    │  │
 │  │  ┌─────────────┐  ┌─────────────┐ │  │
-│  │  │ HexSecGPT   │  │  HexStrike  │ │  │
-│  │  │   (Brain)   │<─>│   (Body)    │ │  │
+│  │  │ AI Provider │  │ HexStrike-AI│ │  │
+│  │  │ (LM Studio) │<─>│   (Body)    │ │  │
 │  │  └─────────────┘  └─────────────┘ │  │
 │  │                                    │  │
-│  │  - Autonomous loop (10 iters)     │  │
+│  │  - Autonomous loop                │  │
 │  │  - Command parsing & execution    │  │
 │  │  - Result feedback to AI          │  │
 │  └───────────────────────────────────┘  │
@@ -117,30 +108,6 @@ For detailed installation instructions, see [INSTALL.md](INSTALL.md).
 - [User Manual](USER_MANUAL.md) - Complete usage guide
 - [Contributing](CONTRIBUTING.md) - Contribution guidelines
 
-### 🎮 Usage Example
-
-**User:** "Analyze ~/Downloads folder, find Google Chrome installer, if not found search for ARM64 version online, download and install it"
-
-**HexAgentGUI Response:**
-
-```
-Iteration 1:
-[AI] Analyzing ~/Downloads folder...
-🔧 Executing: ls -la ~/Downloads
-[Terminal] [list of files...]
-
-Iteration 2:
-[AI] Chrome not found. Searching for ARM64 version...
-🔧 Executing: wget https://[chrome-arm64-url]
-[Terminal] Download complete
-
-Iteration 3:
-[AI] Installing Chrome...
-🔧 Executing: sudo dpkg -i chrome-arm64.deb
-[Terminal] Installation successful
-✅ Task completed!
-```
-
 ### 👤 Developer
 
 **Roberto Dantas de Castro**
@@ -153,9 +120,6 @@ Iteration 3:
 To support continuous development:
 
 **Brazilian PIX**: `robertodantasdecastro@gmail.com`
-
-or
-
 **Bitcoin Address**: `bc1qekh060wjfgspgt32vclmu3fcfx9fr7jh0akuwu`
 
 <div align="center">
@@ -166,48 +130,31 @@ or
 
 MIT License - See [LICENSE](LICENSE) for details.
 
-### 🙏 Acknowledgments
-
-- HexSecGPT: AI brain for cybersecurity expertise
-- HexStrike: Powerful command execution engine
-- OpenRouter: AI model routing
-
 ---
 
 ## Português
 
 ### 🎯 O que é o HexAgentGUI?
-<div align="center">
-  <img src="public/logo.png" width="300" />
-</div>
 
-HexAgentGUI é um **agente de IA autônomo especializado em cibersegurança** com interface gráfica moderna. Ele combina a inteligência do **HexSecGPT** (cérebro de IA) com o poder de execução do **HexStrike** (motor de execução de comandos) para criar um assistente de segurança verdadeiramente autônomo.
+### 🎯 O que é o HexAgentGUI?
 
-Diferente de chatbots simples, o HexAgentGUI **pensa, planeja e executa tarefas complexas de múltiplas etapas autonomamente**, analisando resultados e adaptando sua abordagem até o objetivo ser completo.
+HexAgentGUI é uma **Plataforma Multi-Motor de IA** especializada em cibersegurança. Ele atua como um hub de inteligência autônoma que orquestra o **HexStrike-AI** (motor de execução baseado em Kali Linux) enquanto permite personalização profunda do cérebro da IA.
+
+Atuando como uma ponte entre o raciocínio de alto nível e a execução de baixo nível, ele permite alternar dinamicamente entre **Motores Online** (OpenAI, DeepSeek, Claude) e **Modelos Locais Privados** (LM Studio, Ollama), garantindo flexibilidade para ambientes de segurança crítica.
 
 ### ✨ Recursos Principais
 
 - 🤖 **Agente Verdadeiramente Autônomo**: Executa tarefas complexas com comandos interdependentes
+- 🔄 **Integração HexStrike-AI**: Controla perfeitamente ferramentas de segurança locais (Nmap, Nuclei, Metasploit, etc.)
+- 🛡️ **Offline e Seguro**: Funciona totalmente offline com LLMs locais (LM Studio/Ollama) - Nenhum dado sai da sua máquina
 - 🔄 **Loop Iterativo com Feedback**: IA analisa resultados e decide próximos passos (até 10 iterações)
 - 🎨 **Interface Moderna Dark**: Interface inspirada em cyberpunk com respostas codificadas por cores
-- 🌐 **Integração com Busca Web**: Busca web opcional em tempo real para enriquecer conhecimento da IA
 - 🇧🇷 **Português e Inglês**: Suporte bilíngue com detecção automática
 - ⚡ **Streaming em Tempo Real**: Veja o pensamento da IA e execução de comandos em tempo real
-- 🛑 **Parar Geração**: Aborte respostas da IA instantaneamente com um clique
-- 📜 **Controle de Autoscroll**: Alterne o comportamento de rolagem automática
 - 🔧 **Diferenciação Visual**:
   - Ciano: Explicações da IA
   - Amarelo: Execução de comandos
   - **Terminal**: Estilo shell realista (Verde sobre Preto)
-
-### 🧬 Origem do Projeto
-
-HexAgentGUI nasceu da integração de dois projetos poderosos:
-
-1. **HexSecGPT**: Um assistente de IA especializado em cibersegurança, criado para fornecer orientação especializada em tarefas de segurança
-2. **HexStrike**: Um robusto motor de execução de comandos projetado para operações de segurança
-
-A ideia surgiu durante sessões de desenvolvimento com o próprio HexSecGPT, onde a necessidade de uma **interface gráfica** e **capacidades de execução autônoma** ficou clara. Em vez de apenas sugerir comandos, por que não executá-los autonomamente e iterar até a tarefa estar completa?
 
 ### 🚀 Início Rápido
 
@@ -252,96 +199,6 @@ Para instruções detalhadas de instalação, veja [INSTALL.md](INSTALL.md).
 - Email: `robertodantasdecastro@gmail.com`
 - Project: [HexAgent](https://github.com/robertodantasdecastro/HexAgent)
 
-### 💰 Suporte & Doação
-
-Para apoiar o desenvolvimento contínuo:
-
-**PIX email**: `robertodantasdecastro@gmail.com`
-
-**Bitcoin Address**: `bc1qekh060wjfgspgt32vclmu3fcfx9fr7jh0akuwu`
-
-<div align="center">
-  <img src="public/qrcode.png" width="150" alt="Bitcoin QR Code" />
-</div>
-
 ### 📄 Licença
 
 Licença MIT - Veja [LICENSE](LICENSE) para detalhes.
-
-### 🙏 Agradecimentos
-
-- HexSecGPT: Cérebro de IA para expertise em cibersegurança
-- HexStrike: Poderoso motor de execução de comandos
-- OpenRouter: Roteamento de modelos de IA
-
----
-
-##  Troubleshooting / Solução de Problemas
-
-### Common Issues / Problemas Comuns
-
-#### 1. Application Won't Launch from Desktop / Aplicação Não Inicia do Desktop
-
-**English:**
-- **Symptom**: Clicking desktop shortcut does nothing or shows error
-- **Cause**: Missing DISPLAY environment variable
-- **Solution**: Re-run `./install.sh` (latest version includes DISPLAY fix)
-
-**Português:**
-- **Sintoma**: Clicar no atalho da área de trabalho não faz nada ou mostra erro
-- **Causa**: Variável de ambiente DISPLAY ausente
-- **Solução**: Execute novamente `./install.sh` (versão mais recente inclui correção do DISPLAY)
-
-#### 2. Brain Init Failed Error / Erro de Inicialização do Cérebro
-
-**English:**
-- **Symptom**: Loading screen shows "Brain init failed"
-- **Cause**: Missing API key or HexSecGPT dependency issue
-- **Solution**: 
-  1. Click "Force Continue" to bypass (app works without brain init)
-  2. Configure API key in Settings
-  3. Check `/home/d4r13n/.gemini/antigravity/brain` for detailed error logs
-
-**Português:**
-- **Sintoma**: Tela de carregamento mostra "Falha na inicialização do cérebro"
-- **Causa**: Chave de API ausente ou problema de dependência do HexSecGPT
-- **Solução**:
-  1. Clique em "Forçar Continuar" para prosseguir (app funciona sem init do cérebro)
-  2. Configure a chave de API em Configurações
-  3. Verifique `/home/d4r13n/.gemini/antigravity/brain` para logs detalhados de erro
-
-#### 3. Window Cannot Be Moved / Janela Não Pode Ser Movida
-
-**English:**
-- **Symptom**: Can resize window but cannot drag it
-- **Cause**: Old version without drag-region fix
-- **Solution**: Update to latest version with `git pull && ./install.sh`
-
-**Português:**
-- **Sintoma**: Pode redimensionar a janela mas não pode arrastá-la
-- **Causa**: Versão antiga sem correção de drag-region
-- **Solução**: Atualize para a versão mais recente com `git pull && ./install.sh`
-
-#### 4. Settings Modal Won't Open / Modal de Configurações Não Abre
-
-**English:**
-- **Symptom**: Clicking settings icon does nothing
-- **Cause**: Config not loaded yet or null config state
-- **Solution**: Wait for app to fully initialize (green status indicators)
-
-**Português:**
-- **Sintoma**: Clicar no ícone de configurações não faz nada
-- **Causa**: Configuração ainda não carregada ou estado nulo
-- **Solução**: Aguarde a aplicação inicializar completamente (indicadores de status verdes)
-
-### Getting Help / Obtendo Ajuda
-
-**English:**
-- GitHub Issues: https://github.com/robertodantasdecastro/HexAgent/issues
-- Email: robertodantasdecastro@gmail.com
-- Wiki: https://github.com/robertodantasdecastro/HexAgent/wiki
-
-**Português:**
-- Issues no GitHub: https://github.com/robertodantasdecastro/HexAgent/issues
-- Email: robertodantasdecastro@gmail.com
-- Wiki: https://github.com/robertodantasdecastro/HexAgent/wiki

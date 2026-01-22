@@ -31,6 +31,8 @@ from controllers.service_controller import ServiceController
 from controllers.history_controller import HistoryController
 from controllers.project_controller import ProjectController
 from controllers.workflow_controller import WorkflowController
+from controllers.profile_controller import ProfileController  # Import Profile Controller
+from controllers.mcp_controller import MCPController
 
 
 def create_app(core_ref=None, hexstrike_ref=None):
@@ -148,6 +150,28 @@ def create_app(core_ref=None, hexstrike_ref=None):
                     model=model,
                     provider_kwargs=provider_config 
                 )
+
+                # Initialize Profile Service (Personalization)
+                try:
+                    from services.profile_service import ProfileService
+                    profile_service = ProfileService()
+                    
+                    # Inject Profile Context into AI System Prompt
+                    # Injetar Contexto de Perfil no Prompt de Sistema da IA
+                    profile_context = profile_service.get_system_prompt_context()
+                    
+                    if profile_context:
+                        app.logger.info("Injecting User Profile Context into AgentCore")
+                        # We append it to the base system prompt via provider
+                        # Adicionamos ao prompt de sistema base via provedor
+                        # Note: This depends on the Provider implementation allowing prompt updates
+                        # or we pass it during chat_step as a system message override
+                        # For now, we assume simple appendage if supported, or logic in AgentCore
+                        agent_core.set_profile_context(profile_context)
+
+                except Exception as e:
+                    app.logger.warning(f"Failed to load User Profile: {e}")
+
                 
                 app.logger.info("✅ AgentCore initialized successfully")
                 app.logger.info(f"   - AI Engine: {agent_core.engine}")
@@ -177,7 +201,9 @@ def create_app(core_ref=None, hexstrike_ref=None):
         ServiceController(hexstrike_ref=None),
         HistoryController(),
         ProjectController(),
-        WorkflowController(core_ref=agent_core)
+        WorkflowController(core_ref=agent_core),
+        ProfileController(),  # Personalization API
+        MCPController()      # MCP Registry API
     ]
     
     # Register all blueprints / Registrar todos os blueprints

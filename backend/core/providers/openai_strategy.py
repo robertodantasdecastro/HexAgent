@@ -14,6 +14,7 @@ Implementação de InferenceStrategy para API OpenAI.
 from typing import Generator, List, Dict, Any, Optional
 import logging
 import openai
+import json
 from .base_strategy import InferenceStrategy
 
 logger = logging.getLogger(__name__)
@@ -60,8 +61,21 @@ class OpenAIStrategy(InferenceStrategy):
             base_url=self.base_url
         )
         
+        self.system_prompt = ""  # Store system prompt
+        self.tools = [] # Store registered tools
+        
         logger.info(f"{self.__class__.__name__} initialized with model: {self.model}")
     
+    def set_system_context(self, context: str):
+        """Update system prompt"""
+        self.system_prompt = context
+        logger.debug(f"OpenAI System Prompt Updated: {len(context)} chars")
+
+    def register_tools(self, tools: List[Dict[str, Any]]):
+        """Register tools for the API call"""
+        self.tools = tools
+        logger.info(f"Registered {len(tools)} tools for OpenAIStrategy")
+
     def get_provider_name(self) -> str:
         return "openai"
     
@@ -78,16 +92,65 @@ class OpenAIStrategy(InferenceStrategy):
         try:
             logger.debug(f"Sending request to {self.base_url} model={model_to_use}")
             
-            stream = self.client.chat.completions.create(
-                model=model_to_use,
-                messages=[{"role": "user", "content": prompt}], # Context is managed by HexBrain usually, but this is raw step
-                stream=True,
-                temperature=0.7
-            )
+            messages = []
+            if self.system_prompt:
+                messages.append({"role": "system", "content": self.system_prompt})
+            
+            messages.append({"role": "user", "content": prompt})
+            
+            kwargs = {
+                "model": model_to_use,
+                "messages": messages,
+                "stream": True,
+                "temperature": 0.7
+            }
+            
+            if self.tools:
+                kwargs["tools"] = self.tools
+                kwargs["tool_choice"] = "auto"
+                
+            stream = self.client.chat.completions.create(**kwargs)
+            
+            # Buffer for tool calls
+            tool_calls_buffer = {}
             
             for chunk in stream:
+                # Handle Content
                 if chunk.choices and chunk.choices[0].delta.content:
                     yield chunk.choices[0].delta.content
+                
+                # Handle Tool Calls
+                if chunk.choices and chunk.choices[0].delta.tool_calls:
+                    for tc in chunk.choices[0].delta.tool_calls:
+                        if tc.index not in tool_calls_buffer:
+                            tool_calls_buffer[tc.index] = {
+                                "id": tc.id,
+                                "function": {"name": "", "arguments": ""}
+                            }
+                        
+                        if tc.function and tc.function.name:
+                            tool_calls_buffer[tc.index]["function"]["name"] += tc.function.name
+                        
+                        if tc.function and tc.function.arguments:
+                            tool_calls_buffer[tc.index]["function"]["arguments"] += tc.function.arguments
+
+            # Yield accumulated tool calls as markdown blocks
+            for index, tc_data in tool_calls_buffer.items():
+                func_name = tc_data["function"]["name"]
+                func_args = tc_data["function"]["arguments"]
+                
+                # Verify JSON
+                try:
+                    # Just to ensure valid JSON, though the model usually emits valid JSON
+                    # We won't parse it here, just pass the string
+                    pass
+                except:
+                    pass
+                
+                # Format as special markdown block
+                tool_block = f"\n```tool_call\n{{\"name\": \"{func_name}\", \"arguments\": {func_args}}}\n```\n"
+                logger.debug(f"Yielding tool call: {func_name}")
+                yield tool_block
                     
         except Exception as e:
             error_msg = f"AI Error ({self.get_provider_name()}): {str(e)}"

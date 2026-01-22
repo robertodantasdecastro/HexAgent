@@ -8,3 +8,4 @@ rich>=13.0.0
 openai>=1.0.0
 psutil
 anthropic
+mcp>=0.1.0

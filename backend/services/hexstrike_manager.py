@@ -15,6 +15,10 @@ import time
 import signal
 import socket
 import logging
+import requests
+import psutil
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
 
 logger = logging.getLogger(__name__)
 
@@ -48,15 +52,7 @@ class HexStrikeManager:
         # Paths from Config / Caminhos da Configuração
         self.base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) # Fallback
         
-        # 1. Venv Path
-        configured_venv = env_conf.get('venv_path')
-        if configured_venv:
-             self.venv_python = os.path.join(configured_venv, "bin", "python")
-        else:
-             # Fallback default
-             self.venv_python = os.path.join(self.base_dir, "venv", "bin", "python")
-
-        # 2. HexStrike App Path
+        # 1. HexStrike App Path
         configured_app = services_conf.get('hexstrike_app_path')
         if configured_app:
             self.hexstrike_dir = configured_app
@@ -64,6 +60,14 @@ class HexStrikeManager:
             # Fallback default
             self.hexstrike_dir = os.path.join(os.path.dirname(self.base_dir), "hexstrike-ai")
             
+        # 2. Venv Path (Default to HexStrike's own venv)
+        configured_venv = env_conf.get('hexstrike_venv_path') # Specific config for hexstrike venv
+        if configured_venv:
+             self.venv_python = os.path.join(configured_venv, "bin", "python")
+        else:
+             # Default to local venv inside hexstrike dir
+             self.venv_python = os.path.join(self.hexstrike_dir, "venv", "bin", "python")
+
         self.server_script = os.path.join(self.hexstrike_dir, "hexstrike_server.py")
         self.log_file = os.path.join(self.hexstrike_dir, "hexstrike_service.log")
 
@@ -75,7 +79,10 @@ class HexStrikeManager:
         logger.info(f"  - Port: {self.port}")
 
     def is_running(self):
-        """Check if service is running by port connectivity"""
+        """
+        Check if service is running by port connectivity
+        Verificar se o serviço está rodando pela conectividade da porta
+        """
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(2.0) # Increased timeout from 0.5s to 2.0s
         try:
@@ -91,14 +98,61 @@ class HexStrikeManager:
                 
             return is_open
         except Exception as e:
-            logger.error(f"Error checking HexStrike status on {self.host}:{self.port}: {e}")
+            return False
+    
+    def _is_port_healthy(self):
+        """
+        Check if service is actually responding to HTTP
+        Verificar se o serviço está realmente respondendo via HTTP
+        """
+        try:
+            url = f"http://{self.host}:{self.port}/health"
+            # Short timeout, don't hang on zombies
+            response = requests.get(url, timeout=1) 
+            return response.status_code == 200
+        except:
             return False
 
+    def _kill_process_on_port(self):
+        """
+        Find and kill process blocking the port using psutil
+        Encontrar e matar processo bloqueando a porta usando psutil
+        """
+        try:
+            for proc in psutil.process_iter(['pid', 'name']):
+                try:
+                    for conn in proc.connections(kind='inet'):
+                        if conn.laddr.port == self.port:
+                            logger.warning(f"Killing zombie process {proc.pid} on port {self.port}")
+                            proc.terminate()
+                            proc.wait(timeout=2)
+                            return True
+                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                    pass
+        except Exception as e:
+            logger.error(f"Error killing process on port: {e}")
+        return False
+
     def start(self):
-        """Start the HexStrike service using the unified venv"""
+        """
+        Start the HexStrike service using the unified venv
+        Iniciar o serviço HexStrike usando o venv unificado
+        """
+        # 1. Check if ANY process is listening
         if self.is_running():
-            logger.info("HexStrike service already running.")
-            return True, "Already running"
+            # 2. Check if it's HEALTHY (responding to HTTP)
+            if self._is_port_healthy():
+                logger.info("HexStrike service already running and healthy.")
+                return True, "Already running"
+            else:
+                logger.warning("HexStrike port OPEN but UNRESPONSIVE. Killing zombie process...")
+                self._kill_process_on_port()
+                time.sleep(1) # Wait for cleanup
+                
+                # Double check
+                if self.is_running():
+                     logger.error("Failed to kill zombie process. Port still blocked.")
+                     return False, "Port blocked by unresponsive process"
             
         if not os.path.exists(self.venv_python):
             return False, f"Unified Venv Python not found at: {self.venv_python}"
@@ -111,19 +165,26 @@ class HexStrikeManager:
             env = os.environ.copy()
             env["HEXSTRIKE_PORT"] = str(self.port)
             env["HEXSTRIKE_HOST"] = self.host # Use self.host
-            # Explicitly set PYTHONPATH to ensure imports work correctly
-            env["PYTHONPATH"] = self.hexstrike_dir
+            # Clear potential conflicting env vars
+            env["PYTHONPATH"] = ""
+            env["VIRTUAL_ENV"] = ""
 
             # Log setup
             log_fd = open(self.log_file, 'a')
             
+            # Use start_hexstrike.sh script for robust environment setup
+            start_script = os.path.join(self.hexstrike_dir, "start_hexstrike.sh")
+            
+            # Make sure script is executable
+            os.chmod(start_script, 0o755)
+            
             cmd = [
-                self.venv_python,
-                self.server_script,
-                "--port", str(self.port)
+                "/bin/bash",
+                start_script,
+                str(self.port)
             ]
             
-            logger.info(f"Starting HexStrike: {' '.join(cmd)}")
+            logger.info(f"Starting HexStrike via script: {' '.join(cmd)}")
             
             self.process = subprocess.Popen(
                 cmd,
@@ -155,7 +216,10 @@ class HexStrikeManager:
             return False, str(e)
 
     def stop(self):
-        """Stop the service"""
+        """
+        Stop the service
+        Parar o serviço
+        """
         # 1. Try to kill the child process if we have the object
         if self.process:
             try:

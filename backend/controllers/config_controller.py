@@ -373,5 +373,50 @@ class ConfigController(BaseController):
             Restore configuration from backup
             Restaurar configuração de backup
             """
-            # Placeholder to prevent frontend 404s
-            return self.error_response("Restore not yet implemented in modular backend", 501)
+            try:
+                self.log_request(f'POST /config/restore/{timestamp}')
+                
+                from pathlib import Path
+                import shutil
+                from datetime import datetime
+                
+                home_dir = Path.home() / '.hexagent-gui'
+                backups_dir = home_dir / 'backups'
+                target_backup = backups_dir / timestamp
+                config_dir = home_dir / 'config'
+                
+                if not target_backup.exists():
+                     return self.error_response(f"Backup {timestamp} not found", 404)
+                
+                # 1. Safety Backup of Current Config
+                # 1. Backup de Segurança da Configuração Atual
+                if config_dir.exists():
+                    safety_ts = datetime.now().strftime('%Y%m%d_%H%M%S')
+                    safety_dir = backups_dir / f"{safety_ts}_safety_restore"
+                    shutil.copytree(config_dir, safety_dir)
+                    self.logger.info(f"Created safety backup at {safety_dir}")
+                
+                # 2. Clear Current Config
+                # 2. Limpar Configuração Atual
+                if config_dir.exists():
+                    shutil.rmtree(config_dir)
+                config_dir.mkdir(parents=True, exist_ok=True)
+                
+                # 3. Restore Files
+                # 3. Restaurar Arquivos
+                # We copy individual json files to avoid directory structure issues
+                # Copiamos arquivos json individuais para evitar problemas de estrutura
+                restored_count = 0
+                for item in target_backup.iterdir():
+                     if item.is_file() and item.suffix == '.json':
+                         shutil.copy2(item, config_dir / item.name)
+                         restored_count += 1
+                
+                return self.success_response(
+                    message=f"Restored {restored_count} config files from {timestamp}",
+                    data={"safety_backup": safety_ts if 'safety_ts' in locals() else None}
+                )
+                
+            except Exception as e:
+                self.log_error(f'POST /config/restore/{timestamp}', e)
+                return self.error_response(f"Restore failed: {str(e)}", 500)

@@ -1,5 +1,5 @@
-# HexAgentGUI - Architecture Documentation
-## Documentação de Arquitetura
+# HexAgentGUI - Architecture Documentation (v2.0.0)
+## Documentação de Arquitetura (v2.0.0)
 
 > **System architecture and technical design**  
 > **Arquitetura do sistema e design técnico**
@@ -8,180 +8,107 @@
 
 ## 🏗️ High-Level Architecture / Arquitetura de Alto Nível
 
-```
-┌──────────────────────────────────────────────────────────┐
-│                    Electron Shell                        │
-│  ┌────────────────────────────────────────────────────┐  │
-│  │              Frontend (React)                      │  │
-│  │  ┌──────────────────────────────────────────────┐  │  │
-│  │  │           App.jsx (Orchestrator)             │  │  │
-│  │  │  - Global State Hooks (Config/Session)       │  │  │
-│  │  │  - Service Integration                       │  │  │
-│  │  │  - Layout & Modals                           │  │  │
-│  │  └──────────────────────┬───────────────────────┘  │  │
-│  │                         │                          │  │
-│  │         ┌───────────────┴───────────────┐          │  │
-│  │         ▼               ▼               ▼          │  │
-│  │   ┌──────────┐   ┌───────────┐  ┌────────────┐     │  │
-│  │   │Chat      │   │ Utilities │  │  Services  │     │  │
-│  │   │Components│   │ & Hooks   │  │            │     │  │
-│  │   └──────────┘   └───────────┘  └────────────┘     │  │
-│  │                     (Parser, Init)                     │  │
-│  └────-───────────────────────────────────────────────┘  │
-30: └────────-──────────────────┬──────────────────────────────┘
-31:                             │ HTTP/REST (localhost:5000)
-32: ┌─────-─────────────────────▼──────────────────────────────┐
-33: │                Flask Backend (Python)                    │
-34: │  ┌────────────────────────────────────────────────────┐  │
-35: │  │              server.py (API Layer)                 │  │
-36: │  │  - Route Handlers                                  │  │
-37: │  │  - Request Validation                              │  │
-38: │  │  - Response Formatting                             │  │
-39: │  └────────────────────────────────────────────────────┘  │
-40: │                        │                                 │
-41: │        ┌───────────────┼───────────────┐                 │
-42: │        ▼               ▼               ▼                 │
-43: │    ┌──────────┐   ┌───────────┐  ┌────────────┐          │
-44: │    │Config    │   │ Execution │  │  Persona   │          │
-45: │    │Loader    │   │  Engine   │  │  Loader    │          │
-46: │    └──────────┘   └───────────┘  └────────────┘          │
-47: │                        │                                 │
-48: │                        ▼                                 │
-49: │  ┌────────────────────────────────────────────────────┐  │
-50: │  │          HexStrike AI Server                       │  │
-51: │  │  - Command Execution (subprocess)                  │  │
-52: │  │  - OpenRouter AI Integration                       │  │
-53: │  │  - Autonomous Iteration Logic                      │  │
-54: │  └────────────────────────────────────────────────────┘  │
-55: └──────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    User[User / Usuário] --> |Interacts| GUI[Electron Frontend (React)]
+    
+    subgraph Frontend Logic
+        GUI --> |Hooks| UseAI[useAIConfig]
+        GUI --> |Hooks| UseSys[useSystemConfig]
+        GUI --> |Hooks| UseChat[useChatManager]
+        UseChat --> |Uses| API[APIClient (Singleton)]
+    end
+
+    subgraph Backend Services (Flask)
+        API --> |HTTP JSON| Controller[Controllers (Blueprints)]
+        Controller --> |Calls| ServiceLayer[Service Layer]
+        
+        ServiceLayer --> |Config| ConfigService[Config Services]
+        ConfigService --> |Read/Write| JSONUtils[JSON Files (~/.hexagent-gui)]
+        
+        ServiceLayer --> |Orchestrate| AgentCore[AgentCore (Brain)]
+        AgentCore --> |Inference| AIProvider[AI Provider Factory]
+        AgentCore --> |Execute| HexStrike[HexStrike Client]
+    end
+    
+    subgraph Execution
+        HexStrike --> |HTTP| HexServer[HexStrike Server (Port 8888)]
+        HexServer --> |Subprocess| Tools[Security Tools (Nmap, etc)]
+        AIProvider --> |API| LLM[LLM (Local/Cloud)]
+    end
 ```
 
 ---
 
 ## 📦 Component Breakdown / Detalhamento de Componentes
 
-### Frontend Layer / Camada Frontend
+### 1. Frontend Layer (React + Electron)
 
-#### 1. **Main Application (`src/App.jsx`)**
+**Core Components:**
+- **`App.jsx`**: Main Orchestrator. Manages Layout and Global Modals.
+- **`APIClient.js`**: Singleton Facade for all HTTP communications. Handles retries and error parsing.
+- **`SessionService.js`**: Repository pattern for Chat Session management.
+- **`AIConfigModal.jsx`**: Dynamic settings for AI Engines (Online/Offline).
 
-**English:**
-- **Size:** ~500 lines (Refactored)
-- **Role:** Application Orchestrator
-- **Responsibilities:**
-  - Hook-based state management
-  - Modal composition
-  - Layout rendering
-  - Service routing
+### 2. Backend Layer (Python/Flask)
 
-**Português:**
-- **Tamanho:** ~500 linhas (Refatorado)
-- **Papel:** Orquestrador da Aplicação
-- **Responsabilidades:**
-  - Gerenciamento de estado baseado em Hooks
-  - Composição de modais
-  - Renderização de layout
-  - Roteamento de serviços
+**Controllers (Blueprints):**
+- **`ConfigController`**: Splitted into `/system` and `/ai` endpoints.
+- **`ChatController`**: Bridge to AgentCore for message processing.
+- **`SystemController`**: OS-level operations (Clipboard, Browser).
 
----
+**Services (OOP):**
+- **`AIConfigService`**: Manages `ai-config.json` via simplified I/O.
+- **`SystemConfigService`**: Manages `system-config.json` via simplified I/O.
+- **`AgentCore`**: The "Brain" class. Maintains conversation context and orchestrates the Iteration Loop (Think -> Tool -> Observe).
 
-#### 2. **Chat Components (`src/components/chat/`)**
+### 3. Data Persistence / Persistência de Dados
 
-##### **Block.jsx**
-**English:**
-- **Role:** Unified Message Renderer
-- **Features:**
-  - Renders User/Agent/System messages
-  - Handles parsing via `agentParser`
-  - Manages action buttons (Copy/Execute)
-  - Bilingual UI support
-
-**Português:**
-- **Papel:** Renderizador Unificado de Mensagens
-- **Recursos:**
-  - Renderiza mensagens de Usuário/Agente/Sistema
-  - Gerencia parsing via `agentParser`
-  - Gerencia botões de ação (Copiar/Executar)
-  - Suporte a UI bilíngue
-
-##### **CodeBlock.jsx**
-**English:**
-- **Role:** Syntax Highlighting Component
-- **Features:** PrismJS integration, auto-detect language, save/execute actions.
-
-**Português:**
-- **Papel:** Componente de Destaque de Sintaxe
-- **Recursos:** Integração PrismJS, auto-detecção de linguagem, ações salvar/executar.
+All user data is stored in `~/.hexagent-gui` (Linux Standard Base compliance):
+- `ai-config.json`: Private keys and model selection.
+- `system-config.json`: Theme, UI preferences.
+- `sessions/`: JSON dumps of chat histories.
 
 ---
-
-#### 3. **Utilities & Hooks**
-
-##### **useBackendInit.js** (`src/hooks/`)
-**English:** Encapsulates complex startup logic (Backend -> Brain -> Config -> HexStrike).
-**Português:** Encapsula lógica complexa de inicialização (Backend -> Brain -> Config -> HexStrike).
-
-##### **agentParser.js** (`src/utils/`)
-**English:** Regex-based parser to split AI streams into Text, Code, and Command blocks.
-**Português:** Parser baseado em Regex para dividir streams de IA em blocos de Texto, Código e Comando.
-
-##### **ScriptManager.js** (`src/utils/`)
-**English:** Singleton manager for script operations (Save/Execute/Debug). Uses APIClient.
-**Português:** Gerenciador Singleton para operações de script (Salvar/Executar/Depurar). Usa APIClient.
-
----
-
-#### 4. **Modals (`src/components/`)**
-
-##### **SettingsModal.jsx**
-**English:** Manages System, UI, and Service configurations.
-**Português:** Gerencia configurações de Sistema, UI e Serviços.
-
-##### **AIConfigModal.jsx**
-**English:** Manages AI Engine, Model, and API Key settings.
-**Português:** Gerencia configurações de Motor de IA, Modelo e Chave API.
-
----
-
-[... Rest of file unchanged / Resto do arquivo inalterado ...]
 
 ## 🛠️ Technology Stack / Pilha Tecnológica
 
 ### Frontend
-
 | Technology | Purpose | Propósito |
 |-----------|---------|-----------|
 | **React 18.3** | UI framework | Framework de UI |
 | **Vite 5.3** | Build tool | Ferramenta de build |
 | **TailwindCSS 3.4** | Styling | Estilização |
 | **Electron 31.0** | Desktop app | Aplicativo desktop |
-| **Lucide React** | Icons | Ícones |
-| **Prism.js** | Syntax highlighting | Destaque de sintaxe |
 
 ### Backend
-
 | Technology | Purpose | Propósito |
 |-----------|---------|-----------|
 | **Python 3.13** | Runtime | Runtime |
 | **Flask 3.1** | Web framework | Framework web |
+| **Requests** | HTTP Client | Cliente HTTP |
 | **Subprocess** | Command execution | Execução de comandos |
-| **JSON** | Configuration | Configuração |
 
 ---
 
-## 📈 Future Enhancements / Melhorias Futuras
+## 🔄 Lifecycle Management / Gerenciamento de Ciclo de Vida
 
-**Short-term / Curto Prazo:**
-1. ✅ **Refactored App.jsx (Completed)**
-2. TypeScript migration
-3. Unit test coverage (>80%)
+1.  **Startup (`start.sh`)**:
+    *   Launches `hexstrike-ai` (Port 8888).
+    *   Launches `server.py` (Port 5000).
+    *   Launches Electron.
 
-**Long-term / Longo Prazo:**
-1. Cloud sync for sessions
-2. Collaborative mode (multi-user)
-3. Plugin system
+2.  **Initialization (`useBackendInit`)**:
+    *   Connects to Backend.
+    *   Loads Configuration.
+    *   Initializes AgentCore (Hot-Reloadable).
+
+3.  **Shutdown**:
+    *   Electron close triggers `shutdown` endpoint.
+    *   Backend kills child processes (Watchdog).
 
 ---
 
-**Last Updated:** 2026-01-14
-**Version:** 1.1.0-refactor
+**Last Updated:** 2026-01-21
+**Version:** 2.0.0 (AgentCore Integration)
 **Maintainer:** Roberto Dantas de Castro

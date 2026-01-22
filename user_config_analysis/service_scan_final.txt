@@ -1,0 +1,4 @@
+# Nmap 7.98 scan initiated Sat Jan  3 23:59:52 2026 as: /usr/lib/nmap/nmap --privileged -sV -O --top-ports 50 -oN service_scan_final.txt -oX service_scan_final.xml .0/24
+Failed to resolve ".0".
+WARNING: No targets were specified, so 0 hosts scanned.
+# Nmap done at Sat Jan  3 23:59:57 2026 -- 0 IP addresses (0 hosts up) scanned in 6.15 seconds

@@ -1,0 +1,13 @@
+{
+  "ai": {
+    "engine": "hexsecgpt",
+    "api_key": "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",
+    "model": "google/gemini-2.0-flash-exp:free",
+    "max_iterations": 10,
+    "auto_execute": false
+  },
+  "system": {
+    "theme": "dark",
+    "language": "pt-BR"
+  }
+}

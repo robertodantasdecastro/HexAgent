@@ -17,6 +17,8 @@ from .hex_strike_client import HexStrikeClient
 from .inference_engine import InferenceEngine
 from .command_executor import CommandExecutor
 from .providers import ProviderFactory, InferenceStrategy
+from .mcp_manager import MCPManager
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -120,9 +122,41 @@ class AgentCore:
         # Initialize ActionDispatcher
         # Inicializa ActionDispatcher
         from .action_dispatcher import ActionDispatcher
+        # Initialize ActionDispatcher
+        # Inicializa ActionDispatcher
+        from .action_dispatcher import ActionDispatcher
         self.dispatcher = ActionDispatcher(self)
+
+        # Initialize MCP Manager
+        self.mcp_manager = MCPManager()
+        logger.info("MCP Manager initialized in AgentCore")
         
         logger.info(f"InferenceEngine initialized with {engine} provider")
+
+    def set_profile_context(self, context: str):
+        """
+        Inject User Profile context into the AI Provider
+        Injetar contexto de Perfil de Usuário no Provedor de IA
+        
+        This appends user info/preferences to the system prompt logic.
+        Isso anexa info/preferências do usuário à lógica do prompt de sistema.
+        """
+        if self.provider:
+            # We assume the provider has a method to update system prompt or we handle it via chat_step
+            # Assumimos que o provedor tem um método para atualizar prompt de sistema ou lidamos via chat_step
+            
+            # Since Provider interface might be generic, we'll store it in AgentCore 
+            # and prepend it to messages if provider supports context injection
+            # Como a interface do Provedor pode ser genérica, armazenaremos no AgentCore
+            # e anexaremos às mensagens se o provedor suportar injeção de contexto
+            
+            if hasattr(self.provider, 'set_system_context'):
+                self.provider.set_system_context(context)
+                logger.info("Profile context injected directly into Provider")
+            else:
+                # Fallback: We might need to handle this in process_message
+                self.profile_context = context
+                logger.info("Profile context stored in AgentCore (Provider doesn't support direct injection)")
     
     def initialize(
         self, 
@@ -226,6 +260,25 @@ class AgentCore:
             iteration += 1
             logger.info(f"Starting iteration {iteration}/{max_iterations}")
             
+            # === Step 0: Register MCP Tools ===
+            try:
+                mcp_tools = self.mcp_manager.get_tools()
+                if mcp_tools:
+                    openai_tools = []
+                    for tool in mcp_tools:
+                        openai_tools.append({
+                            "type": "function",
+                            "function": {
+                                "name": tool["name"],
+                                "description": tool.get("description", ""),
+                                "parameters": tool.get("input_schema", {})
+                            }
+                        })
+                    if hasattr(self.provider, 'register_tools'):
+                        self.provider.register_tools(openai_tools)
+            except Exception as e:
+                logger.error(f"Failed to register MCP tools: {e}")
+
             # === Step 1: Get AI response ===
             # === Passo 1: Obter resposta da IA ===
             full_response = ""
@@ -274,6 +327,52 @@ class AgentCore:
             for cmd_idx, cmd in enumerate(commands, 1):
                 logger.info(f"Processing command {cmd_idx}/{len(commands)}: {cmd[:50]}...")
                 
+                # Check for Tool Call
+                if cmd.startswith("MCP_TOOL_CALL|"):
+                    tool_json = cmd.split("|", 1)[1]
+                    try:
+                        tool_data = json.loads(tool_json)
+                        tool_name = tool_data.get("name")
+                        tool_args = tool_data.get("arguments")
+                        
+                        logger.info(f"Executing MCP Tool: {tool_name}")
+                        
+                        # Yield proposal
+                        yield {
+                            "type": "command_proposal",
+                            "content": f"Tool Call: {tool_name}",
+                            "metadata": {"tool": tool_name, "args": tool_args}
+                        }
+                        
+                        # Execute
+                        if auto_execute: # or allowed tools?
+                            try:
+                                result_obj = self.mcp_manager.call_tool(tool_name, tool_args)
+                                # Convert result to string/json
+                                output_str = json.dumps(result_obj, indent=2) if not isinstance(result_obj, str) else result_obj
+                                any_executed = True
+                                
+                                yield {
+                                    "type": "command_result",
+                                    "content": output_str,
+                                    "metadata": {"success": True, "tool": tool_name}
+                                }
+                                
+                                # Feedback
+                                # Provide feedback for prompt
+                                # TODO: Append to messages in a better way
+                            except Exception as e:
+                                logger.error(f"MCP Tool Error: {e}")
+                                yield {
+                                    "type": "error",
+                                    "content": f"Tool Error: {str(e)}",
+                                    "metadata": {"tool": tool_name}
+                                }
+                        continue # Skip bash logic
+                    except Exception as e:
+                         logger.error(f"Failed to process tool command: {e}")
+                
+                # Regular Bash Command Logic proceeds here...
                 # Yield command proposal
                 # Retorna proposta de comando
                 yield {
@@ -373,45 +472,39 @@ class AgentCore:
             }
         }
     
+        return commands
+    
     def _extract_commands(self, text: str) -> List[str]:
         """
-        Extract bash commands from AI response
-        Extrai comandos bash da resposta da IA
-        
-        Looks for code blocks marked as bash or sh:
-        ```bash
-        command here
-        ```
-        
-        Procura por blocos de código marcados como bash ou sh:
-        ```bash
-        comando aqui
-        ```
-        
-        Args:
-            text: AI response text / Texto da resposta IA
-            
-        Returns:
-            List of extracted commands / Lista de comandos extraídos
+        Extract bash commands and Tool Calls from AI response
+        Extrai comandos bash e Chamadas de Ferramenta da resposta da IA
         """
-        # Regex to match bash/sh code blocks
-        # Regex para encontrar bloco de código bash/sh
-        pattern = r'```(?:bash|sh)\n(.*?)\n```'
-        matches = re.findall(pattern, text, re.DOTALL | re.IGNORECASE)
-        
         commands = []
-        for match in matches:
-            # Split multi-line command blocks
-            # Divide blocos de comando multi-linha
+        
+        # 1. Bash / Sh blocks
+        pattern_bash = r'```(?:bash|sh)\n(.*?)\n```'
+        matches_bash = re.findall(pattern_bash, text, re.DOTALL | re.IGNORECASE)
+        for match in matches_bash:
             for line in match.split('\n'):
                 line = line.strip()
-                
-                # Skip empty lines and comments
-                # Pula linhas vazias e comentários
                 if line and not line.startswith('#'):
                     commands.append(line)
                     logger.debug(f"Extracted command: {line[:100]}")
-        
+                    
+        # 2. Tool Calls blocks
+        pattern_tool = r'```tool_call\n(.*?)\n```'
+        matches_tool = re.findall(pattern_tool, text, re.DOTALL | re.IGNORECASE)
+        for match in matches_tool:
+            # We expect match to be a JSON string
+            try:
+                # Validate JSON
+                json.loads(match)
+                # Prefix with special marker to identify later
+                commands.append(f"MCP_TOOL_CALL|{match}")
+                logger.debug(f"Extracted tool call: {match[:100]}")
+            except Exception as e:
+                logger.error(f"Failed to parse tool call JSON: {e}")
+                
         return commands
     
     def reset(self):

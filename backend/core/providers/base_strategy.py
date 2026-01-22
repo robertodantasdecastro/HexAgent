@@ -142,6 +142,28 @@ class InferenceStrategy(ABC):
         """
         pass
     
+    def set_system_context(self, context: str):
+        """
+        Update the system context/prompt dynamically
+        Atualizar o contexto/prompt do sistema dinamicamente
+        
+        Args:
+            context (str): The system prompt/context to set
+        """
+        # Default implementation does nothing, override in subclasses
+        pass
+        
+    def register_tools(self, tools: List[Dict[str, Any]]):
+        """
+        Register tools for the AI model to use
+        Registrar ferramentas para o modelo de IA usar
+        
+        Args:
+            tools (List[Dict]): List of tools in standard format (OpenAI-like)
+        """
+        # Default implementation does nothing
+        pass
+    
     def get_config_schema(self) -> Dict[str, Any]:
         """
         Get JSON schema for provider configuration (optional)

@@ -1,0 +1,17 @@
+{
+  "blocks": [
+    {
+      "id": 1767895954309,
+      "type": "user",
+      "content": "Liste os diretórios da pasta ~/",
+      "timestamp": "15:12:34"
+    },
+    {
+      "id": 1767895954346,
+      "type": "agent",
+      "content": "",
+      "timestamp": "15:12:34"
+    }
+  ],
+  "timestamp": 1767896098.9695542
+}

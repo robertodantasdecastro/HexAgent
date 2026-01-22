@@ -1,0 +1,9 @@
+Nenhum host ativo encontrado
+
+DETALHES POR HOST:
+=================
+HOST: 
+------
+PORTAS ABERTAS:
+VULNERABILIDADES:
+=== FIM DO RELATÓRIO ===

@@ -1,0 +1,76 @@
+{
+  "system": {
+    "language": "auto",
+    "auto_save_session": true,
+    "debug_mode": false,
+    "show_iteration_markers": true,
+    "enable_sounds": false,
+    "show_timestamps": true
+  },
+  "services": {
+    "flask_port": 5000,
+    "hexstrike_port": 8888,
+    "backend_host": "127.0.0.1",
+    "hexstrike_host": "127.0.0.1",
+    "hexstrike_app_path": "/home/d4r13n/iatools/hexstrike-ai"
+  },
+  "environment": {
+    "venv_path": "/home/d4r13n/iatools/HexAgentGUI/venv"
+  },
+  "ui": {
+    "theme": {
+      "name": "kali-dark",
+      "mode": "dark",
+      "colors": {
+        "primary": "#00ff00",
+        "secondary": "#22d3ee",
+        "accent": "#eab308",
+        "danger": "#ef4444",
+        "success": "#22c55e",
+        "warning": "#eab308",
+        "info": "#06b6d4"
+      }
+    },
+    "custom_colors": {
+       "ansi": {
+        "30": "#000000",
+        "31": "#ef4444",
+        "32": "#22c55e",
+        "33": "#eab308",
+        "34": "#3b82f6",
+        "35": "#d946ef",
+        "36": "#06b6d4",
+        "37": "#e5e7eb",
+        "90": "#6b7280",
+        "91": "#f87171",
+        "92": "#4ade80",
+        "93": "#facc15",
+        "94": "#60a5fa",
+        "95": "#e879f9",
+        "96": "#22d3ee",
+        "97": "#ffffff"
+      }
+    },
+    "animations_enabled": true,
+    "compact_mode": false,
+    "block_rules": {
+      "text": { "actions": ["copy", "save"], "syntax_highlight": false },
+      "code": { "actions": ["copy", "save", "edit"], "syntax_highlight": true },
+      "shell": { "actions": ["copy", "execute", "save"], "syntax_highlight": true, "auto_execute_hides_button": true },
+      "thinking": { "actions": [], "syntax_highlight": false, "collapsed_by_default": true, "opacity": 0.6, "font_size": "0.7rem" },
+      "log": { "actions": ["copy", "save"], "syntax_highlight": false },
+      "readme": { "actions": ["copy", "save"], "syntax_highlight": true },
+      "error": { "actions": ["copy", "save"], "syntax_highlight": false }
+    }
+  },
+  "terminal": {
+    "shell_type": "auto",
+    "history_path": "",
+    "default_cwd": "~/.hexagent-gui",
+    "enable_colors": true,
+    "color_scheme": "kali-zsh",
+    "font_family": "monospace",
+    "font_size": 14,
+    "line_height": 1.5
+  }
+}
