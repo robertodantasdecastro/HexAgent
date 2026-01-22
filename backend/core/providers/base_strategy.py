@@ -58,7 +58,7 @@ class InferenceStrategy(ABC):
         pass
     
     @abstractmethod
-    def chat_step(self, prompt: str, model: Optional[str] = None) -> Generator[str, None, None]:
+    def chat_step(self, prompt: str, chat_context: Optional[List[Dict[str, str]]] = None, model: Optional[str] = None) -> Generator[str, None, None]:
         """
         Execute a single inference step with streaming response
         Executa um passo único de inferência com resposta em streaming

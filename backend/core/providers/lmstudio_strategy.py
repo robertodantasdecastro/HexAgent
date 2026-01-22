@@ -99,13 +99,14 @@ class LMStudioStrategy(InferenceStrategy):
             logger.error(f"Error fetching models from LM Studio: {e}")
             return []
     
-    def chat_step(self, prompt: str, model: Optional[str] = None) -> Generator[str, None, None]:
+    def chat_step(self, prompt: str, chat_context: Optional[List[Dict[str, str]]] = None, model: Optional[str] = None) -> Generator[str, None, None]:
         """
         Execute inference with streaming
         Executa inferência com streaming
         
         Args / Argumentos:
             prompt (str): User prompt / Prompt do usuário
+            chat_context (List[Dict]): Conversation history / Histórico da conversa
             model (Optional[str]): Specific model to use / Modelo específico para usar
         
         Yields / Produz:
@@ -117,10 +118,20 @@ class LMStudioStrategy(InferenceStrategy):
         messages = []
         if self.system_prompt:
             messages.append({"role": "system", "content": self.system_prompt})
+            
+        # Add conversation history if provided
+        # Adicionar histórico de conversa se fornecido
+        if chat_context and isinstance(chat_context, list):
+            for msg in chat_context:
+                if isinstance(msg, dict) and 'role' in msg and 'content' in msg:
+                    messages.append({"role": msg['role'], "content": msg['content']})
+        
+        # Add current user prompt
+        # Adicionar prompt atual do usuário
         messages.append({"role": "user", "content": prompt})
         
         try:
-            logger.info(f"Sending request to LM Studio: model={model_to_use}")
+            logger.info(f"Sending request to LM Studio: model={model_to_use}, history={len(chat_context) if chat_context else 0} msgs")
             
             response = requests.post(
                 f"{self.base_url}/chat/completions",

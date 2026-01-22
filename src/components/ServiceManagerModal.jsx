@@ -55,14 +55,15 @@ const ServiceManagerModal = ({ isOpen, onClose }) => {
       
       if (isMounted.current && systemData.success) {
         const data = systemData.data || {};
-        const servicesData = servicesStatus.data || {};
+        const servicesData = servicesStatus;
         
         setServices({
           backend: data.backend || { ready: true, status: 'running', message: 'Core System Online' },
           hexstrike: {
               ready: servicesData.hexstrike === 'running',
               status: servicesData.hexstrike || 'stopped',
-              message: servicesData.hexstrike === 'running' ? 'Active & Listening (Port 8888)' : (servicesData.hexstrike === 'starting' ? 'Initializing...' : 'Service Stopped')
+              message: servicesData.hexstrike === 'running' ? 'Active & Listening (Port 8888)' : (servicesData.hexstrike === 'starting' ? 'Initializing...' : 'Service Stopped'),
+              host: servicesData.hexstrike_host || '127.0.0.1' // Assume local if not present
           },
           brain: data.brain || { ready: false, status: 'pending', message: 'AI Engine Loading...' }
         });
@@ -72,7 +73,7 @@ const ServiceManagerModal = ({ isOpen, onClose }) => {
     }
   };
 
-  const controlService = async (service, action) => {
+  const controlService = async (service, action, options = {}) => {
     setLoading(true);
     try {
       const api = APIClient.getInstance();
@@ -80,8 +81,13 @@ const ServiceManagerModal = ({ isOpen, onClose }) => {
       let body = { service, action };
 
       if (service === 'hexstrike') {
-          endpoint = action === 'start' ? '/start_service' : '/stop_service';
-          body = { service: 'hexstrike' };
+          if (action === 'configure_access') {
+              endpoint = '/services/configure_access';
+              body = { service: 'hexstrike', access: options.access }; // options passed as 3rd arg
+          } else {
+              endpoint = action === 'start' ? '/start_service' : '/stop_service';
+              body = { service: 'hexstrike' };
+          }
       }
 
       const data = await api.post(endpoint, body);
@@ -89,6 +95,15 @@ const ServiceManagerModal = ({ isOpen, onClose }) => {
       if (data.success && isMounted.current) {
           // Optimistic update
           if (service === 'hexstrike') {
+            if (action === 'configure_access') {
+                setServices(prev => ({
+                    ...prev,
+                    hexstrike: {
+                        ...prev.hexstrike,
+                        host: data.data.host
+                    }
+                }));
+            } else {
               setServices(prev => ({
                   ...prev,
                   hexstrike: {
@@ -97,6 +112,7 @@ const ServiceManagerModal = ({ isOpen, onClose }) => {
                       message: action === 'start' ? 'Sending Start Command...' : 'Stopping Process...'
                   }
               }));
+            }
           }
         // Wait a bit and refresh status
         setTimeout(fetchServiceStatus, 1500);
@@ -281,14 +297,40 @@ const ServiceManagerModal = ({ isOpen, onClose }) => {
                             </div>
                         </div>
 
-                        {/* Console / Info Area */}
-                        <div className="bg-black/80 rounded p-4 font-mono text-xs border border-[#333]">
-                            <div className="flex items-center justify-between mb-2 border-b border-[#222] pb-1">
-                                <span className="text-gray-500 uppercase tracking-wider">Service Output</span>
-                                {services.hexstrike.status === 'running' && <span className="flex items-center gap-2 text-[#00ff00]"><div className="w-1.5 h-1.5 rounded-full bg-[#00ff00] animate-pulse"/> Live</span>}
-                            </div>
-                            <div className="text-gray-300 whitespace-pre-wrap">
-                                {services.hexstrike.message}
+                        {/* Network Access Control & Output */}
+                        <div className="mt-4 flex flex-col md:flex-row gap-4">
+                             {/* Access Toggle */}
+                             <div className="flex-none w-full md:w-48 bg-black/40 rounded p-3 border border-[#333]">
+                                <h4 className="text-[10px] text-gray-500 uppercase tracking-wider mb-2 font-bold">Network Access</h4>
+                                <div className="flex flex-col gap-2">
+                                    <button 
+                                        onClick={() => controlService('hexstrike', 'configure_access', { access: 'local' })}
+                                        disabled={loading || services.hexstrike.status !== 'running'}
+                                        className={`px-3 py-1.5 rounded text-[10px] font-mono border transition text-left flex items-center gap-2 ${services.hexstrike.host !== '0.0.0.0' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'bg-[#111] border-[#333] text-gray-500 hover:text-gray-300'}`}
+                                    >
+                                        <div className={`w-1.5 h-1.5 rounded-full ${services.hexstrike.host !== '0.0.0.0' ? 'bg-blue-400' : 'bg-gray-600'}`} />
+                                        <span>Local (127.0.0.1)</span>
+                                    </button>
+                                    <button 
+                                        onClick={() => controlService('hexstrike', 'configure_access', { access: 'public' })}
+                                        disabled={loading || services.hexstrike.status !== 'running'} // Only allow changing when running or fully stopped? Actually safer to allow anytime but backend handles restart
+                                        className={`px-3 py-1.5 rounded text-[10px] font-mono border transition text-left flex items-center gap-2 ${services.hexstrike.host === '0.0.0.0' ? 'bg-red-500/20 border-red-500/50 text-red-400' : 'bg-[#111] border-[#333] text-gray-500 hover:text-gray-300'}`}
+                                    >
+                                        <div className={`w-1.5 h-1.5 rounded-full ${services.hexstrike.host === '0.0.0.0' ? 'bg-red-400' : 'bg-gray-600'}`} />
+                                        <span>Public (0.0.0.0)</span>
+                                    </button>
+                                </div>
+                             </div>
+
+                            {/* Console / Info Area */}
+                            <div className="flex-1 bg-black/80 rounded p-4 font-mono text-xs border border-[#333]">
+                                <div className="flex items-center justify-between mb-2 border-b border-[#222] pb-1">
+                                    <span className="text-gray-500 uppercase tracking-wider">Service Output</span>
+                                    {services.hexstrike.status === 'running' && <span className="flex items-center gap-2 text-[#00ff00]"><div className="w-1.5 h-1.5 rounded-full bg-[#00ff00] animate-pulse"/> Live</span>}
+                                </div>
+                                <div className="text-gray-300 whitespace-pre-wrap h-[88px] overflow-y-auto custom-scrollbar">
+                                    {services.hexstrike.message}
+                                </div>
                             </div>
                         </div>
                     </div>

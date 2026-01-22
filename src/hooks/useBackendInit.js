@@ -49,17 +49,29 @@ const useBackendInit = () => {
   useEffect(() => {
     // Check Status and update service status details
     // Verificar status e detalhes dos serviços
+    // Check Status and update service status details
+    // Verificar status e detalhes dos serviços
     const checkStatus = async () => {
       try {
-        const data = await api.get('/status');
+        const response = await api.get('/status');
         if (!isMounted.current) return;
 
-        if (data.status === 'ok' || data.status === 'healthy' || data.alive) {
+        // Parse response - Handle wrapped 'data' from BaseController or direct
+        const data = response.data || response;
+        
+        // Determine backend health
+        // Check both new nested format and potential flat legacy format
+        const isBackendRunning = 
+            data.backend?.status === 'running' || 
+            response.status === 'healthy' ||
+            data.status === 'ok';
+
+        if (isBackendRunning) {
           setStatus('ONLINE');
           setServiceStatus({
             flask: true,
-            hexstrike: data.hexstrike_alive || false,
-            brain: data.alive || data.brain_initialized || false
+            hexstrike: data.hexstrike?.running || data.hexstrike_alive || false,
+            brain: data.brain?.initialized || data.alive || data.brain_initialized || false
           });
         } else {
           setStatus('OFFLINE');

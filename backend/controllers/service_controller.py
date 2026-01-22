@@ -67,3 +67,51 @@ class ServiceController(BaseController):
                 'hexstrike': self.manager.get_status()['status']
             }
             return self.success_response(data=status)
+
+        @self.blueprint.route('/services/configure_access', methods=['POST'])
+        def configure_access():
+            """
+            Configure network access for a service
+            Configurar acesso de rede para um serviço
+            """
+            try:
+                data = self.get_request_data()
+                service_name = data.get('service')
+                access_type = data.get('access')  # 'local' or 'public'
+                
+                if service_name != 'hexstrike':
+                    return self.error_response("Only HexStrike service supports access configuration", 400)
+                
+                if access_type not in ['local', 'public']:
+                    return self.error_response("Invalid access type. Use 'local' or 'public'", 400)
+                
+                # 1. Update Configuration
+                from services.system_config_service import SystemConfigService
+                config_service = SystemConfigService()
+                config = config_service.load_system_config()
+                
+                new_host = '0.0.0.0' if access_type == 'public' else '127.0.0.1'
+                if 'services' not in config: config['services'] = {}
+                config['services']['hexstrike_host'] = new_host
+                
+                config_service.save_system_config(config)
+                
+                # 2. Restart Service if running
+                # Reiniciar serviço se estiver rodando
+                self.manager.host = new_host # Update runtime host
+                
+                if self.manager.is_running():
+                    self.manager.stop()
+                    # Allow time for cleanup
+                    import time
+                    time.sleep(2) 
+                    self.manager.start()
+                    
+                return self.success_response(
+                    message=f"Access configured to {access_type} ({new_host}). Service restarted if applicable.",
+                    data={"host": new_host}
+                )
+                
+            except Exception as e:
+                self.log_error('/services/configure_access', e)
+                return self.error_response(f"Failed to configure access: {str(e)}", 500)

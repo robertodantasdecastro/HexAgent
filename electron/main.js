@@ -307,25 +307,68 @@ app.on('window-all-closed', () => {
     }
 });
 
-app.on('will-quit', () => {
-    console.log('[Electron] Shutting down...');
-    if (pythonProcess) {
-        console.log('[Backend] Stopping Python process...');
+app.on('will-quit', async (e) => { 
+    // Prevent immediate quit to allow cleanup
+    // Prevenir saída imediata para permitir limpeza
+    if (!global.isQuittingGracefully) {
+        e.preventDefault();
+        global.isQuittingGracefully = true;
+        
+        console.log('[Electron] Shutting down connection...');
+        
+        // 1. Call Backend Shutdown
+        // 1. Chamar Shutdown do Backend
         try {
-            pythonProcess.kill('SIGTERM'); // Graceful shutdown / Encerramento gracioso
-            
-            // Force kill after 2 seconds if still running / Forçar encerramento após 2s
-            setTimeout(() => {
-                if (pythonProcess && !pythonProcess.killed) {
-                    console.log('[Backend] Force killing...');
-                    pythonProcess.kill('SIGKILL');
+            const http = await import('http');
+            const options = {
+                hostname: '127.0.0.1',
+                port: 5000,
+                path: '/shutdown',
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
                 }
-            }, 2000);
+            };
             
-            console.log('[Backend] ✓ Stopped');
-        } catch (error) {
-            console.error('[Backend] Error stopping:', error);
+            const req = http.request(options, (res) => {
+                console.log(`[Electron] Backend shutdown requested: ${res.statusCode}`);
+            });
+            
+            req.on('error', (error) => {
+                console.error('[Electron] Failed to request backend shutdown:', error.message);
+            });
+            
+            req.end();
+            
+            // Wait a bit for backend to process
+            // Aguardar um pouco para backend processar
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+        } catch (err) {
+            console.error('[Electron] Error during shutdown sequence:', err);
         }
+
+        // 2. Kill Python Process (Safety Net)
+        // 2. Matar Processo Python (Rede de Segurança)
+        if (pythonProcess) {
+            console.log('[Backend] Stopping Python process...');
+            try {
+                pythonProcess.kill('SIGTERM'); 
+                
+                // Force kill after 1 second if still running
+                setTimeout(() => {
+                    if (pythonProcess && !pythonProcess.killed) {
+                        console.log('[Backend] Force killing...');
+                        pythonProcess.kill('SIGKILL');
+                    }
+                }, 1000);
+            } catch (error) {
+                console.error('[Backend] Error stopping:', error);
+            }
+        }
+        
+        console.log('[Electron] Bye!');
+        app.quit();
     }
 });
 

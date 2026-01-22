@@ -292,6 +292,16 @@ class SystemController(BaseController):
                     except Exception as e:
                         self.logger.error(f"Error shutting down core: {e}")
                 
+                # Explicitly stop HexStrike Manager (Zombie Prevention)
+                # Parar explicitamente o HexStrike Manager (Prevenção de Zumbis)
+                try:
+                    from services.hexstrike_manager import HexStrikeManager
+                    manager = HexStrikeManager()
+                    manager.stop()
+                    self.logger.info("HexStrike Manager stopped.")
+                except Exception as e:
+                    self.logger.error(f"Error stopping HexStrike Manager: {e}")
+                
                 # Setup shutdown timer for Flask
                 # Configurar timer de desligamento para Flask
                 # Force exit in 1 second to allow response to be sent

@@ -102,12 +102,9 @@ class ChatController(BaseController):
                 if self.core_ref:
                     self.logger.info(f"Processing with AgentCore (auto_exec={auto_execute}, max_iter={max_iterations})")
                     
-                    # Add context to AI brain if provided
-                    # Adiciona contexto ao cérebro IA se fornecido
-                    if context and isinstance(context, list):
-                        for msg in context[-5:]:  # Last 5 messages / Últimas 5 mensagens
-                            if isinstance(msg, dict) and 'role' in msg and 'content' in msg:
-                                self.core_ref.brain.add_context(msg['role'], msg['content'])
+                    # Add context to AI brain passed via args now
+                    # Adiciona contexto ao cérebro IA via argumentos agora
+                    # Note: We rely on AgentCore to handle context passing to provider
                     
                     # Define SSE generator function
                     # Define função geradora SSE
@@ -119,13 +116,14 @@ class ChatController(BaseController):
                         try:
                             for chunk in self.core_ref.process_message(
                                 user_input=prompt,
+                                chat_context=context,
                                 auto_execute=auto_execute,
                                 max_iterations=max_iterations,
                                 stream=stream_enabled
                             ):
                                 # Yield SSE formatted data
                                 # Retorna dados formatados SSE
-                                yield f"data: {json.dumps(chunk)}\\n\\n"
+                                yield f"data: {json.dumps(chunk)}\n\n"
                                 
                         except Exception as e:
                             self.logger.error(f"AgentCore processing error: {e}", exc_info=True)
@@ -134,7 +132,7 @@ class ChatController(BaseController):
                                 "content": f"Processing error: {str(e)}",
                                 "metadata": {"error_type": type(e).__name__}
                             }
-                            yield f"data: {json.dumps(error_chunk)}\\n\\n"
+                            yield f"data: {json.dumps(error_chunk)}\n\n"
                     
                     # Return SSE stream response
                     # Retorna resposta de stream SSE

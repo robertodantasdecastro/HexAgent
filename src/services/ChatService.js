@@ -25,7 +25,7 @@ class ChatService extends BaseService {
   static #instance = null;
 
   // ... (private fields for Streaming)
-  #currentEventSource = null;
+  #abortController = null;
   #messageHandlers = [];
   #errorHandlers = [];
   #completeHandlers = [];
@@ -45,13 +45,9 @@ class ChatService extends BaseService {
   }
 
   /**
-   * Send chat message with SSE streaming
-   * ...
+   * Send chat message with stream handling
    */
   async sendMessage(prompt, context = [], options = {}) {
-    // ...
-    // Update usage of this.#api to this._api and this.#logger to this._logger
-    // ...
     const {
       autoExecute = false,
       maxIterations = 10,
@@ -59,6 +55,9 @@ class ChatService extends BaseService {
     } = options;
 
     this.abortCurrentRequest();
+    
+    // Create new abort controller for this request
+    this.#abortController = new AbortController();
 
     this._logger.info('ChatService: Sending message', { 
       prompt: prompt.substring(0, 50) + (prompt.length > 50 ? '...' : ''), 
@@ -68,11 +67,15 @@ class ChatService extends BaseService {
 
     try {
       if (stream) {
-        await this.#initSSEConnection(prompt, context, { autoExecute, maxIterations });
+        await this.#startStreamingRequest(prompt, context, { autoExecute, maxIterations });
       } else {
         await this.#sendNonStreamingMessage(prompt, context, { autoExecute, maxIterations });
       }
     } catch (error) {
+      if (error.name === 'AbortError') {
+         this._logger.info('ChatService: Request aborted by user');
+         return;
+      }
       this._logger.error('ChatService: Send message error', error);
       this.#notifyError(error);
       throw error;
@@ -80,56 +83,77 @@ class ChatService extends BaseService {
   }
 
   /**
-   * Initialize SSE connection for streaming responses
-   * Inicializar conexão SSE para respostas com streaming
+   * Start streaming request using Fetch API + ReadableStream
+   * Inicia requisição de streaming usando Fetch API + ReadableStream
    * @private
    */
-  async #initSSEConnection(prompt, context, options) {
-    const { autoExecute, maxIterations } = options;
-
-    // Build query parameters for SSE GET request
-    // Construir parâmetros de query para requisição GET SSE
-    const params = new URLSearchParams({
-      prompt: prompt,
-      auto_execute: autoExecute.toString(),
-      max_iterations: maxIterations.toString()
+  async #startStreamingRequest(prompt, context, options) {
+    const url = `${this._api.baseURL}/chat`;
+    
+    // Use Fetch API for POST request
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'text/event-stream'
+      },
+      body: JSON.stringify({
+        prompt,
+        context,
+        stream: true,
+        options
+      }),
+      signal: this.#abortController.signal
     });
 
-    // Add context as JSON in query (alternative: POST body, but GET is simpler for EventSource)
-    // Adicionar contexto como JSON na query
-    if (context && context.length > 0) {
-      params.append('context', JSON.stringify(context));
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
     }
 
-    const url = `${this._api.baseURL}/chat?${params.toString()}`;
+    // Read the stream
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let buffer = "";
 
-    this._logger.debug(`ChatService: Initializing SSE connection: ${url.substring(0, 100)}...`);
-
-    // Create EventSource for SSE / Criar EventSource para SSE
-    this.#currentEventSource = new EventSource(url);
-
-    // Setup event listeners / Configurar event listeners
-    this.#currentEventSource.onmessage = (event) => {
-      try {
-        const chunk = JSON.parse(event.data);
-        // Reduce log noise in production / Reduzir ruído de log em produção
-        if (chunk.type !== 'text') {
-            this._logger.debug(`ChatService: SSE chunk received: ${chunk.type}`);
+    try {
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            
+            // Decode chunk and append to buffer
+            buffer += decoder.decode(value, { stream: true });
+            
+            // Process complete lines from buffer
+            const lines = buffer.split("\n\n");
+            
+            // Keep the last part if it's incomplete
+            buffer = lines.pop() || "";
+            
+            for (const line of lines) {
+                const trimmedLine = line.trim();
+                if (trimmedLine.startsWith("data: ")) {
+                    const jsonStr = trimmedLine.substring(6);
+                    try {
+                        const chunk = JSON.parse(jsonStr);
+                        // Filter noisy log in production
+                        if (chunk.type !== 'text') {
+                             this._logger.debug('SSE Chunk:', chunk.type);
+                        }
+                        this.#handleSSEChunk(chunk);
+                    } catch (e) {
+                         this._logger.warn("Failed to parse SSE JSON:", e);
+                    }
+                }
+            }
         }
-        this.#handleSSEChunk(chunk);
-      } catch (error) {
-        this._logger.error('ChatService: SSE message parse error:', error);
-      }
-    };
-
-    this.#currentEventSource.onerror = (error) => {
-      this._logger.error('ChatService: SSE connection error', error);
-      this.#notifyError(new Error('SSE connection error / Erro de conexão SSE'));
-      this.abortCurrentRequest();
-    };
-
-    // EventSource doesn't have onclose, but we track completion via 'complete' chunk
-    // EventSource não tem onclose, mas rastreamos conclusão via chunk 'complete'
+    } catch (error) {
+        if (error.name === 'AbortError') throw error;
+        this._logger.error('Stream reading error:', error);
+        throw error;
+    } finally {
+        reader.releaseLock();
+    }
   }
 
   /**
@@ -147,19 +171,18 @@ class ChatService extends BaseService {
       options
     });
 
-    // Simulate chunk format for consistency
-    // Simular formato de chunk para consistência
-    if (response && response.response) {
+    if (response && response.data && response.data.response) {
+      // Simulate chunk format
       this.#handleSSEChunk({
         type: 'text',
-        content: response.response,
-        metadata: { iterations: response.iterations || 1 }
+        content: response.data.response,
+        metadata: { iterations: response.data.iterations || 1 }
       });
 
       this.#handleSSEChunk({
         type: 'complete',
         content: '',
-        metadata: { iterations: response.iterations || 1 }
+        metadata: { iterations: response.data.iterations || 1 }
       });
     }
   }
@@ -218,24 +241,23 @@ class ChatService extends BaseService {
   }
 
   /**
-   * Abort current request and close SSE connection
-   * Abortar requisição atual e fechar conexão SSE
+   * Abort current request
+   * Abortar requisição atual
    */
   abortCurrentRequest() {
-    if (this.#currentEventSource) {
-      this._logger.debug('ChatService: Closing SSE connection');
-      this.#currentEventSource.close();
-      this.#currentEventSource = null;
+    if (this.#abortController) {
+      this._logger.debug('ChatService: Aborting request');
+      this.#abortController.abort();
+      this.#abortController = null;
     }
   }
 
   /**
    * Check if there's an active streaming connection
-   * Verificar se há uma conexão de streaming ativa
    * @returns {boolean}
    */
   isStreaming() {
-    return this.#currentEventSource !== null;
+    return this.#abortController !== null && !this.#abortController.signal.aborted;
   }
 
   // ========================================================================

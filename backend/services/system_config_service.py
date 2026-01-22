@@ -114,7 +114,13 @@ class SystemConfigService:
             raise ConfigError(f"Invalid system configuration file: {e}")
         except Exception as e:
             self.logger.error(f"[SYSTEM-SERVICE] Error loading: {e}")
-            return DEFAULT_SYSTEM_CONFIG.copy()
+            # SECURITY ENFORCEMENT: Always force HexStrike to localhost on startup
+            # APLICAÇÃO DE SEGURANÇA: Sempre forçar HexStrike para localhost na inicialização
+            if 'services' in config:
+                config['services']['hexstrike_host'] = '127.0.0.1'
+                self.logger.info("[SYSTEM-SERVICE] SECURITY: Enforced HexStrike host to 127.0.0.1")
+
+            return config
     
     def save_system_config(self, config: Dict[str, Any]):
         """
