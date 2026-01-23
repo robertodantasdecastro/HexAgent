@@ -2,8 +2,8 @@
 HexBrain - AI Inference Engine
 Módulo de Inferência IA
 
-Based on HexSecGPT.py HexSecBrain class
-Baseado na classe HexSecBrain de HexSecGPT.py
+Based on HexStrike-AI Architecture
+Baseado na Arquitetura HexStrike-AI
 
 Handles AI chat interactions with streaming support and conversation history.
 Gerencia interações de chat IA com suporte a streaming e histórico de conversa.
@@ -78,7 +78,7 @@ Always respond in the same language as the user's input.
         # Initialize Provider Strategy
         from .providers.provider_factory import ProviderFactory
         
-        # Mapping hack: If engine is 'hexsecgpt', map to 'openai' with OpenRouter config for backward compatibility if needed, 
+        # Mapping hack: If engine is legacy, map to 'openai' with OpenRouter config for backward compatibility if needed, 
         # OR just treat it as generic OpenAI if user has keys. 
         # But the User explicitly said "remove hexsecgpt".
         # So we expect valid engine names now.

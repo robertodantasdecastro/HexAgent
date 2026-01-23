@@ -36,8 +36,8 @@ class InferenceStrategy(ABC):
         Obtém o identificador único para este provedor
         
         Returns / Retorna:
-            str: Provider name (e.g., 'hexsecgpt', 'openai', 'deepseek')
-                Nome do provedor (ex: 'hexsecgpt', 'openai', 'deepseek')
+            str: Provider name (e.g., 'hexstrike', 'openai', 'deepseek')
+                Nome do provedor (ex: 'hexstrike', 'openai', 'deepseek')
         """
         pass
     
@@ -53,7 +53,7 @@ class InferenceStrategy(ABC):
         
         Example / Exemplo:
             ["gpt-4-turbo", "gpt-3.5-turbo"] for OpenAI
-            ["google/gemini-2.0-flash-exp:free"] for HexSecGPT
+            ["google/gemini-2.0-flash-exp:free"] for OpenRouter
         """
         pass
     

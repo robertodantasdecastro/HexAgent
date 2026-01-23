@@ -176,7 +176,7 @@
         "stop": "Stop",
         "backend_desc": "Flask backend server providing REST API for the HexAgent GUI. Handles chat, configuration, and service management.",
         "hexstrike_desc": "Command execution engine for running terminal commands. Required for AI to execute system commands and scripts.",
-        "brain_desc": "HexSecGPT AI brain for intelligent responses and reasoning. Provides the core AI functionality for conversations."
+        "brain_desc": "HexStrike-AI brain for intelligent responses and reasoning. Provides the core AI functionality for conversations."
     },
     "session": {
         "manager": "Session Manager",

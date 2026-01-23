@@ -80,7 +80,7 @@ class ProviderFactory:
         apropriada com base no nome do motor.
         
         Args / Argumentos:
-            engine (str): Provider name ('hexsecgpt', 'openai', 'deepseek', 'ollama')
+            engine (str): Provider name ('hexstrike', 'openai', 'deepseek', 'ollama')
                         Nome do provedor
             config (Dict[str, Any]): Provider-specific configuration
                                    Configuração específica do provedor
@@ -101,7 +101,7 @@ class ProviderFactory:
         
         Example / Exemplo:
             >>> factory = ProviderFactory()
-            >>> provider = factory.create_provider('hexsecgpt', {
+            >>> provider = factory.create_provider('hexstrike', {
             ...     'api_key': 'sk-...',
             ...     'model': 'google/gemini-2.0-flash-exp:free'
             ... })
@@ -156,7 +156,7 @@ class ProviderFactory:
         
         Example / Exemplo:
             >>> ProviderFactory.get_available_engines()
-            ['hexsecgpt', 'openai', 'deepseek', 'ollama']
+            ['hexstrike', 'openai', 'deepseek', 'ollama']
         """
         engines = sorted(list(cls._PROVIDERS.keys()))
         logger.debug(f"Available engines: {engines}")
@@ -213,7 +213,7 @@ class ProviderFactory:
 
 
 # NOTE: Actual provider implementations will register themselves
-# when their modules are imported. See hexsecgpt_strategy.py for example.
+# when their modules are imported. See openai_strategy.py for example.
 #
 # NOTA: Implementações reais de provedor se registrarão automaticamente
-# quando seus módulos forem importados. Veja hexsecgpt_strategy.py como exemplo.
+# quando seus módulos forem importados. Veja openai_strategy.py como exemplo.

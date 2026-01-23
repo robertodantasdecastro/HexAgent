@@ -1,118 +1,106 @@
 # HexAgentGUI - Strategic Development Roadmap / Roteiro Estratégico de Desenvolvimento
 
-> **Last Updated / Última Atualização:** 2026-01-22
-> **Project Status:** v2.0.0 (Stable / Estável)
-> **Next Release:** v2.1.0 (MCP Ecosystem)
+> **Last Updated / Última Atualização:** 2026-01-23
+> **Project Identity:** HexStrike-AI Interface
+> **Status:** Refactoring & Evolution / Refatoração e Evolução
 
 ---
 
 ## 🎯 Executive Vision / Visão Executiva
 
-HexAgentGUI aims to be the premier **Autonomous Security Agent Interface**, seamlessly blending local LLM intelligence with professional-grade security tools (Kali Linux). The evolution focuses on three pillars:
-HexAgentGUI visa ser a principal **Interface de Agente de Segurança Autônomo**, unindo inteligência de LLM local com ferramentas de segurança profissional (Kali Linux). A evolução foca em três pilares:
+**HexAgentGUI** is the official cross-platform interface for the **HexStrike-AI** ecosystem. It bridges local LLM intelligence with offensive security tools (Kali Linux), operating on a strict OOP architecture with bilingual documentation.
 
-1.  **Total Interoperability (MCP)**: Native integration with the Model Context Protocol ecosystem.
-2.  **Situation Awareness**: Passive monitoring and anomaly detection triggers.
-3.  **Adaptive Behavior**: Dynamic personality and engagement profiles (Stealth vs. Active).
+**HexAgentGUI** é a interface oficial multiplataforma para o ecossistema **HexStrike-AI**. Ela conecta inteligência LLM local com ferramentas de segurança ofensiva (Kali Linux), operando sobre uma arquitetura POO estrita com documentação bilíngue.
 
 ---
 
-## 📅 PHASE 1: MCP Ecosystem Injection (v2.1.0)
-**Timeline:** Immediate (Q1 2026)
-**Theme:** "Tool Expansion / Expansão de Ferramentas"
+## 📅 MILESTONE 1: Stability & Foundation (Refactor)
+**Focus:** Code Hygiene, OOP, Rebranding
+**Foco:** Higiene de Código, POO, Rebranding
 
-The goal is to move beyond hardcoded tool integrations to a flexible, server-based model using MCP.
+### 1.1 "HexSecGPT" Extinction / Extinção do "HexSecGPT"
+*   **Objective:** Remove all legacy references to "HexSecGPT". Rename to **HexStrike-AI**.
+*   **Actions:**
+    *   Refactor `backend/core/hex_brain.py` and references.
+    *   Update `locales/*.json` (UI Text).
+    *   Update all docstrings and comments.
 
-### 1.1 Local Filesystem Authority (`mcp-filesystem`)
-*   **Objective:** Give the Agent safe, regulated access to the local filesystem for file analysis and report generation.
-*   **Key Tasks:**
-    *   Integration of `mcp-filesystem` server.
-    *   Security Scoping: Restrict access to `~/iatools/workspace` and `~/.hexagent-gui/logs`.
-    *   **GUI:** "File Explorer" tab visualized via MCP resources.
+### 1.2 OOP Enforcement / Aplicação de POO
+*   **Objective:** Convert procedural scripts in `src/` to Class-based Services.
+*   **Actions:**
+    *   Refactor `install.sh` logic (where applicable) or ensure robust setup classes in Python/JS.
+    *   Ensure `ChatService.js`, `ConfigService.js` follow Singleton/Factory patterns.
 
-### 1.2 Kali Tool Wrapper (`mcp-kali-server`)
-*   **Objective:** Create a dedicated MCP server that exposes Kali Linux tools as standard MCP Tools.
-*   **Key Tasks:**
+### 1.3 Variable Synchronization / Sincronização de Variáveis
+*   **Objective:** Map all GUI states to persistent config.
+*   **Actions:**
+    *   Audit `~/.hexagent-gui/` persistence.
+    *   Ensure `system-config.json` and `ai-config.json` are fully synced with UI switches.
+
+---
+
+## 📅 MILESTONE 2: MCP Ecosystem Integration
+**Focus:** Extensibility & Tooling
+**Foco:** Extensibilidade e Ferramentas
+
+### 2.1 File System Authority (`mcp-filesystem`)
+*   **Objective:** Safe access to local files for analysis.
+*   **Actions:**
+    *   Integrate `mcp-filesystem` server.
+    *   Implement "File Explorer" tab in GUI.
+    *   Security scoping (Sandboxing).
+
+### 2.2 Kali Linux Bridge (`mcp-kali-server`)
+*   **Objective:** Expose Kali tools as MCP resources.
+*   **Actions:**
     *   Develop `mcp-kali-server` (Python/FastAPI).
-    *   Wrap tools: `nmap`, `gobuster`, `metasploit-framework` (rpc).
-    *   Standardize output parsing (JSON) for LLM consumption.
-
-### 1.3 MCP Registry UI Finalization
-*   **Objective:** Complete the UI for managing these servers.
-*   **Key Tasks:**
-    *   Server Health Checks (Heartbeat).
-    *   Dynamic Tool Listing (What tools does this server provide?).
+    *   Wrap `nmap`, `gobuster`, `metasploit` (RPC).
+    *   Standardize JSON outputs for LLM parsing.
 
 ---
 
-## 📅 PHASE 2: Passive Monitoring Module (v2.2.0)
-**Timeline:** Short-Term (Q2 2026)
-**Theme:** "Eyes Wide Open / Olhos Bem Abertos"
+## 📅 MILESTONE 3: Passive Monitoring (The Watchdog)
+**Focus:** Awareness & Defense
+**Foco:** Consciência e Defesa
 
-Transition from a reactive "Chat" bot to a proactive "Watchdog".
+### 3.1 NetWatcher Service
+*   **Objective:** Background network traffic analysis.
+*   **Actions:**
+    *   Implement `NetWatcher` class (Raw Sockets).
+    *   Passive ARP monitoring.
+    *   Outbound traffic anomaly detection.
 
-### 2.1 Network Listener Service (`NetWatcher`)
-*   **Objective:** Passive background service to monitor network traffic without active scanning.
-*   **Requirements:**
-    *   Raw Socket capability (requires `capabilities` or root).
-    *   Optimized for Kali networking stack.
-*   **Triggers:**
-    *   New Device Detection (ARP Monitoring).
-    *   Unusual Outbound Traffic (Sustainability Check).
-
-### 2.2 Anomaly Triggers & Alerts
-*   **Objective:** Let the Agent "wake up" and notify the user based on events.
-*   **Key Tasks:**
-    *   `EventBus` implementation in Backend.
-    *   Websocket "Push" notifications to GUI.
-    *   Configurable Rules (e.g., "Alert me if port 4444 opens").
+### 3.2 Event Bus & Alerts
+*   **Objective:** Real-time user notifications.
+*   **Actions:**
+    *   Backend `EventBus` implementation.
+    *   WebSocket push to GUI.
+    *   Configurable alert rules (e.g., "New Port Opened").
 
 ---
 
-## 📅 PHASE 3: Dynamic Personalization (v3.0.0)
-**Timeline:** Long-Term (Q3 2026)
-**Theme:** "Adaptive Engagement / Engajamento Adaptativo"
+## 📅 MILESTONE 4: Dynamic Personalization
+**Focus:** Adaptability
+**Foco:** Adaptabilidade
 
-### 3.1 Behavior Profiles (Plugins)
-*   **Objective:** Switch the Agent's "Personality" and "Rules of Engagement" instantly.
-*   **Proposed Profiles:**
-    *   🕵️ **Stealth / Furtivo**:
-        *   System Prompt: "Prioritize silence. Do not scan aggresively. Use passive recon."
-        *   Tools Allowed: `dns-recon`, `passive-nmap`.
-    *   ⚔️ **Assault / Assalto**:
-        *   System Prompt: "Maximum noise allowed. Full exploitation authorization."
-        *   Tools Allowed: `metasploit`, `hydra`.
-    *   🛡️ **Blue Team / Defensivo**:
-        *   System Prompt: "Analyze logs. Harden configurations. Report vulnerabilities."
-        *   Tools Allowed: `chkrootkit`, `lynis`.
+### 4.1 Behavior Profiles / Perfis de Comportamento
+*   **Objective:** Context-switching for different operational modes.
+*   **Profiles:**
+    *   🕵️ **Stealth**: Passive recon only.
+    *   ⚔️ **Assault**: Active exploitation allowed.
+    *   🛡️ **Defense**: Hardening and analysis.
 
-### 3.2 Dynamic Context injection
-*   **Objective:** Inject Profile-specific knowledge into the context window.
-*   **Implementation:**
-    *   `ProfileManager` service to swap System Prompts and MCP Tool access lists on the fly.
+### 4.2 Dynamic Context / Contexto Dinâmico
+*   **Objective:** Inject profile-specific rules into LLM context.
+*   **Actions:**
+    *   `ProfileManager` service.
+    *   Dynamic System Prompt injection based on active profile.
 
 ---
 
-## 🛠️ Technical Quality Criteria / Critérios de Qualidade Técnica
+## 🛠️ Technical Standards / Padrões Técnicos
 
-*   **POO & SOLID**: All new modules (e.g., `NetWatcher`, `ProfileManager`) must be Classes with Single Responsibility. Use Interfaces for Service interaction.
-*   **OS Agnostic core**: While tools (Kali) are Linux-specific, the *Agent Core* must run on macOS/Windows (mocking Linux tools if absent).
-*   **Dependencies**:
-    *   Future-proof `requirements.txt`.
-    *   Isolate MCP servers in their own VENVs to avoid dependency hell.
-
----
-
-## 🔗 Variable Synchronization Plan / Plano de Sincronização
-
-To ensure the GUI natively reflects this roadmap:
-
-1.  **New State Object**: `monitoringConfig`
-    *   Mapped to `config.json -> monitoring`.
-2.  **New State Object**: `activeProfile`
-    *   Mapped to `config.json -> agent -> profile`.
-3.  **MCP Synchronization**:
-    *   The `MCPRegistry` component (already created) becomes the source of truth for available tools.
-
----
-*Created by Antigravity Agent for User D4R13N.*
+1.  **Language:** English (Primary) + Portuguese-BR (Secondary) in all comments/docs.
+2.  **Architecture:** Strict OOP (Classes, Interfaces).
+3.  **Persistence:** All state must survive restarts via `~/.hexagent-gui/`.
+4.  **Error Handling:** Graceful degradation (GUI must work even if Backend is offline).

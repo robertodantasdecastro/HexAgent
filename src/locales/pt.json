@@ -176,7 +176,7 @@
         "stop": "Parar",
         "backend_desc": "Servidor backend Flask fornecendo API REST para o HexAgent GUI. Gerencia chat, configuração e gerenciamento de serviços.",
         "hexstrike_desc": "Motor de execução de comandos para executar comandos de terminal. Necessário para a IA executar comandos e scripts do sistema.",
-        "brain_desc": "Cérebro IA HexSecGPT para respostas inteligentes e raciocínio. Fornece a funcionalidade principal de IA para conversas."
+        "brain_desc": "Cérebro IA HexStrike-AI para respostas inteligentes e raciocínio. Fornece a funcionalidade principal de IA para conversas."
     },
     "session": {
         "manager": "Gerenciador de Sessões",

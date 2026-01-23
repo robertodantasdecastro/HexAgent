@@ -39,6 +39,8 @@ backend/libs/
 # Logs
 *.log
 logs/
+DEV_GUIA_IA/
+Log_console/ 
 hexstrike.log
 backend.log
 
