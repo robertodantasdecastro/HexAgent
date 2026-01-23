@@ -47,6 +47,7 @@ const App = () => {
     aiConfig,
     loading: aiLoading,
     saveAIConfig,
+    reloadAIConfig
   } = useAIConfig();
 
   // Chat Manager Hook (The Core Refactor!)
@@ -83,6 +84,14 @@ const App = () => {
       setLanguage(systemConfig.system.language);
     }
   }, [systemConfig?.system?.language, language, setLanguage]);
+
+  // Reload AI Config when Backend comes online (Fixes race condition/fallback)
+  useEffect(() => {
+    if (status === 'ONLINE' || status === 'CONFIG-REQUIRED') {
+      console.log('[App] Backend online, reloading AI config...');
+      reloadAIConfig();
+    }
+  }, [status, reloadAIConfig]);
 
   // UI State - Modals
   const settingsModal = useModalState();
@@ -184,15 +193,26 @@ const App = () => {
       <header className="flex-none bg-[#0a0a0a] border-b border-[#333] pl-4 pr-[140px] h-[50px] flex items-center justify-between shadow-md z-10" style={{ WebkitAppRegion: 'drag' }}>
         <div className="flex items-center gap-3">
           <div className="relative group cursor-pointer" onClick={() => window.location.reload()} style={{ WebkitAppRegion: 'no-drag' }}>
-             <Cpu className={`h-6 w-6 ${status === 'ONLINE' ? 'text-green-500 animate-pulse-slow' : 'text-red-500'}`} />
-             <div className="absolute -bottom-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-black"></div>
+             <Cpu className={`h-6 w-6 ${
+               status === 'ONLINE' ? 'text-green-500 animate-pulse-slow' : 
+               status === 'CONFIG-REQUIRED' ? 'text-yellow-500' : 'text-red-500'
+             }`} />
+             <div className={`absolute -bottom-1 -right-1 w-2.5 h-2.5 rounded-full border-2 border-black ${
+               status === 'ONLINE' ? 'bg-green-500' : 
+               status === 'CONFIG-REQUIRED' ? 'bg-yellow-500' : 'bg-red-500'
+             }`}></div>
           </div>
           <div>
             <h1 className="font-bold text-lg tracking-tight bg-gradient-to-r from-green-400 to-cyan-500 bg-clip-text text-transparent">
               HexAgent <span className="text-xs font-mono opacity-70 text-gray-400">v2.1</span>
             </h1>
             <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider font-mono">
-               <span className={status === 'ONLINE' ? 'text-green-500' : 'text-red-500'}>{status}</span>
+               <span className={
+                 status === 'ONLINE' ? 'text-green-500' : 
+                 status === 'CONFIG-REQUIRED' ? 'text-yellow-500 cursor-pointer hover:underline' : 'text-red-500'
+               } onClick={() => status === 'CONFIG-REQUIRED' && aiConfigModal.open()}>
+                 {status === 'CONFIG-REQUIRED' ? '⚠️ CONFIG REQUIRED' : status}
+               </span>
                <span className="text-gray-600">|</span>
                <span className="text-gray-500">{currentSessionName || t('header.no_session')}</span>
             </div>
@@ -241,6 +261,12 @@ const App = () => {
         {status === 'OFFLINE' && (
            <div className="absolute top-0 left-0 right-0 bg-red-900/20 border-b border-red-500/20 p-2 text-center text-xs text-red-400 font-mono z-20">
               ⚠️ SYSTEM OFFLINE - CHECK CONNECTION
+           </div>
+        )}
+        {status === 'CONFIG-REQUIRED' && (
+           <div className="absolute top-0 left-0 right-0 bg-yellow-900/20 border-b border-yellow-500/20 p-2 text-center text-xs text-yellow-400 font-mono z-20 cursor-pointer hover:bg-yellow-900/30 transition-colors"
+                onClick={aiConfigModal.open}>
+              ⚠️ AI BRAIN NOT INITIALIZED - CLICK TO CONFIGURE
            </div>
         )}
 

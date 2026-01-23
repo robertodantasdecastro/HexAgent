@@ -1,216 +1,218 @@
 """
-MCP Manager - Model Context Protocol Registry
-Gerenciador MCP - Registro do Protocolo de Contexto de Modelo
+MCP Manager - Core orchestration for Model Context Protocol interactions.
+Gerenciador MCP - Orquestração central para interações do Model Context Protocol.
 
-Manages MCP server connections and tool discovery.
-Gerencia conexões de servidores MCP e descoberta de ferramentas.
-
-@author: Roberto Dantas de Castro
+Handles connections to multiple MCP servers, tool discovery, and routing.
+Gerencia conexões com múltiplos servidores MCP, descoberta de ferramentas e roteamento.
 """
 
 import asyncio
-import json
 import logging
-import os
+import json
 import shutil
-from pathlib import Path
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, Any, List, Optional
+from contextlib import AsyncExitStack
 
-try:
-    from mcp import StdioServerParameters
-    from mcp.client.stdio import stdio_client
-    from mcp.client.session import ClientSession
-    HAS_MCP = True
-except ImportError:
-    HAS_MCP = False
+# MCP SDK Imports
+from mcp import ClientSession, StdioServerParameters
+from mcp.client.stdio import stdio_client
+
+# Local Imports
+from services.mcp_config_service import MCPConfigService
+
+logger = logging.getLogger(__name__)
 
 class MCPManager:
     """
-    Manages connections to MCP Servers.
-    Gerencia conexões com Servidores MCP.
+    Manages connections to MCP servers and aggregates tools/resources.
+    Gerencia conexões com servidores MCP e agrega ferramentas/recursos.
     """
     
-    def __init__(self, config_path: Optional[str] = None):
-        self.logger = logging.getLogger(__name__)
-        self.config_path = Path(config_path) if config_path else Path.home() / '.hexagent-gui' / 'mcp_config.json'
-        self.servers: Dict[str, Any] = {} # Active server sessions (if kept open)
+    def __init__(self):
+        self.sessions: Dict[str, ClientSession] = {}
+        self.exit_stack = AsyncExitStack()
+        self.config_service = MCPConfigService()
         self.tools_cache: Dict[str, List[Dict]] = {}
         
-        if not HAS_MCP:
-            self.logger.warning("MCP SDK not installed. MCP features disabled.")
+        # Thread-safe event loop handling for Flask
+        self._loop = asyncio.new_event_loop()
+        self._thread = None
+        self._start_background_loop()
 
-    def load_config(self) -> Dict[str, Any]:
-        """Load MCP configuration / Carregar configuração MCP"""
-        if not self.config_path.exists():
-            return {"mcpServers": {}}
+    def _start_background_loop(self):
+        """Start the asyncio loop in a separate thread"""
+        import threading
+        def run_loop():
+            asyncio.set_event_loop(self._loop)
+            self._loop.run_forever()
+            
+        self._thread = threading.Thread(target=run_loop, daemon=True)
+        self._thread.start()
         
-        try:
-            with open(self.config_path, 'r') as f:
-                return json.load(f)
-        except Exception as e:
-            self.logger.error(f"Failed to load MCP config: {e}")
-            return {"mcpServers": {}}
-            
-    def get_server_params(self, server_name: str) -> Optional[Any]:
-        """
-        Get StdioServerParameters for a named server.
-        Obter StdioServerParameters para um servidor nomeado.
-        """
-        if not HAS_MCP: 
-            return None
-            
-        config = self.load_config()
-        servers = config.get("mcpServers", {})
-        srv_conf = servers.get(server_name)
-        
-        if not srv_conf:
-            return None
-            
-        # Check if enabled (default true if not specified, unless explicit false)
-        if srv_conf.get('enabled') is False:
-            return None
+        # Schedule initialization
+        asyncio.run_coroutine_threadsafe(self.initialize(), self._loop)
 
-        command = srv_conf.get("command")
-        args = srv_conf.get("args", [])
-        env = srv_conf.get("env", None)
-        
-        # Merge current env with config env
-        full_env = os.environ.copy()
-        if env:
-            full_env.update(env)
-            
-        return StdioServerParameters(
-            command=command,
-            args=args,
-            env=full_env
-        )
+    def run_sync(self, coroutine):
+        """Run an async method synchronously (thread-safe)"""
+        future = asyncio.run_coroutine_threadsafe(coroutine, self._loop)
+        return future.result()
 
-    def list_configured_servers(self) -> List[str]:
-        """List names of configured servers / Listar nomes de servidores configurados"""
-        config = self.load_config()
-        return list(config.get("mcpServers", {}).keys())
-
-    def save_config(self, config: Dict[str, Any]) -> bool:
-        """Save MCP configuration / Salvar configuração MCP"""
-        try:
-            self.config_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(self.config_path, 'w') as f:
-                json.dump(config, f, indent=2)
-            return True
-        except Exception as e:
-            self.logger.error(f"Failed to save MCP config: {e}")
-            return False
-
-    def add_server(self, name: str, command: str, args: List[str], env: Optional[Dict] = None) -> bool:
-        """Add or update an MCP server / Adicionar ou atualizar um servidor MCP"""
-        config = self.load_config()
-        if "mcpServers" not in config:
-            config["mcpServers"] = {}
-            
-        config["mcpServers"][name] = {
-            "command": command,
-            "args": args,
-            "env": env or {},
-            "enabled": True
-        }
-        return self.save_config(config)
-
-    def remove_server(self, name: str) -> bool:
-        """Remove an MCP server / Remover um servidor MCP"""
-        config = self.load_config()
-        if "mcpServers" in config and name in config["mcpServers"]:
-            del config["mcpServers"][name]
-            return self.save_config(config)
-        return False
-        
-    async def _get_tools_from_server(self, name: str, params: StdioServerParameters) -> List[Dict]:
+    async def initialize(self):
         """
-        Fetch tools from a single server (async)
-        Buscar ferramentas de um único servidor (assíncrono)
+        Initialize connections to all enabled MCP servers.
         """
-        tools_list = []
-        try:
-            async with stdio_client(params) as (read, write):
-                async with ClientSession(read, write) as session:
-                    await session.initialize()
-                    result = await session.list_tools()
-                    # Convert MCP tools to OpenAI/Native format
-                    # result.tools is a list of Tool objects
-                    for tool in result.tools:
-                        tools_list.append({
-                            "name": tool.name,
-                            "description": tool.description,
-                            "input_schema": tool.inputSchema,
-                            "server": name # Internal tracking
-                        })
-        except Exception as e:
-            self.logger.error(f"Error fetching tools from {name}: {e}")
-        return tools_list
-
-    async def _call_tool_on_server(self, name: str, tool_name: str, arguments: dict) -> Any:
-        """
-        Call a tool on a single server (async)
-        Chamar uma ferramenta em um único servidor (assíncrono)
-        """
-        params = self.get_server_params(name)
-        if not params:
-            raise ValueError(f"Server {name} not found or disabled")
-            
-        async with stdio_client(params) as (read, write):
-            async with ClientSession(read, write) as session:
-                await session.initialize()
-                result = await session.call_tool(tool_name, arguments)
-                return result
-
-    def get_tools(self) -> List[Dict]:
-        """
-        Get all available tools from all enabled servers
-        Obter todas as ferramentas disponíveis de todos os servidores habilitados
-        """
-        if not HAS_MCP:
-            return []
-            
-        all_tools = []
-        enabled_servers = self.list_configured_servers()
-        
-        # Sequentially fetch for now (could be parallelized)
-        for name in enabled_servers:
-            # Check if enabled logic is handled in get_server_params or list
-            # get_server_params returns None if disabled
-            params = self.get_server_params(name)
-            if params:
+        # ... logic unchanged ...
+        config = self.config_service.load_config()
+        servers = config.get('servers', {})
+        logger.info(f"Initializing MCP Manager with {len(servers)} servers configured")
+        for name, server_config in servers.items():
+            if server_config.get('enabled', True):
                 try:
-                    # Run async function in sync context
-                    server_tools = asyncio.run(self._get_tools_from_server(name, params))
-                    all_tools.extend(server_tools)
+                    await self.connect_server(name, server_config)
                 except Exception as e:
-                    self.logger.error(f"Failed to get tools from {name}: {e}")
-                    
-        self.tools_cache = {t['name']: t for t in all_tools}
+                    logger.error(f"Failed to connect to MCP server {name}: {e}")
+
+    # ... (rest of async methods) ...
+
+    def call_tool_sync(self, tool_name: str, arguments: Dict[str, Any]) -> Any:
+        """Synchronous wrapper for call_tool"""
+        return self.run_sync(self.call_tool(tool_name, arguments))
+        
+    def get_all_tools_sync(self) -> List[Dict[str, Any]]:
+        """Synchronous wrapper to get tools (cache is sync access safe-ish, but better via loop if updates happen)"""
+        # Since cache is a dict, simple read is fine, but for correctness let's assume it's just local property access
+        return self.tools_cache # Accessing local property is fine
+
+
+    async def connect_server(self, name: str, config: Dict[str, Any]):
+        """
+        Connect to a specific MCP server.
+        Conectar a um servidor MCP específico.
+        """
+        command = config.get('command')
+        args = config.get('args', [])
+        env = config.get('env', {})
+        
+        # Security: Only allow whitelisted commands or strict path validation?
+        # For Milestone 2, we trust config but should be careful.
+        # Check if executable exists
+        executable = shutil.which(command)
+        if not executable:
+             logger.error(f"Executable {command} not found for server {name}")
+             return
+
+        logger.info(f"Connecting to MCP server: {name} ({command})")
+        
+        server_params = StdioServerParameters(
+            command=executable,
+            args=args,
+            env=env
+        )
+        
+        try:
+            # We use the stdio_client context manager
+            # Since we need to keep sessions alive, we use AsyncExitStack
+            # Usamos o context manager stdio_client
+            # Como precisamos manter sessões vivas, usamos AsyncExitStack
+            
+            read, write = await self.exit_stack.enter_async_context(stdio_client(server_params))
+            session = await self.exit_stack.enter_async_context(ClientSession(read, write))
+            
+            await session.initialize()
+            
+            self.sessions[name] = session
+            logger.info(f"Connected to MCP server {name}")
+            
+            # Cache tools immediately
+            await self._refresh_tools(name)
+            
+        except Exception as e:
+            logger.error(f"Error connecting to {name}: {e}")
+            raise
+
+    async def _refresh_tools(self, server_name: str):
+        """
+        Fetch and cache tools from a connected server.
+        Buscar e cachear ferramentas de um servidor conectado.
+        """
+        session = self.sessions.get(server_name)
+        if not session:
+            return
+            
+        try:
+            result = await session.list_tools()
+            # Convert generic objects to dicts if necessary, or store as is
+            # Result.tools is a list of Tool objects
+            
+            tools_list = []
+            for tool in result.tools:
+                tools_list.append({
+                    "name": tool.name,
+                    "description": tool.description,
+                    "inputSchema": tool.inputSchema,
+                    "server": server_name # Tag with source server
+                })
+            
+            self.tools_cache[server_name] = tools_list
+            logger.debug(f"Cached {len(tools_list)} tools from {server_name}")
+            
+        except Exception as e:
+            logger.error(f"Failed to list tools for {server_name}: {e}")
+
+    def get_all_tools(self) -> List[Dict[str, Any]]:
+        """
+        Get flattened list of all available tools from all servers.
+        Obter lista achatada de todas ferramentas disponíveis.
+        """
+        all_tools = []
+        for server_tools in self.tools_cache.values():
+            all_tools.extend(server_tools)
         return all_tools
 
-    def call_tool(self, tool_name: str, arguments: dict) -> Any:
+    async def call_tool(self, tool_name: str, arguments: Dict[str, Any]) -> Any:
         """
-        Find server for tool and execute
-        Encontrar servidor para ferramenta e executar
+        Execute a tool by name (finding the right server).
+        Executar uma ferramenta pelo nome (encontrando o servidor certo).
         """
         # Find which server has this tool
-        tool_info = self.tools_cache.get(tool_name)
-        if not tool_info:
-            # Refresh cache?
-            self.get_tools()
-            tool_info = self.tools_cache.get(tool_name)
+        target_server = None
+        for server_name, tools in self.tools_cache.items():
+            for tool in tools:
+                if tool['name'] == tool_name:
+                    target_server = server_name
+                    break
+            if target_server:
+                break
+        
+        if not target_server:
+            raise ValueError(f"Tool {tool_name} not found in any connected MCP server")
             
-        if not tool_info:
-            raise ValueError(f"Tool {tool_name} not found")
-            
-        server_name = tool_info.get('server')
-        if not server_name:
-             raise ValueError(f"Server for tool {tool_name} is unknown")
+        session = self.sessions.get(target_server)
+        if not session:
+             raise ValueError(f"Server {target_server} is disconnected")
              
-        try:
-             result = asyncio.run(self._call_tool_on_server(server_name, tool_name, arguments))
-             return result
-        except Exception as e:
-             self.logger.error(f"Tool execution failed: {e}")
-             raise e
+        logger.info(f"Calling tool {tool_name} on server {target_server}")
+        result = await session.call_tool(tool_name, arguments)
+        
+        # Return content (TextContent or ImageContent)
+        # Assuming simplified text return for now
+        # Retorna conteúdo (TextContent ou ImageContent)
+        # Assumindo retorno de texto simplificado por enquanto
+        output = []
+        if hasattr(result, 'content'):
+            for item in result.content:
+                if item.type == 'text':
+                    output.append(item.text)
+                elif item.type == 'image':
+                    output.append(f"[Image: {item.mimeType}]") # Placeholder
+                    
+        return "\n".join(output)
+
+    async def shutdown(self):
+        """
+        Close all sessions and cleanup.
+        Fechar todas sessões e limpar.
+        """
+        logger.info("Shutting down MCP Manager...")
+        await self.exit_stack.aclose()
+        self.sessions.clear()

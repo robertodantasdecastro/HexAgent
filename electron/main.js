@@ -63,10 +63,12 @@ if (!gotTheLock) {
       
       // Wait for backend to be ready before creating window
       // Aguarda backend estar pronto antes de criar janela
-      console.log('[Electron] Waiting for backend to be ready...');
-      await waitForBackend();
-      
+      // Window creation is now immediate to show Loading Screen (which is draggable)
+      // Criação da janela é agora imediata para mostrar Tela de Carregamento (que é arrastável)
       createWindow();
+      
+      // Backend polling is handled by the Frontend (LoadingScreen)
+      // Polling do backend é gerenciado pelo Frontend
   });
 }
 

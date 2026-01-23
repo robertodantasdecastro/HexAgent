@@ -141,10 +141,17 @@ const ServiceManagerModal = ({ isOpen, onClose }) => {
   const getStatusBg = (status) => {
     switch (status) {
       case 'running':
-      case 'success': return 'bg-[#00ff00]/5 border-[#00ff00]/30';
+      case 'success': 
+      case 'active':
+      case 'ready': // Added ready to match Brain status
+        return 'bg-[#00ff00]/5 border-[#00ff00]/30 opacity-100'; // Force opacity 100
       case 'starting':
-      case 'pending': return 'bg-yellow-400/5 border-yellow-400/30';
-      default: return 'bg-red-500/5 border-red-500/20';
+      case 'pending': 
+        return 'bg-yellow-400/5 border-yellow-400/30 opacity-90';
+      case 'stopped':
+      case 'error': 
+      default:
+        return 'bg-red-500/5 border-red-500/20 opacity-100';
     }
   };
 

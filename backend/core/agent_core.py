@@ -325,7 +325,8 @@ class AgentCore:
                         # Execute
                         if auto_execute: # or allowed tools?
                             try:
-                                result_obj = self.mcp_manager.call_tool(tool_name, tool_args)
+                                # Use thread-safe synchronous wrapper
+                                result_obj = self.mcp_manager.call_tool_sync(tool_name, tool_args)
                                 # Convert result to string/json
                                 output_str = json.dumps(result_obj, indent=2) if not isinstance(result_obj, str) else result_obj
                                 any_executed = True

@@ -1,70 +1,131 @@
 """
-MCP Controller - API for MCP Registry
-Controlador MCP - API para Registro MCP
+MCP Controller
+Controlador MCP
 
-Exposes routes to manage MCP servers.
-Expõe rotas para gerenciar servidores MCP.
-
-@author: Roberto Dantas de Castro
+API endpoints for managing MCP servers and tools.
+Endpoints da API para gerenciar servidores e ferramentas MCP.
 """
 
 from core.base_controller import BaseController
-from core.mcp_manager import MCPManager
+from services.mcp_config_service import MCPConfigService
+from core.agent_core import AgentCore
 from flask import request
 
-
 class MCPController(BaseController):
-    """Controller for MCP operations / Controlador para operações MCP"""
+    """
+    Controller for MCP management.
+    Checks agent_core.mcp_manager for runtime state.
+    """
     
-    def __init__(self):
-        super().__init__(name='mcp', import_name=__name__, url_prefix='/config/mcp')
-        self.manager = MCPManager()
-    
+    def __init__(self, agent_core: AgentCore):
+        self.agent_core = agent_core
+        self.config_service = MCPConfigService()
+        
+        super().__init__(
+            name='mcp',
+            import_name=__name__,
+            url_prefix='/mcp'
+        )
+        
     def _register_routes(self):
-        """Register MCP routes / Registra rotas MCP"""
         
         @self.blueprint.route('/servers', methods=['GET'])
         def list_servers():
-            """List all configured servers / Listar todos os servidores configurados"""
+            """
+            List all configured MCP servers.
+            Listar todos os servidores MCP configurados.
+            """
             try:
-                config = self.manager.load_config()
-                return self.success_response(data={'servers': config.get('mcpServers', {})})
+                self.log_request('GET /mcp/servers')
+                config = self.config_service.load_config()
+                servers = config.get('servers', {})
+                
+                # Enrich with connection status if possible
+                response_servers = []
+                for name, cfg in servers.items():
+                    is_connected = False
+                    tools_count = 0
+                    if self.agent_core and self.agent_core.mcp_manager:
+                        is_connected = name in self.agent_core.mcp_manager.sessions
+                        tools = self.agent_core.mcp_manager.tools_cache.get(name, [])
+                        tools_count = len(tools)
+                    
+                    response_servers.append({
+                        "name": name,
+                        "enabled": cfg.get('enabled', True),
+                        "command": cfg.get('command'),
+                        "status": "connected" if is_connected else "disconnected",
+                        "tools_count": tools_count
+                    })
+                    
+                return self.success_response(data={"servers": response_servers})
             except Exception as e:
-                self.log_error('list_servers', e)
-                return self.error_response(str(e), 500)
+                self.log_error('GET /mcp/servers', e)
+                return self.error_response("Failed to list MCP servers", 500)
 
         @self.blueprint.route('/servers', methods=['POST'])
         def add_server():
-            """Add or update a server / Adicionar ou atualizar um servidor"""
+            """
+            Add or update an MCP server.
+            Adicionar ou atualizar um servidor MCP.
+            """
             try:
-                data = request.json
-                if not data or 'name' not in data or 'command' not in data:
-                     return self.error_response("Missing name or command", 400)
+                self.log_request('POST /mcp/servers')
+                data = self.validate_request(['name', 'command', 'args'])
                 
-                success = self.manager.add_server(
-                    name=data['name'],
-                    command=data['command'],
-                    args=data.get('args', []),
-                    env=data.get('env', {})
-                )
+                name = data['name']
+                config = {
+                    "command": data['command'],
+                    "args": data['args'],
+                    "env": data.get('env', {}),
+                    "enabled": data.get('enabled', True)
+                }
                 
-                if success:
-                    return self.success_response(message=f"Server {data['name']} saved")
-                else:
-                    return self.error_response("Failed to save server", 500)
-                    
+                self.config_service.add_server(name, config)
+                
+                # Attempt to connect immediately if enabled
+                if config['enabled'] and self.agent_core and self.agent_core.mcp_manager:
+                    # We need to run this async, but this is a sync endpoint.
+                    # We can use the manager's loop to schedule it?
+                    # Ideally, we trigger a reload or specific connect.
+                    # For now, we just save config. The user might need to restart or we add a connect endpoint.
+                    pass
+                
+                return self.success_response(message=f"Server {name} added")
+            except ValueError as e:
+                return self.error_response(str(e), 400)
             except Exception as e:
-                self.log_error('add_server', e)
-                return self.error_response(str(e), 500)
+                self.log_error('POST /mcp/servers', e)
+                return self.error_response("Failed to add server", 500)
 
         @self.blueprint.route('/servers/<name>', methods=['DELETE'])
-        def delete_server(name):
-            """Delete a server / Deletar um servidor"""
+        def remove_server(name):
+            """
+            Remove an MCP server.
+            Remover um servidor MCP.
+            """
             try:
-                if self.manager.remove_server(name):
-                    return self.success_response(message=f"Server {name} removed")
-                else:
-                    return self.error_response(f"Failed to remove server {name}", 404)
+                self.log_request(f'DELETE /mcp/servers/{name}')
+                self.config_service.remove_server(name)
+                return self.success_response(message=f"Server {name} removed")
             except Exception as e:
-                self.log_error('delete_server', e)
-                return self.error_response(str(e), 500)
+                self.log_error(f'DELETE /mcp/servers/{name}', e)
+                return self.error_response("Failed to remove server", 500)
+
+        @self.blueprint.route('/tools', methods=['GET'])
+        def list_tools():
+            """
+            List all available tools from connected servers.
+            Listar todas ferramentas disponíveis.
+            """
+            try:
+                self.log_request('GET /mcp/tools')
+                tools = []
+                if self.agent_core and self.agent_core.mcp_manager:
+                    # Sync access to cache
+                    tools = self.agent_core.mcp_manager.get_all_tools_sync()
+                
+                return self.success_response(data={"tools": tools})
+            except Exception as e:
+                self.log_error('GET /mcp/tools', e)
+                return self.error_response("Failed to list tools", 500)

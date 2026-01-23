@@ -41,11 +41,11 @@ const LoadingScreen = ({ initStatus, progress, error, onRetry, onContinue }) => 
   };
 
   return (
-    <div className="fixed inset-0 bg-[#050505] flex items-center justify-center z-[100] selection:bg-cyan-500/30">
+    <div className="fixed inset-0 bg-[#050505] flex items-center justify-center z-[100] selection:bg-cyan-500/30 drag-region">
       <div className="w-[450px] bg-[#0a0a0a] border border-cyan-500/30 rounded-lg shadow-[0_0_50px_rgba(0,255,255,0.1)] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-300">
         
         {/* Header - No Title Bar, just centered logo animation */}
-        <div className="p-8 flex flex-col items-center border-b border-[#333] drag-region cursor-move">
+        <div className="p-8 flex flex-col items-center border-b border-[#333]">
            <div className="flex justify-center mb-6">
                 <div className="relative">
                 <div className="w-20 h-20 rounded-full border-2 border-[#222] flex items-center justify-center bg-[#050505]">

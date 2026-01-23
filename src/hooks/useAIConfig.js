@@ -35,6 +35,15 @@ const useAIConfig = () => {
       } catch (err) {
         console.error('[useAIConfig] Load error:', err);
         setError(err);
+        // Fallback to default to prevent UI lockup
+        setAIConfig({
+             ai: {
+                 engine: 'openai',
+                 model: 'gpt-4o',
+                 max_tokens: 4096,
+                 temperature: 0.7
+             }
+        });
       } finally {
         setLoading(false);
       }
@@ -129,6 +138,10 @@ const useAIConfig = () => {
     return await saveAIConfig(updated);
   }, [aiConfig, saveAIConfig]);
 
+  const reloadAIConfig = useCallback(() => {
+    return manager.load().then(setAIConfig);
+  }, [manager]);
+
   return {
     aiConfig,
     loading,
@@ -136,7 +149,7 @@ const useAIConfig = () => {
     saveAIConfig,
     updateAIConfig,
     updateAndSave,  // NEW: atomic update+save
-    reloadAIConfig: () => manager.load().then(setAIConfig)
+    reloadAIConfig
   };
 };
 

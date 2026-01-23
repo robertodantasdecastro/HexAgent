@@ -98,10 +98,10 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
         auto_execute: aiConfig.auto_execute,
         system_prompt: aiConfig.system_prompt,
         // Conditional fields based on engine / Campos condicionais baseados no engine
-        ...(aiConfig.engine === 'hexsecgpt' && {
+        ...(engineDescriptions[aiConfig.engine]?.requires_api_key && {
           api_key: aiConfig.api_key
         }),
-        ...(aiConfig.engine === 'lmstudio' && {
+        ...(engineDescriptions[aiConfig.engine]?.is_local && {
           host: aiConfig.host,
           port: aiConfig.port,
           timeout: aiConfig.timeout
@@ -156,12 +156,22 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
 
   // Show loading if config is not yet available
   // Mostrar carregando se config ainda não estiver disponível
+  // Show loading if config is not yet available
+  // Mostrar carregando se config ainda não estiver disponível
   if (!aiConfig) {
-      return (
+      // If taking too long, show error or allow manual reset
+      // Se demorar muito, mostrar erro ou permitir reset manual
+       return (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
              <div className="flex flex-col items-center gap-4">
                  <RefreshCw size={32} className="animate-spin text-cyan-400" />
                  <p className="text-white font-mono text-sm">Loading Configuration / Carregando Configuração...</p>
+                 <button 
+                    onClick={() => setAiConfig(config?.ai || { engine: 'openai', model: 'gpt-4o' })} 
+                    className="mt-4 text-xs text-red-400 hover:text-red-300 underline"
+                 >
+                    Force Open (Debug)
+                 </button>
              </div>
         </div>
       );

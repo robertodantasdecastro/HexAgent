@@ -172,7 +172,7 @@ class AIConfigService:
         full_config = self.load_ai_config()
         ai_config = full_config.get('ai', {})
         
-        engine = ai_config.get('engine', 'hexsecgpt').lower()
+        engine = ai_config.get('engine', 'openai').lower()
         
         # Flattened config for Strategy Init
         # Configuração achatada para Init da Estratégia

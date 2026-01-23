@@ -67,12 +67,22 @@ const useBackendInit = () => {
             data.status === 'ok';
 
         if (isBackendRunning) {
-          setStatus('ONLINE');
+          const isHexStrike = data.hexstrike?.running || data.hexstrike_alive || false;
+          const isBrain = data.brain?.initialized || data.alive || data.brain_initialized || false;
+          
           setServiceStatus({
             flask: true,
-            hexstrike: data.hexstrike?.running || data.hexstrike_alive || false,
-            brain: data.brain?.initialized || data.alive || data.brain_initialized || false
+            hexstrike: isHexStrike,
+            brain: isBrain
           });
+
+          // Only ONLINE if Brain is ready (or valid standalone)
+          if (isBrain) {
+             setStatus('ONLINE');
+          } else {
+             // Backend is accessible, but Brain not ready (needs API key or local setup)
+             setStatus('CONFIG-REQUIRED'); 
+          }
         } else {
           setStatus('OFFLINE');
           setServiceStatus({ flask: false, hexstrike: false, brain: false });

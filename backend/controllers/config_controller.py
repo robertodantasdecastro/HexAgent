@@ -299,7 +299,6 @@ class ConfigController(BaseController):
                 result = provider.test_connection()
                 
                 return self.success_response(data=result)
-                return self.success_response(data=result)
             except ValueError as e:
                 return self.error_response(str(e), 400)
             except Exception as e:

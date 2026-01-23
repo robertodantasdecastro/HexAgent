@@ -24,7 +24,7 @@ const MCPRegistry = () => {
     const fetchServers = async () => {
         try {
             const api = APIClient.getInstance();
-            const response = await api.get('/config/mcp/servers');
+            const response = await api.get('/mcp/servers');
             if (response.success) {
                 setServers(response.data.servers || {});
             }
@@ -46,7 +46,7 @@ const MCPRegistry = () => {
             // Let's assume standard space split for V1.
             const argsList = newServer.args.split(' ').filter(a => a.trim() !== '');
 
-            const response = await api.post('/config/mcp/servers', {
+            const response = await api.post('/mcp/servers', {
                 name: newServer.name,
                 command: newServer.command,
                 args: argsList
@@ -68,7 +68,7 @@ const MCPRegistry = () => {
         
         try {
             const api = APIClient.getInstance();
-            await api.delete(`/config/mcp/servers/${name}`);
+            await api.delete(`/mcp/servers/${name}`);
             fetchServers();
         } catch (error) {
             logger.error('Failed to delete server', error);

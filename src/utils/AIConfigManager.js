@@ -79,7 +79,8 @@ class AIConfigManager {
       
       if (result.success) {
         console.log('[AIConfigManager] Save successful');
-        this.config = dataToSave;
+        // Force reload to ensure synchronization with backend state
+        await this.load(); 
         return true;
       } else {
         throw new Error(result.message || 'Save failed');

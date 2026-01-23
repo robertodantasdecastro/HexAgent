@@ -203,7 +203,7 @@ def create_app(core_ref=None, hexstrike_ref=None):
         ProjectController(),
         WorkflowController(core_ref=agent_core),
         ProfileController(),  # Personalization API
-        MCPController()      # MCP Registry API
+        MCPController(agent_core=agent_core)      # MCP Registry API
     ]
     
     # Register all blueprints / Registrar todos os blueprints
