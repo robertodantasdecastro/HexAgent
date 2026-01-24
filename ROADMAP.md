@@ -104,3 +104,18 @@
 2.  **Architecture:** Strict OOP (Classes, Interfaces).
 3.  **Persistence:** All state must survive restarts via `~/.hexagent-gui/`.
 4.  **Error Handling:** Graceful degradation (GUI must work even if Backend is offline).
+
+---
+
+## 🚀 RECENT UPDATES / ATUALIZAÇÕES RECENTES (2026-01-24)
+
+### ✅ Phase 1, 2 & 3 Complete / Fases 1, 2 e 3 Concluídas
+*   **Inference Engine Rewrite:** Transitioned from spaghetti code to `AgentOrchestrator` + `InferenceStrategy` (SOLID/OOP).
+*   **Multi-Provider Architecture:** Added support for **OpenRouter.ai**, creating a unified interface for OpenAI, DeepSeek, Claude, and Local LLMs.
+*   **Mode Refactoring:** Split UI into **Chat Mode** (Conversational) and **Command Mode** (Terminal-like).
+*   **Resilience:** Implemented self-healing configuration and connection retry logic.
+*   **Debug Tools:** Added "Context Dump" feature for rapid state analysis.
+
+### 🔜 NEXT: Phase 4 (Documentation & Hardening)
+*   Standardizing all code comments to EN/PT-BR.
+*   Finalizing Executive Summary.

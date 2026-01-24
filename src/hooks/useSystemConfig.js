@@ -24,25 +24,43 @@ const useSystemConfig = () => {
    * Carregar configuração do sistema na montagem
    */
   useEffect(() => {
+    let mounted = true;
+    let retryCount = 0;
+    const maxRetries = 5;
+    
     const loadConfig = async () => {
       try {
-        logger.debug('[useSystemConfig] Initial load...');
-        setLoading(true);
+        if (retryCount === 0) {
+            logger.debug('[useSystemConfig] Initial load...');
+            setLoading(true);
+        }
         setError(null);
         
         const config = await manager.load();
-        setSystemConfig(config);
         
-        logger.debug('[useSystemConfig] Loaded successfully');
+        if (mounted) {
+            setSystemConfig(config);
+            setLoading(false);
+            logger.debug('[useSystemConfig] Loaded successfully');
+        }
       } catch (err) {
-        logger.error('[useSystemConfig] Load error:', err);
-        setError(err);
-      } finally {
-        setLoading(false);
+        logger.error(`[useSystemConfig] Load error (Attempt ${retryCount + 1}/${maxRetries}):`, err);
+        
+        if (mounted) {
+            if (retryCount < maxRetries) {
+                retryCount++;
+                setTimeout(loadConfig, 1000); // Retry after 1s
+            } else {
+                setError(err);
+                setLoading(false);
+            }
+        }
       }
     };
 
     loadConfig();
+    
+    return () => { mounted = false; };
   }, []);
 
   /**

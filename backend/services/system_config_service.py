@@ -124,21 +124,41 @@ class SystemConfigService:
     
     def save_system_config(self, config: Dict[str, Any]):
         """
-        Save system configuration to file
-        Salvar configuração do sistema no arquivo
+        Save system configuration to file with Deep Merge
+        Salvar configuração do sistema no arquivo com Merge Profundo
         
-        Saves EXACT config provided (no modification!)
-        Salva config EXATO fornecido (sem modificação!)
+        Merges provided config with existing one to prevent data loss on partial updates.
+        Mescla config fornecida com a existente para prevenir perda de dados em atualizações parciais.
         """
         self.logger.info("[SYSTEM-SERVICE] Saving system config")
         
-        # Log what we're saving
-        if 'system' in config:
-            debug_val = config.get('system', {}).get('debug_mode', 'NOT_FOUND')
-            self.logger.info(f"[SYSTEM-SERVICE] Saving debug_mode = {debug_val}")
-        
-        self._save_config(config)
-        self.logger.info("[SYSTEM-SERVICE] System config saved successfully")
+        try:
+            # 1. Load existing config
+            current_config = self.load_system_config()
+            
+            # 2. Deep Merge
+            def deep_merge(target, source):
+                for key, value in source.items():
+                    if isinstance(value, dict) and key in target and isinstance(target[key], dict):
+                        deep_merge(target[key], value)
+                    else:
+                        target[key] = value
+                return target
+
+            new_config = deep_merge(current_config, config)
+
+            # 3. Log debug mode change
+            if 'system' in new_config:
+                debug_val = new_config.get('system', {}).get('debug_mode', 'NOT_FOUND')
+                self.logger.info(f"[SYSTEM-SERVICE] New debug_mode = {debug_val}")
+            
+            # 4. Save merged config
+            self._save_config(new_config)
+            self.logger.info("[SYSTEM-SERVICE] System config saved successfully (Merged)")
+            
+        except Exception as e:
+            self.logger.error(f"[SYSTEM-SERVICE] Error merging/saving config: {e}")
+            raise ConfigError(f"Failed to save system config: {e}")
     
     def validate_system_config(self, config: Dict[str, Any]) -> bool:
         """

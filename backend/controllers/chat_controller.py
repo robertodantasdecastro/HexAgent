@@ -352,18 +352,18 @@ class ChatController(BaseController):
                         503
                     )
                 
-                # TODO: Implement actual completion using AgentCore
-                # TODO: Implementar completion real usando AgentCore
+                # Use AgentCore for completion
                 self.logger.info(f"Code completion request for {language} ({len(code)} chars)")
                 
-                # Placeholder response / Resposta placeholder
+                suggestions = self.core_ref.complete_code(code, language)
+                
                 return self.success_response(
                     data={
-                        "completions": [],
+                        "completions": suggestions,
                         "language": language,
-                        "ready": False
+                        "ready": True
                     },
-                    message="Completion endpoint ready for implementation / Endpoint de completion pronto para implementação"
+                    message="Completion generated"
                 )
                 
             except Exception as e:

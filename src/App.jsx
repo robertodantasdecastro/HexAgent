@@ -12,6 +12,7 @@ import Block from './components/chat/Block';
 import useAIConfig from './hooks/useAIConfig';
 import useBackendInit from './hooks/useBackendInit';
 import useChatManager from './hooks/useChatManager';
+import useCommandMode from './hooks/useCommandMode';
 import useModalState from './hooks/useModalState';
 import useSystemConfig from './hooks/useSystemConfig';
 import { useTranslation } from './hooks/useTranslation';
@@ -50,21 +51,25 @@ const App = () => {
     reloadAIConfig
   } = useAIConfig();
 
-  // Chat Manager Hook (The Core Refactor!)
-  // Hook de Gerenciamento de Chat (A Refatoração Principal!)
-  const {
-    blocks,
-    setBlocks,
-    isLoading,
-    inputMode,
-    setInputMode,
-    autoScroll,
-    setAutoScroll,
-    showIterationLimitReached,
-    sendMessage,
-    manualExecute,
-    stopGeneration
-  } = useChatManager(api, aiConfig);
+  // Global State for Mode Switching
+  const [appMode, setAppMode] = useState('chat'); // 'chat' | 'command'
+
+  // Chat Manager Hook
+  const chatManager = useChatManager(api, aiConfig);
+  
+  // Command Mode Hook
+  const commandManager = useCommandMode(aiConfig);
+
+  // Active Manager Proxy (Delegates to currrent mode)
+  const activeManager = appMode === 'chat' ? chatManager : {
+      blocks: commandManager.history, // Map history to blocks for UI compatibility
+      isLoading: commandManager.isLoading,
+      sendMessage: commandManager.executeCommand, // Command mode uses executeCommand
+      stopGeneration: commandManager.stopExecution,
+      inputMode: 'command', // Fixed
+      setInputMode: () => {}, // No-op in command mode
+      autoScroll: true
+  };
 
   const [input, setInput] = useState('');
   const scrollRef = useRef(null);
@@ -221,6 +226,45 @@ const App = () => {
 
         {/* Action Buttons - No Drag */}
         <div className="flex items-center gap-2" style={{ WebkitAppRegion: 'no-drag' }}>
+          {systemConfig?.system?.debug_mode && (
+            <button
+              onClick={() => {
+                const dump = {
+                  timestamp: new Date().toISOString(),
+                  app_info: {
+                    version: "2.1",
+                    status: status,
+                    service_status: serviceStatus
+                  },
+                  configs: {
+                    system: systemConfig,
+                    ai: aiConfig
+                  },
+                  session: {
+                    name: currentSessionName,
+                    blocks: blocks
+                  },
+                  logs: logger.getLogs ? logger.getLogs() : "Logger does not support getLogs"
+                };
+                
+                const blob = new Blob([JSON.stringify(dump, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `debug_dump_${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+              }}
+              className="p-2 text-red-400 hover:bg-[#2a1a1a] rounded transition relative group border border-red-500/30"
+              title="Debug: Save Context Dump"
+            >
+              <ArrowDown size={18} />
+              <span className="absolute top-0 right-0 w-2 h-2 bg-red-600 rounded-full animate-pulse"></span>
+            </button>
+          )}
+
             <button
             onClick={servicesModal.open}
             className={`p-2 rounded hover:bg-[#1a1a1a] transition ${serviceStatus.brain ? 'text-green-400' : 'text-gray-500'}`}
@@ -270,29 +314,48 @@ const App = () => {
            </div>
         )}
 
-        {/* Chat Scroll Area */}
+        {/* Mode Switcher Tab */}
+        <div className="flex justify-center bg-[#0a0a0a] border-b border-[#333] py-2">
+             <div className="flex bg-[#1a1a1a] rounded-lg p-1">
+                 <button 
+                    onClick={() => setAppMode('chat')}
+                    className={`px-4 py-1 rounded text-xs font-mono transition-all ${appMode === 'chat' ? 'bg-cyan-500/20 text-cyan-400' : 'text-gray-500 hover:text-gray-300'}`}
+                 >
+                    Chat Mode
+                 </button>
+                 <button 
+                    onClick={() => setAppMode('command')}
+                    className={`px-4 py-1 rounded text-xs font-mono transition-all ${appMode === 'command' ? 'bg-green-500/20 text-green-400' : 'text-gray-500 hover:text-gray-300'}`}
+                 >
+                    Command Mode
+                 </button>
+             </div>
+        </div>
+
+        {/* Chat/Command Scroll Area */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-transparent" ref={scrollRef}>
-          {blocks.length === 0 ? (
+          {activeManager.blocks.length === 0 ? (
              <div className="h-full flex flex-col items-center justify-center text-gray-600 space-y-4 opacity-50">
-                <Cpu size={64} className="mb-4 text-gray-700" />
+                {appMode === 'chat' ? <Cpu size={64} className="mb-4 text-gray-700" /> : <Terminal size={64} className="mb-4 text-green-900" />}
                 <p className="text-sm font-mono text-center">
-                   {t('welcome.ready')}<br/>
+                   {appMode === 'chat' ? t('welcome.ready') : 'Terminal Ready'}<br/>
                    <span className="text-xs opacity-70">Model: {aiConfig?.ai?.model || 'Unknown'}</span>
                 </p>
              </div>
           ) : (
-            blocks.map((block, index) => (
+            activeManager.blocks.map((block, index) => (
               <Block
                 key={block.id || index}
                 {...block}
-                isLast={index === blocks.length - 1}
-                isLoading={isLoading}
-                onExecute={manualExecute}
+                isLast={index === activeManager.blocks.length - 1}
+                isLoading={activeManager.isLoading}
+                onExecute={chatManager.manualExecute} 
                 onContinue={handleContinue}
                 executed={block.executed}
                 colors={colors}
                 t={t}
                 aiConfig={aiConfig}
+                mode={appMode} // Pass mode to Block to render differently if needed
               />
             ))
           )}
@@ -302,24 +365,12 @@ const App = () => {
         {/* 3. Input Area */}
         <div className="flex-none p-4 bg-[#0a0a0a] border-t border-[#333] z-30 relative"> 
             <div className="max-w-4xl mx-auto relative group">
-                {/* Input Mode Toggle */}
-                <div className="absolute -top-8 left-0 flex gap-1">
-                   {['prompt', 'command'].map(mode => (
-                      <button 
-                        key={mode}
-                        onClick={() => setInputMode(mode)}
-                        className={`text-xs px-3 py-1 rounded-t border-t border-x ${inputMode === mode ? 'bg-[#1a1a1a] border-[#333] text-green-400' : 'bg-transparent border-transparent text-gray-500 hover:text-gray-300'}`}
-                      >
-                         {mode === 'prompt' ? t('input.mode.chat') : t('input.mode.prompt')}
-                      </button>
-                   ))}
-                </div>
-
+                
                 {/* Input Box */}
-                <div className={`relative flex items-center bg-[#1a1a1a] rounded-lg border ${isLoading ? 'border-green-500/30 shadow-[0_0_15px_rgba(0,255,0,0.1)]' : 'border-[#333] group-hover:border-gray-600'} transition-all`}>
+                <div className={`relative flex items-center bg-[#1a1a1a] rounded-lg border ${activeManager.isLoading ? 'border-green-500/30 shadow-[0_0_15px_rgba(0,255,0,0.1)]' : 'border-[#333] group-hover:border-gray-600'} transition-all`}>
                    
                    <div className="pl-3 text-gray-500">
-                      {inputMode === 'prompt' ? <Cpu size={20} /> : <Terminal size={20} />}
+                      {appMode === 'chat' ? <Cpu size={20} /> : <Terminal size={20} className="text-green-500" />}
                    </div>
 
                    <textarea
@@ -328,26 +379,35 @@ const App = () => {
                      onKeyDown={(e) => {
                        if (e.key === 'Enter' && !e.shiftKey) {
                          e.preventDefault();
-                         inputMode === 'command' ? manualExecute(input) && setInput('') : handleSend();
+                         // Send to active manager!
+                         activeManager.sendMessage(input, autoExecute, unlimitedIterations, maxIterations);
+                         setInput('');
                        }
                      }}
                      placeholder={
                        status === 'OFFLINE' ? "⚠️ System Offline (Backend Disconnected)" :
-                       isLoading ? "Generating response..." :
-                       inputMode === 'prompt' ? t('input.placeholder_ai') : t('input.placeholder_cmd')
+                       activeManager.isLoading ? "Processing..." :
+                       appMode === 'chat' ? t('input.placeholder_ai') : "Enter command or '?' for AI..."
                      }
                      className="flex-1 bg-transparent border-none text-gray-200 p-3 max-h-32 focus:ring-0 resize-none font-mono text-sm placeholder-gray-600"
                      rows={1}
-                     disabled={isLoading || status === 'OFFLINE'}
+                     disabled={activeManager.isLoading || status === 'OFFLINE'}
                    />
 
                    <div className="pr-2 flex items-center gap-1">
-                      {isLoading ? (
-                         <button onClick={stopGeneration} className="p-2 text-red-500 hover:bg-white/5 rounded-full" title={t('common.stop')}>
+                      {activeManager.isLoading ? (
+                         <button onClick={activeManager.stopGeneration} className="p-2 text-red-500 hover:bg-white/5 rounded-full" title={t('common.stop')}>
                             <Pause size={18} />
                          </button>
                       ) : (
-                         <button onClick={() => inputMode === 'command' ? manualExecute(input) && setInput('') : handleSend()} disabled={!input.trim()} className="p-2 text-green-500 hover:bg-white/5 disabled:opacity-30 rounded-full transition-all">
+                         <button 
+                            onClick={() => {
+                                activeManager.sendMessage(input, autoExecute, unlimitedIterations, maxIterations);
+                                setInput('');
+                            }} 
+                            disabled={!input.trim()} 
+                            className="p-2 text-green-500 hover:bg-white/5 disabled:opacity-30 rounded-full transition-all"
+                         >
                             <Send size={18} />
                          </button>
                       )}
@@ -360,9 +420,16 @@ const App = () => {
                         <span className="flex items-center gap-1 hover:text-gray-300 cursor-pointer" onClick={() => setAutoScroll(!autoScroll)}>
                            <ArrowDown size={10} className={autoScroll ? 'text-green-500' : 'text-gray-600'} /> Auto-scroll
                         </span>
-                        <span className="flex items-center gap-1">
-                           <Hash size={10} /> Max Iterations: {unlimitedIterations ? <Infinity size={10} /> : maxIterations}
-                        </span>
+                        {appMode === 'chat' && (
+                            <span className="flex items-center gap-1">
+                               <Hash size={10} /> Max Iterations: {unlimitedIterations ? <Infinity size={10} /> : maxIterations}
+                            </span>
+                        )}
+                        {appMode === 'command' && (
+                            <span className="flex items-center gap-1 text-green-600">
+                               <Terminal size={10} /> CWD: {commandManager.cwd}
+                            </span>
+                        )}
                     </div>
                 </div>
             </div>
@@ -373,7 +440,7 @@ const App = () => {
       <SettingsModal
         isOpen={settingsModal.isOpen}
         onClose={settingsModal.close}
-        settings={systemConfig}
+        config={systemConfig}
         onSave={async (newSettings) => {
            await saveSystemConfig(newSettings);
            settingsModal.close();

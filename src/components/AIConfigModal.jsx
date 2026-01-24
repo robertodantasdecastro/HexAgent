@@ -1,7 +1,6 @@
-import { Code, Cpu, Key, RefreshCw, Shield, Sliders, X, Zap } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Cpu, Key, RefreshCw, X } from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from '../hooks/useTranslation';
-import APIClient from '../utils/APIClient';
 // ... (imports)
 
 // ...
@@ -15,179 +14,8 @@ import APIClient from '../utils/APIClient';
 const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('engine');
-  const [availableEngines, setAvailableEngines] = useState(['openai', 'deepseek', 'claude', 'lmstudio', '5ire']);
-  const [availableModels, setAvailableModels] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [connectionTestResult, setConnectionTestResult] = useState(null);
-  
-  // State for the form draft, initialized as null
-  // Estado para o rascunho do formulário, inicializado como null
-  const [aiConfig, setAiConfig] = useState(null);
-
-  // Hydrate state from props (Single Source of Truth)
-  // Hidratar estado das props (Fonte Única da Verdade)
-  useEffect(() => {
-    if (config) {
-      console.log('[AIConfigModal] Hydrating from persistence:', config);
-      const source = config.ai || config;
-      
-      // Map explicit values from file, strictly avoiding code-defined overrides where possible
-      // Mapear valores explícitos do arquivo, evitando estritamente sobrescritas definidas no código onde possível
-      setAiConfig({
-        engine: source.engine || 'openai',
-        model: source.model || '',
-        api_key: source.api_key || '',
-        host: source.host || 'http://localhost',
-        port: source.port || 1234,
-        timeout: source.timeout || 60,
-        temperature: source.temperature ?? 0.7, // Use ?? to allow 0
-        max_tokens: source.max_tokens || 4000,
-        max_iterations: source.max_iterations || 10,
-        unlimited_iterations: source.unlimited_iterations || false,
-        auto_execute: source.auto_execute || false,
-        system_prompt: source.system_prompt || ''
-      });
-    }
-  }, [config]);
-
-  // Fetch available models when engine changes / Busca modelos quando engine muda
-  useEffect(() => {
-    // Safe access with optional chaining
-    if (isOpen && aiConfig?.engine) {
-      console.log('[AIConfigModal] Fetching models for engine:', aiConfig.engine);
-      fetchAvailableModels(aiConfig.engine);
-    }
-  }, [aiConfig?.engine, isOpen]);
-
-  const fetchAvailableModels = async (engine) => {
-    try {
-      setLoading(true);
-      // Corrected endpoint: /config/engines/:engine/models
-      const api = APIClient.getInstance();
-      const result = await api.get(`/config/engines/${engine}/models`);
-      
-      if (result.success) {
-        setAvailableModels(result.data.models || []);
-        
-        // Set default model if current is empty / Define modelo padrão se atual está vazio
-        if (!aiConfig.model && result.data.models && result.data.models.length > 0) {
-          setAiConfig(prev => ({ ...prev, model: result.data.models[0] }));
-        }
-      } else {
-        throw new Error(result.message || 'Failed to fetch models');
-      }
-    } catch (error) {
-      console.error('Failed to fetch models:', error);
-      setAvailableModels([]);
-      // Only set error message, do NOT fallback to magic values
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSave = () => {
-    // Build engine-specific configuration / Construir configuração específica do engine
-    const configToSave = {
-      ai: {
-        engine: aiConfig.engine,
-        model: aiConfig.model,
-        temperature: aiConfig.temperature,
-        max_tokens: aiConfig.max_tokens,
-        max_iterations: aiConfig.max_iterations,
-        unlimited_iterations: aiConfig.unlimited_iterations,
-        auto_execute: aiConfig.auto_execute,
-        system_prompt: aiConfig.system_prompt,
-        // Conditional fields based on engine / Campos condicionais baseados no engine
-        ...(engineDescriptions[aiConfig.engine]?.requires_api_key && {
-          api_key: aiConfig.api_key
-        }),
-        ...(engineDescriptions[aiConfig.engine]?.is_local && {
-          host: aiConfig.host,
-          port: aiConfig.port,
-          timeout: aiConfig.timeout
-        })
-      }
-    };
-    
-    onSave(configToSave);
-    onClose();
-  };
-
-  const testConnection = async () => {
-    try {
-      setConnectionTestResult({ loading: true });
-      
-      // Build engine-specific config / Construir config específica do engine
-      const testConfig = aiConfig.engine === 'lmstudio'
-        ? {
-            host: aiConfig.host,
-            port: aiConfig.port,
-            model: aiConfig.model,
-            timeout: aiConfig.timeout
-          }
-        : {
-            api_key: aiConfig.api_key,
-            model: aiConfig.model
-          };
-      
-      // Corrected endpoint: /config/engines/test
-      const api = APIClient.getInstance();
-      const result = await api.post('/config/engines/test', {
-        engine: aiConfig.engine,
-        config: testConfig
-      });
-      
-      if (result.success) {
-        setConnectionTestResult(result.data);
-      } else {
-        throw new Error(result.message || 'Test failed');
-      }
-      
-      setTimeout(() => setConnectionTestResult(null), 5000);
-    } catch (error) {
-      setConnectionTestResult({
-        success: false,
-        error: error.message
-      });
-    }
-  };
-
-  if (!isOpen) return null;
-
-  // Show loading if config is not yet available
-  // Mostrar carregando se config ainda não estiver disponível
-  // Show loading if config is not yet available
-  // Mostrar carregando se config ainda não estiver disponível
-  if (!aiConfig) {
-      // If taking too long, show error or allow manual reset
-      // Se demorar muito, mostrar erro ou permitir reset manual
-       return (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
-             <div className="flex flex-col items-center gap-4">
-                 <RefreshCw size={32} className="animate-spin text-cyan-400" />
-                 <p className="text-white font-mono text-sm">Loading Configuration / Carregando Configuração...</p>
-                 <button 
-                    onClick={() => setAiConfig(config?.ai || { engine: 'openai', model: 'gpt-4o' })} 
-                    className="mt-4 text-xs text-red-400 hover:text-red-300 underline"
-                 >
-                    Force Open (Debug)
-                 </button>
-             </div>
-        </div>
-      );
-  }
-
-  const tabs = [
-    { id: 'engine', label: t('aiconfig.tabs.engine', 'Motor'), icon: Cpu },
-    { id: 'api', label: t('aiconfig.tabs.api', 'API'), icon: Key },
-    { id: 'hexstrike', label: 'HexStrike', icon: Shield },
-    { id: 'params', label: t('aiconfig.tabs.params', 'Parâmetros'), icon: Sliders },
-    { id: 'behavior', label: t('aiconfig.tabs.behavior', 'Comportamento'), icon: Zap },
-    { id: 'advanced', label: t('aiconfig.tabs.advanced', 'Avançado'), icon: Code }
-  ];
-
-
-  // Engine descriptions / Descrições dos engines
+  const [availableEngines, setAvailableEngines] = useState(['openai', 'deepseek', 'claude', 'lmstudio', '5ire', 'openrouter']);
+  // ...
   const engineDescriptions = {
     openai: {
       name: 'OpenAI',
@@ -197,6 +25,11 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
     deepseek: {
       name: 'DeepSeek',
       description: 'DeepSeek AI Models (High Performance, Low Cost)',
+      requires_api_key: true
+    },
+    openrouter: {
+      name: 'OpenRouter.ai',
+      description: 'Access to All Models (GPT, Claude, Llama, Mistral)',
       requires_api_key: true
     },
     claude: {

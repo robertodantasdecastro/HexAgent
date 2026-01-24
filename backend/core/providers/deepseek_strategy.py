@@ -30,7 +30,7 @@ class DeepSeekStrategy(OpenAIStrategy):
     ]
     
     DEFAULT_MODEL = "deepseek-chat"
-    DEFAULT_BASE_URL = "https://api.deepseek.com"
+    DEFAULT_BASE_URL = "https://api.deepseek.com/v1"
     
     def get_provider_name(self) -> str:
         return "deepseek"

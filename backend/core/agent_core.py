@@ -203,6 +203,37 @@ class AgentCore:
             auto_execute=auto_execute,
             max_iterations=max_iterations
         )
+
+    def complete_code(
+        self,
+        code_context: str,
+        language: str = 'python'
+    ) -> List[str]:
+        """
+        Generate completion suggestions for code or commands
+        Gera sugestões de completion para código ou comandos
+        """
+        try:
+            # Construct a prompt for the model
+            prompt = (
+                f"You are an intelligent code completion engine. "
+                f"Complete the following {language} code snippet. "
+                f"Return ONLY the completion part, no markdown, no explanations.\n\n"
+                f"{code_context}"
+            )
+            
+            # Use non-streaming chat step for simplicity
+            response_text = ""
+            for chunk in self.provider.chat_step(prompt=prompt, model=self.provider.get_default_model()):
+                response_text += chunk
+                
+            # Basic parsing: split by newlines or return single block
+            # For command mode, we often want single line completions
+            return [response_text.strip()]
+            
+        except Exception as e:
+            logger.error(f"Completion failed: {e}")
+            return []
     
     def reset(self):
         """

@@ -20,6 +20,7 @@ from .deepseek_strategy import DeepSeekStrategy
 from .claude_strategy import ClaudeStrategy
 from .lmstudio_strategy import LMStudioStrategy
 from .fiveire_strategy import FiveIreStrategy
+from .openrouter_strategy import OpenRouterStrategy
 
 __all__ = [
     'InferenceStrategy',
@@ -28,5 +29,6 @@ __all__ = [
     'DeepSeekStrategy',
     'ClaudeStrategy',
     'LMStudioStrategy',
-    'FiveIreStrategy'
+    'FiveIreStrategy',
+    'OpenRouterStrategy'
 ]

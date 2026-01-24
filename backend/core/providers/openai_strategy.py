@@ -82,7 +82,7 @@ class OpenAIStrategy(InferenceStrategy):
     def get_available_models(self) -> List[str]:
         return self.AVAILABLE_MODELS.copy()
     
-    def chat_step(self, prompt: str, model: Optional[str] = None) -> Generator[str, None, None]:
+    def chat_step(self, prompt: str, chat_context: Optional[List[Dict[str, str]]] = None, model: Optional[str] = None) -> Generator[str, None, None]:
         """
         Execute streaming chat completion
         Executa completion de chat com streaming
@@ -96,6 +96,12 @@ class OpenAIStrategy(InferenceStrategy):
             if self.system_prompt:
                 messages.append({"role": "system", "content": self.system_prompt})
             
+            # Incorporate chat context / Incorporar contexto do chat
+            if chat_context:
+                for msg in chat_context:
+                    if isinstance(msg, dict) and 'role' in msg and 'content' in msg:
+                        messages.append({"role": msg['role'], "content": msg['content']})
+
             messages.append({"role": "user", "content": prompt})
             
             kwargs = {
