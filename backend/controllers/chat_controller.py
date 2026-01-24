@@ -134,17 +134,52 @@ class ChatController(BaseController):
                             }
                             yield f"data: {json.dumps(error_chunk)}\n\n"
                     
-                    # Return SSE stream response
-                    # Retorna resposta de stream SSE
-                    return Response(
-                        generate_sse(),
-                        mimetype='text/event-stream',
-                        headers={
-                            'Cache-Control': 'no-cache',
-                            'X-Accel-Buffering': 'no',  # Disable nginx buffering / Desabilita buffering nginx
-                            'Connection': 'keep-alive'
-                        }
-                    )
+                    if stream_enabled:
+                        # Return SSE stream response
+                        # Retorna resposta de stream SSE
+                        return Response(
+                            generate_sse(),
+                            mimetype='text/event-stream',
+                            headers={
+                                'Cache-Control': 'no-cache',
+                                'X-Accel-Buffering': 'no',  # Disable nginx buffering / Desabilita buffering nginx
+                                'Connection': 'keep-alive'
+                            }
+                        )
+                    else:
+                        # Collect all chunks and return JSON
+                        # Coletar todos os chunks e retornar JSON
+                        full_content = ""
+                        final_metadata = {}
+                        
+                        try:
+                            # Iterate generator to consume all chunks
+                            # Iterar gerador para consumir todos os chunks
+                            for chunk in self.core_ref.process_message(
+                                user_input=prompt,
+                                chat_context=context,
+                                auto_execute=auto_execute,
+                                max_iterations=max_iterations,
+                                stream=False
+                            ):
+                                if chunk.get("type") == "text":
+                                    full_content += chunk.get("content", "")
+                                    final_metadata = chunk.get("metadata", {})
+                                elif chunk.get("type") == "command_proposal":
+                                     # For now, append proposals to content or handle appropriately
+                                     pass
+                                elif chunk.get("type") == "command_result":
+                                     pass
+                            
+                            return self.success_response(
+                                data={
+                                    "response": full_content,
+                                    "metadata": final_metadata
+                                }
+                            )
+                        except Exception as e:
+                            self.logger.error(f"AgentCore processing error (JSON): {e}", exc_info=True)
+                            return self.error_response(f"Processing error: {str(e)}", 500)
                 
                 else:
                     # Fallback: Simple OpenRouter mode without AgentCore

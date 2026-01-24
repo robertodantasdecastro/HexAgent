@@ -192,9 +192,15 @@ class SystemController(BaseController):
                 if is_local and not api_key:
                     self.logger.info(f"Initializing local engine '{engine}' without API Key (Allowed)")
                 
-                # Initialize core with API key
-                # Inicializa core com chave API
-                if self.core.initialize(api_key):
+                # Initialize core with API key AND config (Host/Port)
+                # Inicializa core com chave API e config completa (Host/Port)
+                engine_name, provider_config = ai_service.get_active_provider_config()
+                
+                # Check for explicit API key override (e.g. from Env or User Input)
+                if api_key:
+                    provider_config['api_key'] = api_key
+                
+                if self.core.initialize(api_key=api_key, engine=engine_name, provider_kwargs=provider_config):
                     # Try to start HexStrike if available
                     # Tenta iniciar HexStrike se disponível
                     hexstrike_started = self._start_hexstrike()

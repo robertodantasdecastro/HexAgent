@@ -145,7 +145,7 @@ const MCPRegistry = () => {
                             <div className="text-xs text-gray-500 flex items-center gap-2">
                                 <Terminal size={12} />
                                 <span className="text-cyan-400">{conf.command}</span>
-                                <span className="text-gray-400">{conf.args.join(' ')}</span>
+                                <span className="text-gray-400">{(conf.args || []).join(' ')}</span>
                             </div>
                             {conf.env && Object.keys(conf.env).length > 0 && (
                                 <div className="mt-1 text-[10px] text-gray-600 flex items-center gap-1">

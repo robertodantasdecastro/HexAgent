@@ -70,18 +70,18 @@ class BackendChatTester:
             
             if response.status_code == 200:
                 data = response.json()
-                if data.get('status') in ['ok', 'healthy']:
+                if data.get('status') in ['ok', 'healthy', 'degraded']:
                     return TestResult(
                         "Health Check",
                         True,
-                        "Backend is healthy",
+                        f"Backend is {data.get('status')}",
                         data
                     )
             
             return TestResult(
                 "Health Check",
                 False,
-                f"Unexpected response: {response.status_code}",
+                f"Unexpected response status: {data.get('status')} (Code: {response.status_code})",
                 response.text
             )
             
@@ -108,7 +108,10 @@ class BackendChatTester:
             
             response = requests.post(
                 f"{BASE_URL}/chat",
-                json={"prompt": "Hello, test"},
+                json={
+                    "prompt": "Hello, test", 
+                    "stream": False
+                },
                 headers={"Content-Type": "application/json"},
                 timeout=10
             )

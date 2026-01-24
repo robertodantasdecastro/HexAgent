@@ -54,6 +54,7 @@ class MCPController(BaseController):
                         "name": name,
                         "enabled": cfg.get('enabled', True),
                         "command": cfg.get('command'),
+                        "args": cfg.get('args', []),
                         "status": "connected" if is_connected else "disconnected",
                         "tools_count": tools_count
                     })
