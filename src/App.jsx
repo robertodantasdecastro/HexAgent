@@ -110,29 +110,24 @@ const App = () => {
 
   // Auto-Save Session
   useEffect(() => {
-    if (blocks.length === 0) return;
-    sessionService.autoSave(blocks, 2000);
+    if (chatManager.blocks.length === 0) return;
+    sessionService.autoSave(chatManager.blocks, 2000);
     return () => sessionService.clearAutoSaveTimer();
-  }, [blocks, sessionService]);
+  }, [chatManager.blocks, sessionService]);
 
   // Auto-Save on Close
   useEffect(() => {
     const handleBeforeUnload = async () => {
-      if (blocks.length > 0) {
-        await sessionService.saveBeforeClose(blocks);
+      if (chatManager.blocks.length > 0) {
+        await sessionService.saveBeforeClose(chatManager.blocks);
       }
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [blocks, sessionService]);
+  }, [chatManager.blocks, sessionService]);
 
-  // Handler: Send Message
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
-    const prompt = input;
-    setInput('');
-    await sendMessage(prompt, autoExecute, unlimitedIterations, maxIterations);
-  };
+  // Handler: Send Message (Deprecated/Unused - Removed to prevent confusion)
+  // Logic migrated to activeManager.sendMessage directly in JSX
 
   // Handler: Continue
   const handleContinue = () => {
@@ -144,7 +139,7 @@ const App = () => {
     if (autoScroll && bottomRef.current) {
       bottomRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [blocks, autoScroll]);
+  }, [activeManager.blocks, autoScroll]);
 
   // Shutdown Handler (Corrected)
   // Memoized to prevent re-renders in children
@@ -242,7 +237,7 @@ const App = () => {
                   },
                   session: {
                     name: currentSessionName,
-                    blocks: blocks
+                    blocks: chatManager.blocks
                   },
                   logs: logger.getLogs ? logger.getLogs() : "Logger does not support getLogs"
                 };
@@ -463,12 +458,12 @@ const App = () => {
         onClose={sessionModal.close}
         currentSession={currentSessionName}
         onLoad={(session) => {
-           setBlocks(session.blocks);
+           chatManager.setBlocks(session.blocks);
            setCurrentSessionName(session.name);
            sessionModal.close();
         }}
         onSave={async (name) => {
-           await sessionService.saveSession(name, blocks);
+           await sessionService.saveSession(name, chatManager.blocks);
            setCurrentSessionName(name);
            sessionModal.close();
         }}
