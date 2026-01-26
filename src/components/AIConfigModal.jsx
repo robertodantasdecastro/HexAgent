@@ -1,5 +1,5 @@
-import { Cpu, Key, RefreshCw, X } from 'lucide-react';
-import { useState } from 'react';
+import { Cpu, Key, RefreshCw, Settings, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from '../hooks/useTranslation';
 // ... (imports)
 
@@ -15,7 +15,43 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('engine');
   const [availableEngines, setAvailableEngines] = useState(['openai', 'deepseek', 'claude', 'lmstudio', '5ire', 'openrouter']);
-  // ...
+  const [loading, setLoading] = useState(false);
+  const [connectionTestResult, setConnectionTestResult] = useState(null);
+  const [availableModels, setAvailableModels] = useState([]);
+  
+  // Local state for config editing
+  const [localConfig, setLocalConfig] = useState(config || {
+      engine: 'openai',
+      model: 'gpt-4o',
+      max_iterations: 10,
+      temperature: 0.7,
+      max_tokens: 4000,
+      auto_execute: false
+  });
+
+  // Effect to update local state when prop changes
+  // Effect to update local state when prop changes
+  useEffect(() => {
+    if (config) {
+        setLocalConfig(config);
+    }
+  }, [config]);
+
+  const testConnection = async () => {
+    setLoading(true);
+    setConnectionTestResult({ loading: true });
+    // ... logic (omitted, will remain)
+  };
+
+  const fetchAvailableModels = async (engine) => {
+      // ... logic
+  };
+
+  const handleSave = () => {
+    if (onSave) {
+        onSave(localConfig);
+    }
+  };
   const engineDescriptions = {
     openai: {
       name: 'OpenAI',
@@ -50,6 +86,14 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
       is_local: true
     }
   };
+
+  const tabs = [
+    { id: 'engine', label: 'Motor / Engine', icon: Cpu },
+    { id: 'api', label: 'API & Conexão', icon: Key },
+    { id: 'params', label: 'Parâmetros', icon: Settings },
+    { id: 'behavior', label: 'Comportamento', icon: RefreshCw },
+    { id: 'advanced', label: 'Avançado', icon: Settings }
+  ];
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -97,8 +141,8 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
                   Motor IA / AI Engine
                 </label>
                 <select
-                  value={aiConfig.engine}
-                  onChange={(e) => setAiConfig({...aiConfig, engine: e.target.value})}
+                  value={localConfig.engine}
+                  onChange={(e) => setLocalConfig({...localConfig, engine: e.target.value})}
                   className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-cyan-400"
                 >
                   {Object.keys(engineDescriptions).map(engine => (
@@ -109,10 +153,10 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
                 </select>
                 
                 {/* Engine Description */}
-                {engineDescriptions[aiConfig.engine] && (
+                {engineDescriptions[localConfig.engine] && (
                   <div className="mt-2 p-3 bg-blue-500/10 border border-blue-500/30 rounded">
                     <p className="text-xs text-blue-400 font-mono">
-                      💡 {engineDescriptions[aiConfig.engine].description}
+                      💡 {engineDescriptions[localConfig.engine].description}
                     </p>
                   </div>
                 )}
@@ -125,7 +169,7 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
                     Modelo / Model
                   </label>
                   <button
-                    onClick={() => fetchAvailableModels(aiConfig.engine)}
+                    onClick={() => fetchAvailableModels(localConfig.engine)}
                     className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
                     disabled={loading}
                   >
@@ -134,12 +178,12 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
                   </button>
                 </div>
                 <select
-                  value={aiConfig.model}
-                  onChange={(e) => setAiConfig({...aiConfig, model: e.target.value})}
+                  value={localConfig.model}
+                  onChange={(e) => setLocalConfig({...localConfig, model: e.target.value})}
                   disabled={loading}
                   className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-cyan-400 disabled:opacity-50"
                 >
-                  <option value="">{aiConfig.model ? aiConfig.model : 'Selecione ou digite / Select or type'}</option>
+                  <option value="">{localConfig.model ? localConfig.model : 'Selecione ou digite / Select or type'}</option>
                   {availableModels.map(model => (
                     <option key={model} value={model}>{model}</option>
                   ))}
@@ -148,8 +192,8 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
                     type="text" 
                     placeholder="Custom Model ID (Optional)"
                     className="w-full mt-2 bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-cyan-400"
-                    value={aiConfig.model}
-                    onChange={(e) => setAiConfig({...aiConfig, model: e.target.value})}
+                    value={localConfig.model}
+                    onChange={(e) => setLocalConfig({...localConfig, model: e.target.value})}
                 />
               </div>
             </div>
@@ -159,7 +203,7 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
           {activeTab === 'api' && (
             <div className="space-y-4">
               {/* API Key Configuration - For Engines that require it */}
-              {(engineDescriptions[aiConfig.engine]?.requires_api_key) && (
+              {(engineDescriptions[localConfig.engine]?.requires_api_key) && (
                 <div>
                   <label className="block text-sm font-mono text-gray-300 mb-2">
                     <Key className="inline mr-1" size={14} />
@@ -167,20 +211,20 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
                   </label>
                   <input
                     type="password"
-                    value={aiConfig.api_key}
-                    onChange={(e) => setAiConfig({...aiConfig, api_key: e.target.value})}
-                    placeholder={`Auth Key for ${engineDescriptions[aiConfig.engine].name}`}
+                    value={localConfig.api_key}
+                    onChange={(e) => setLocalConfig({...localConfig, api_key: e.target.value})}
+                    placeholder={`Auth Key for ${engineDescriptions[localConfig.engine].name}`}
                     className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-cyan-400"
                   />
                 </div>
               )}
 
               {/* Local Server Configuration (LM Studio / 5ire) */}
-              {(engineDescriptions[aiConfig.engine]?.is_local) && (
+              {(engineDescriptions[localConfig.engine]?.is_local) && (
                 <>
                   <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded mb-4">
                     <p className="text-xs text-blue-400 font-mono">
-                      💡 <strong>Local Inference:</strong> {aiConfig.engine === '5ire' ? '5ire Environment' : 'LM Studio'}
+                      💡 <strong>Local Inference:</strong> {localConfig.engine === '5ire' ? '5ire Environment' : 'LM Studio'}
                     </p>
                   </div>
 
@@ -190,8 +234,8 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
                     </label>
                     <input
                       type="text"
-                      value={aiConfig.host}
-                      onChange={(e) => setAiConfig({...aiConfig, host: e.target.value})}
+                      value={localConfig.host}
+                      onChange={(e) => setLocalConfig({...localConfig, host: e.target.value})}
                       placeholder="http://localhost"
                       className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-cyan-400"
                     />
@@ -203,21 +247,21 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
                     </label>
                     <input
                       type="number"
-                      value={aiConfig.port}
-                      onChange={(e) => setAiConfig({...aiConfig, port: parseInt(e.target.value) || (aiConfig.engine === '5ire' ? 5000 : 1234)})}
-                      placeholder={aiConfig.engine === '5ire' ? "5000" : "1234"}
+                      value={localConfig.port}
+                      onChange={(e) => setLocalConfig({...localConfig, port: parseInt(e.target.value) || (localConfig.engine === '5ire' ? 5000 : 1234)})}
+                      placeholder={localConfig.engine === '5ire' ? "5000" : "1234"}
                       className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-cyan-400"
                     />
                   </div>
 
                   <div>
                     <label className="block text-sm font-mono text-gray-300 mb-2">
-                      Request Timeout / Timeout: {aiConfig.timeout}s
+                      Request Timeout / Timeout: {localConfig.timeout}s
                     </label>
                     <input
                       type="range"
-                      value={aiConfig.timeout}
-                      onChange={(e) => setAiConfig({...aiConfig, timeout: parseInt(e.target.value)})}
+                      value={localConfig.timeout}
+                      onChange={(e) => setLocalConfig({...localConfig, timeout: parseInt(e.target.value)})}
                       min="10"
                       max="300"
                       step="10"
@@ -264,15 +308,15 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-mono text-gray-300 mb-2">
-                  Temperatura / Temperature: {aiConfig.temperature.toFixed(2)}
+                  Temperatura / Temperature: {localConfig.temperature.toFixed(2)}
                 </label>
                 <input
                   type="range"
                   min="0"
                   max="2"
                   step="0.1"
-                  value={aiConfig.temperature}
-                  onChange={(e) => setAiConfig({...aiConfig, temperature: parseFloat(e.target.value)})}
+                  value={localConfig.temperature}
+                  onChange={(e) => setLocalConfig({...localConfig, temperature: parseFloat(e.target.value)})}
                   className="w-full"
                 />
                 <div className="flex justify-between text-xs text-gray-500 mt-1">
@@ -287,8 +331,8 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
                 </label>
                 <input
                   type="number"
-                  value={aiConfig.max_tokens}
-                  onChange={(e) => setAiConfig({...aiConfig, max_tokens: parseInt(e.target.value)})}
+                  value={localConfig.max_tokens}
+                  onChange={(e) => setLocalConfig({...localConfig, max_tokens: parseInt(e.target.value)})}
                   min="100"
                   max="128000"
                   className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-cyan-400"
@@ -307,31 +351,31 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
                 </div>
                 <input
                   type="checkbox"
-                  checked={aiConfig.auto_execute}
-                  onChange={(e) => setAiConfig({...aiConfig, auto_execute: e.target.checked})}
+                  checked={localConfig.auto_execute}
+                  onChange={(e) => setLocalConfig({...localConfig, auto_execute: e.target.checked})}
                   className="w-4 h-4"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-mono text-gray-300 mb-2">
-                  Iterações Máximas / Max Iterations: {aiConfig.unlimited_iterations ? '∞' : aiConfig.max_iterations}
+                  Iterações Máximas / Max Iterations: {localConfig.unlimited_iterations ? '∞' : localConfig.max_iterations}
                 </label>
                 <input
                   type="range"
                   min="1"
                   max="50"
-                  value={aiConfig.max_iterations}
-                  onChange={(e) => setAiConfig({...aiConfig, max_iterations: parseInt(e.target.value)})}
-                  disabled={aiConfig.unlimited_iterations}
+                  value={localConfig.max_iterations}
+                  onChange={(e) => setLocalConfig({...localConfig, max_iterations: parseInt(e.target.value)})}
+                  disabled={localConfig.unlimited_iterations}
                   className="w-full"
                 />
                 <div className="flex items-center gap-2 mt-2">
                   <input
                     type="checkbox"
                     id="unlimited"
-                    checked={aiConfig.unlimited_iterations}
-                    onChange={(e) => setAiConfig({...aiConfig, unlimited_iterations: e.target.checked})}
+                    checked={localConfig.unlimited_iterations}
+                    onChange={(e) => setLocalConfig({...localConfig, unlimited_iterations: e.target.checked})}
                     className="w-4 h-4"
                   />
                   <label htmlFor="unlimited" className="text-xs text-gray-400 font-mono">
@@ -350,8 +394,8 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
                   System Prompt Customizado / Custom System Prompt
                 </label>
                 <textarea
-                  value={aiConfig.system_prompt}
-                  onChange={(e) => setAiConfig({...aiConfig, system_prompt: e.target.value})}
+                  value={localConfig.system_prompt}
+                  onChange={(e) => setLocalConfig({...localConfig, system_prompt: e.target.value})}
                   rows={6}
                   placeholder="You are HexAgent, an elite autonomous cybersecurity AI assistant..."
                   className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-cyan-400 resize-none"

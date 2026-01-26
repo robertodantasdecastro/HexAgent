@@ -1,5 +1,5 @@
-# HexAgentGUI - Architecture Documentation (v2.0.0)
-## Documentação de Arquitetura (v2.0.0)
+# HexAgentGUI - Architecture Documentation (v2.1.0)
+## Documentação de Arquitetura (v2.1.0)
 
 > **System architecture and technical design**  
 > **Arquitetura do sistema e design técnico**
@@ -15,26 +15,27 @@ graph TD
     subgraph Frontend Logic
         GUI --> |Hooks| UseAI[useAIConfig]
         GUI --> |Hooks| UseSys[useSystemConfig]
-        GUI --> |Hooks| UseChat[useChatManager]
-        UseChat --> |Uses| API[APIClient (Singleton)]
+        GUI --> |Render| Blocks[Inference Blocks]
+        Blocks --> |Thinking| ThinkBlk[ThinkingBlock]
+        Blocks --> |Visual| ShellBlk[ShellBlock]
+        UseAI --> |Context| AIContext
     end
 
     subgraph Backend Services (Flask)
-        API --> |HTTP JSON| Controller[Controllers (Blueprints)]
-        Controller --> |Calls| ServiceLayer[Service Layer]
+        GUI --> |SSE Stream| ChatCtrl[ChatController]
+        ChatCtrl --> |Orchestrate| AgentCore[AgentCore (Brain)]
         
-        ServiceLayer --> |Config| ConfigService[Config Services]
-        ConfigService --> |Read/Write| JSONUtils[JSON Files (~/.hexagent-gui)]
+        AgentCore --> |Manage| Orchestrator[Orchestrator Loop]
+        Orchestrator --> |AI Strategy| ProviderFactory
+        Orchestrator --> |Command| HexStrikeClient
+        Orchestrator --> |Tools| MCPManager
         
-        ServiceLayer --> |Orchestrate| AgentCore[AgentCore (Brain)]
-        AgentCore --> |Inference| AIProvider[AI Provider Factory]
-        AgentCore --> |Execute| HexStrike[HexStrike Client]
+        HexStrikeClient --> |HTTP| HexServer[HexStrike Server (Port 8888)]
     end
     
-    subgraph Execution
-        HexStrike --> |HTTP| HexServer[HexStrike Server (Port 8888)]
-        HexServer --> |Subprocess| Tools[Security Tools (Nmap, etc)]
-        AIProvider --> |API| LLM[LLM (Local/Cloud)]
+    subgraph Execution Layer
+        HexServer --> |Subprocess| ZSH[ZSH Shell / Tools]
+        ProviderFactory --> |API| ExternalAI[OpenAI / OpenRouter / Local]
     end
 ```
 
@@ -43,72 +44,63 @@ graph TD
 ## 📦 Component Breakdown / Detalhamento de Componentes
 
 ### 1. Frontend Layer (React + Electron)
+**Core Orchestrator:**
+- **`App.jsx`**: Global State Holder (Context Provider).
 
-**Core Components:**
-- **`App.jsx`**: Main Orchestrator. Manages Layout and Global Modals.
-- **`APIClient.js`**: Singleton Facade for all HTTP communications. Handles retries and error parsing.
-- **`SessionService.js`**: Repository pattern for Chat Session management.
-- **`AIConfigModal.jsx`**: Dynamic settings for AI Engines (Online/Offline).
+**Inference Block System (New Architecture):**
+The Chat Interface will be refactored from a simple list to a **State Machine of Blocks**:
+1.  **`InputBlock`**: 
+    - *State:* Editing / Frozen. 
+    - *Func:* User types prompt. During execution, it freezes. Editing it sends an `abort` signal and starts a new branch.
+2.  **`ThinkingBlock`**: 
+    - *State:* Streaming / Collapsed / Expanded.
+    - *Func:* Visualizes the "Chain of Thought" (CoT). Hidden by default (Kernel Debug mode).
+3.  **`ProposalBlock`**:
+    - *State:* Waiting Approval / Auto-Executing / Rejected.
+    - *Func:* Shows the command to be run.
+4.  **`ShellBlock`**:
+    - *State:* Running / Completed / Interacting.
+    - *Func:* `xterm.js` instance connected to `HexStrikeClient` PTY. Real-time ZSH emulation.
+5.  **`NarrativeBlock`**:
+    - *State:* Streaming / Static.
+    - *Func:* Final markdown response explaining the result.
+
+**State Sync:**
+- `useBlockManager`: Custom hook to manage the lifecycle of these blocks based on SSE events.
 
 ### 2. Backend Layer (Python/Flask)
 
 **Controllers (Blueprints):**
-- **`ConfigController`**: Splitted into `/system` and `/ai` endpoints.
-- **`ChatController`**: Bridge to AgentCore for message processing.
-- **`SystemController`**: OS-level operations (Clipboard, Browser).
+- **`ChatController`**: Manages the SSE Stream and Command Execution.
+- **`ConfigController`**: `/system` and `/ai` configuration endpoints.
 
-**Services (OOP):**
-- **`AIConfigService`**: Manages `ai-config.json` via simplified I/O.
-- **`SystemConfigService`**: Manages `system-config.json` via simplified I/O.
-- **`AgentCore`**: The "Brain" class. Maintains conversation context and orchestrates the Iteration Loop (Think -> Tool -> Observe).
+**Core (OOP):**
+- **`AgentCore.py`**: The central brain.
+- **`Orchestrator.py`**: Manages the `Think -> Act -> Observe` loop. Implements Safety Triggers (Max Iterations).
+- **`ProviderFactory.py`**: Strategy Pattern for AI Providers.
+- **`HexStrikeClient.py`**: Proxy to the local HexStrike Security Server.
 
 ### 3. Data Persistence / Persistência de Dados
 
-All user data is stored in `~/.hexagent-gui` (Linux Standard Base compliance):
+All user data is stored in `~/.hexagent-gui`:
 - `ai-config.json`: Private keys and model selection.
 - `system-config.json`: Theme, UI preferences.
 - `sessions/`: JSON dumps of chat histories.
 
 ---
 
-## 🛠️ Technology Stack / Pilha Tecnológica
+## 🔄 Execution Flow (Cyberpunk Inference) / Fluxo de Execução
 
-### Frontend
-| Technology | Purpose | Propósito |
-|-----------|---------|-----------|
-| **React 18.3** | UI framework | Framework de UI |
-| **Vite 5.3** | Build tool | Ferramenta de build |
-| **TailwindCSS 3.4** | Styling | Estilização |
-| **Electron 31.0** | Desktop app | Aplicativo desktop |
-
-### Backend
-| Technology | Purpose | Propósito |
-|-----------|---------|-----------|
-| **Python 3.13** | Runtime | Runtime |
-| **Flask 3.1** | Web framework | Framework web |
-| **Requests** | HTTP Client | Cliente HTTP |
-| **Subprocess** | Command execution | Execução de comandos |
+1.  **User Input**: Typed in `InputBlock`.
+2.  **Dispatch**: Sent to `POST /chat`.
+3.  **Reasoning**: `Orchestrator` yields "Thinking" events (visible in `ThinkingBlock`).
+4.  **Proposal**: AI proposes a command (visible as "Proposal" in `ShellBlock`).
+5.  **Execution**: If Auto-Run is ON, `HexStrikeClient` executes command.
+6.  **Observation**: Output is streamed back (visible in `ShellBlock`).
+7.  **Synthesis**: AI analyzes result and provides `NarrativeBlock`.
 
 ---
 
-## 🔄 Lifecycle Management / Gerenciamento de Ciclo de Vida
-
-1.  **Startup (`start.sh`)**:
-    *   Launches `hexstrike-ai` (Port 8888).
-    *   Launches `server.py` (Port 5000).
-    *   Launches Electron.
-
-2.  **Initialization (`useBackendInit`)**:
-    *   Connects to Backend.
-    *   Loads Configuration.
-    *   Initializes AgentCore (Hot-Reloadable).
-
-3.  **Shutdown**:
-    *   Electron close triggers `shutdown` endpoint.
-    *   Backend kills child processes (Watchdog).
-
----
-
-**Last Updated:** 2026-01-21
-**Version:** 2.0.0 (AgentCore Integration)
+**Last Updated:** 2026-01-26
+**Version:** 2.1.0 (Inference Blocks Plan)
 **Maintainer:** Roberto Dantas de Castro

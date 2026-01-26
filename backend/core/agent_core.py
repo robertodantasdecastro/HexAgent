@@ -183,7 +183,8 @@ class AgentCore:
         chat_context: Optional[List[Dict[str, str]]] = None,
         auto_execute: bool = False,
         max_iterations: int = 10,
-        stream: bool = True
+        stream: bool = True,
+        abort_signal: Optional[Any] = None
     ) -> Generator[Dict[str, Any], None, None]:
         """
         Process user message using AgentOrchestrator
@@ -201,7 +202,8 @@ class AgentCore:
             user_input=user_input,
             chat_context=chat_context,
             auto_execute=auto_execute,
-            max_iterations=max_iterations
+            max_iterations=max_iterations,
+            abort_signal=abort_signal
         )
 
     def complete_code(

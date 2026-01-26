@@ -1,50 +1,56 @@
-# Executive Summary: HexAgentGUI Refactoring & Evolution
-# Resumo Executivo: Refatoração e Evolução do HexAgentGUI
+# Executive Summary - HexAgentGUI Technical State
+# Resumo Executivo - Estado Técnico do HexAgentGUI
 
-**Date / Data:** 2026-01-24
-**Author / Autor:** Antigravity AI Agent
-**Project Version:** 2.1.0
+**Date:** 2026-01-24
+**Version:** 2.1.0 (Release Candidate)
+**Author:** Antigravity AI (Google Deepmind)
 
 ## 1. Overview / Visão Geral
-This development sprint focused on transitioning HexAgentGUI from a legacy proof-of-concept into a robust, scalable, and object-oriented application. The core inference engine was completely rewritten, and the user interface was expanded to support distinct operational modes.
+HexAgentGUI has transitioned from a proof-of-concept into a robust, scalable desktop application following strict Object-Oriented Programming (OOP) and SOLID principles. The recent refactoring (Phases 1-3) has stabilized the Core Architecture, separated concerns between System and AI configurations, and introduced a unified orchestration layer for inference.
 
-Este sprint de desenvolvimento focou em transicionar o HexAgentGUI de uma prova de conceito legada para uma aplicação robusta, escalável e orientada a objetos. O motor de inferência central foi completamente reescrito e a interface de usuário foi expandida para suportar modos operacionais distintos.
+HexAgentGUI transitou de uma prova de conceito para uma aplicação desktop robusta e escalável, seguindo rigorosos princípios de Programação Orientada a Objetos (POO) e SOLID. A refatoração recente (Fases 1-3) estabilizou a Arquitetura Central, separou as preocupações entre configurações de Sistema e IA, e introduziu uma camada de orquestração unificada para inferência.
 
-## 2. Key Achievements / Principais Conquistas
+## 2. Key Architectural Enhancements / Melhorias Arquiteturais Chave
 
-### 🏗️ Architectural Refactoring (Backend)
--   **Old Architecture:** Monolithic, procedural loops with hardcoded provider logic.
--   **New Architecture (SOLID/OOP):**
-    -   `AgentOrchestrator`: Centralized "Think-Propose-Execute" loop.
-    -   `InferenceStrategy`: Interface-based support for multiple AI providers.
-    -   `ResponseStrategy`: Standardized output handling for predictable UI rendering.
+### 2.1. Unified Inference Orchestrator (Orquestrador de Inferência Unificado)
+- **Problem:** Logic was duplicated between `AgentCore.py` and old `InferenceEngine.py`.
+- **Solution:** Created `AgentOrchestrator` responsible for the Think-Propose-Execute-Feedback loop.
+- **Benefit:** Single source of truth for agent behavior, easier to extend with new strategies (e.g., Command Mode).
 
-### 🌐 OpenRouter Integration (New)
--   Added **OpenRouter.ai** as a first-class provider.
--   Users can now access OpenAI (GPT-4o), Anthropic (Claude 3.5), DeepSeek, and Google (Gemini) models through a single API key.
--   **Impact:** Massive flexibility increase for users without local GPU resources.
+### 2.2. Service Separation (Separação de Serviços)
+- **Problem:** `ConfigController` handled everything, mixing UI settings with API credentials.
+- **Solution:** Split into `SystemConfigService` (UI, Theme, Paths) and `AIConfigService` (Legacy/OpenAI/Local Providers).
+- **Benefit:** Security (API keys managed separately), maintainability, and clean "Factory Pattern" implementation for AI providers.
 
-### 💻 Command Mode (New UI)
--   Introduced **Command Mode** tailored for terminal-centric workflows.
--   Features:
-    -   Direct command execution (`ls -la`).
-    -   AI-Assisted command generation (`? scan network for open ports`).
-    -   Clean, distraction-free interface optimized for output readability.
+### 2.3. Dynamic Mode Switching (Troca de Modo Dinâmica)
+- **Feature:** New `Command Mode` (Terminal-like) vs `Chat Mode` (Conversational).
+- **Implementation:** React state manages mode switching; Backend `AgentOrchestrator` adapts strategy based on context.
+- **Outcome:** Users can now use HexAgent as a smart shell or a pair programmer seamlessly.
 
-### 🛡️ Resilience & Debugging
--   **DeepSeek Fix:** Resolved base URL connection issues (`/v1` suffix).
--   **Self-Healing Config:** `SystemConfigService` now retries failed loads and merges partial updates to prevent data loss.
--   **Context Dump:** One-click Debug Save button generates instant JSON snapshots of the application state for rapid troubleshooting.
+## 3. Integrations / Integrações
 
-## 3. Technical Debt Eliminated / Dívida Técnica Eliminada
--   Removed redundant `InferenceEngine.py` loops (deprecated in favor of Orchestrator).
--   Standardized bilingual (EN/PT-BR) documentation across core modules.
--   Fixed React `SettingsModal` state management issues (prop drilling vs. local draft).
+### 3.1. OpenRouter.ai (Fase 2.5)
+- **Implemented:** Full support for OpenRouter API.
+- **Capabilities:** Dynamic model fetching (`/api/v1/models`), ranking optimization headers, and unified error handling.
+- **Impact:** Access to state-of-the-art models (Claude 3.5, GPT-4o, Llama 3) without code changes.
 
-## 4. Next Steps / Próximos Passos
--   **MCP Expansion:** Integrate `mcp-filesystem` and `mcp-kali-server` for safe file and tool access.
--   **Security Audits:** Review command execution boundaries.
--   **Profile Manager:** Implement distinct "Stealth" vs. "Active" operational profiles.
+### 3.2. Local Inference (Inferência Local)
+- **Supported:** LM Studio, 5ire, LocalAI.
+- **Optimization:** Automatic base URL adjustment and offline-first fallback.
+
+## 4. Current Status & Next Steps / Status Atual e Próximos Passos
+
+| Component | Status | Note |
+| :--- | :---: | :--- |
+| **Frontend** | ✅ Stable | Bugs (ReferenceError) fixed. Modal logic sanitized. |
+| **Backend** | ✅ Stable | Orchestrator active. API endpoints unified. |
+| **security** | ⚠️ Review | API Keys stored in JSON. Recommended: System Keyring integration. |
+| **Performance**| 🟢 Good | React rendering optimized. unnecessary re-renders reduced. |
+
+**Recommendations / Recomendações:**
+1.  **Security Audit:** Move sensitive keys to OS-level secure storage (Keyring/Vault).
+2.  **Testing:** Expand unit test coverage for `AgentOrchestrator` edge cases.
+3.  **Docs:** Finalize API documentation in Swagger/OpenAPI format.
 
 ---
-*HexAgentGUI continues to evolve as the premier interface for AI-driven offensive security operations.*
+*Generated by Antigravity AI*

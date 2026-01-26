@@ -2,29 +2,35 @@
  * useChatManager - Custom Hook for Chat State Management
  * Hook Customizado para Gerenciamento de Estado do Chat
  * 
+ * Updated for Inference Blocks Architecture (v2.1)
+ * Atualizado para Arquitetura de Blocos de Inferência (v2.1)
+ * 
  * Encapsulates:
- * - Block/Message state / Estado de Blocos/Mensagens
- * - ChatService subscriptions / Assinaturas do ChatService
- * - Message sending & Commands / Envio de mensagens e Comandos
- * - Loading & Error states / Estados de Carregamento e Erro
+ * - Block Manager State Machine
+ * - ChatService subscriptions
+ * - Message sending & Commands
+ * - Abort Logic
  * 
  * @author Roberto Dantas de Castro
  */
 
-import { useCallback, useEffect, useState, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import ChatService from '../services/ChatService';
 import Logger from '../utils/Logger';
+import useBlockManager, { BlockType } from './useBlockManager';
 
 const useChatManager = (api, aiConfig) => {
-  const [blocks, setBlocks] = useState([]);
   const [isLoading, setLoading] = useState(false);
   const [inputMode, setInputMode] = useState('prompt'); // 'prompt' | 'command'
-  const [autoScroll, setAutoScroll] = useState(true);
   const [showIterationLimitReached, setShowIterationLimitReached] = useState(false);
   
   // Services
   const chatService = ChatService.getInstance();
   const logger = Logger.getInstance();
+  
+  // New Block Manager State Machine
+  const blockManager = useBlockManager();
+  const { blocks, addBlock, updateActiveBlock, completeActiveBlock, handleEvent, clearBlocks } = blockManager;
 
   /**
    * Send a new message
@@ -36,18 +42,23 @@ const useChatManager = (api, aiConfig) => {
     setLoading(true);
     setShowIterationLimitReached(false);
 
-    // Add User Block
-    setBlocks(prev => [...prev, {
-      id: Date.now(),
-      type: 'user',
-      content: text,
-      timestamp: new Date().toLocaleTimeString()
-    }]);
+    // 1. Create Input Block (Frozen State)
+    addBlock(BlockType.INPUT, { 
+        content: text, 
+        status: 'frozen', // Display as frozen input
+        timestamp: Date.now() 
+    });
+    
+    // Manually set content since addBlock initializes empty
+    updateActiveBlock(text, false); 
+    completeActiveBlock(); // Mark input as done so next events start new blocks
 
     try {
-      const context = blocks.map(b => ({
-        role: b.type === 'user' ? 'user' : 'assistant',
-        content: b.content
+      const context = blocks
+        .filter(b => b.type === BlockType.INPUT || b.type === BlockType.NARRATIVE)
+        .map(b => ({
+            role: b.type === BlockType.INPUT ? 'user' : 'assistant',
+            content: b.content
       }));
 
       await chatService.sendMessage(text, context, {
@@ -57,62 +68,57 @@ const useChatManager = (api, aiConfig) => {
       });
       
     } catch (error) {
-       // Handled by onError listener
        logger.error('Failed to send message', error);
+       addBlock(BlockType.ERROR, { error: error.message });
+       updateActiveBlock(error.message);
+       completeActiveBlock();
+       setLoading(false);
     }
-  }, [blocks, isLoading, chatService, logger]);
+  }, [blocks, isLoading, chatService, logger, addBlock, updateActiveBlock, completeActiveBlock]);
 
   /**
    * Execute a command manually
    * Executar um comando manualmente
    */
   const manualExecute = useCallback(async (cmd) => {
-    // Mark proposal as executed if it exists
-    setBlocks(prev => prev.map(b => 
-      b.type === 'proposal' && b.content === cmd 
-        ? { ...b, executed: true } 
-        : b
-    ));
-
+    // Note: In new architecture, manual execute usually triggers a ShellBlock
+    addBlock(BlockType.SHELL, { command: cmd });
+    
     try {
       const res = await api.post('/execute', { command: cmd });
       
-      setBlocks(prev => [...prev, {
-        id: Date.now(),
-        type: 'SHELL',
-        content: res.output,
-        timestamp: new Date().toLocaleTimeString(),
-        result: {
-            success: res.success,
-            exit_code: res.exit_code
-        }
-      }]);
+      updateActiveBlock(res.output || "");
+      completeActiveBlock({ 
+          exit_code: res.exit_code, 
+          success: res.success 
+      });
 
     } catch (e) {
-      setBlocks(prev => [...prev, {
-        id: Date.now(),
-        type: 'SHELL',
-        content: `Execution failed: ${e.message}`,
-        timestamp: new Date().toLocaleTimeString()
-      }]);
+      updateActiveBlock(`Execution failed: ${e.message}`);
+      completeActiveBlock({ exit_code: 1, success: false });
     }
-  }, [api]);
+  }, [api, addBlock, updateActiveBlock, completeActiveBlock]);
 
   /**
    * Stop generation
    * Parar geração
    */
-  const stopGeneration = useCallback(() => {
+  const stopGeneration = useCallback(async () => {
+    // 1. Send Abort to Backend
+    try {
+        await api.post('/chat/abort', {});
+    } catch (e) {
+        logger.error("Failed to send abort signal", e);
+    }
+
+    // 2. Abort Frontend Service
     chatService.abortCurrentRequest();
     setLoading(false);
     
-    setBlocks(prev => [...prev, {
-      id: Date.now(),
-      type: 'agent',
-      content: '⚠️ Generation stopped by user. / Geração interrompida pelo usuário.',
-      timestamp: new Date().toLocaleTimeString()
-    }]);
-  }, [chatService]);
+    // 3. Update UI
+    handleEvent({ type: 'abort' });
+    
+  }, [chatService, api, handleEvent, logger]);
 
   // Track mount status / Rastrear status de montagem
   const isMounted = useRef(true);
@@ -127,99 +133,31 @@ const useChatManager = (api, aiConfig) => {
   // ========================================================================
   
   useEffect(() => {
-    logger.info('Setting up ChatService event handlers in useChatManager');
+    logger.info('Setting up ChatService event handlers in useChatManager (Block Arch)');
 
+    // Map ChatService events to BlockManager events
     const unsubMessage = chatService.onMessage((chunk) => {
       if (!isMounted.current) return;
       
-      const { type, content, metadata } = chunk;
-
-      switch (type) {
-        case 'text':
-          setBlocks(prev => {
-            const lastBlock = prev[prev.length - 1];
-            
-            if (lastBlock && lastBlock.type === 'agent' && !lastBlock.completed) {
-              return prev.map((block, idx) => 
-                idx === prev.length - 1
-                  ? { ...block, content: block.content + content }
-                  : block
-              );
-            } else {
-              return [...prev, {
-                id: Date.now(),
-                type: 'agent',
-                content,
-                timestamp: new Date().toLocaleTimeString(),
-                completed: false
-              }];
-            }
-          });
-          break;
-
-        case 'command_proposal':
-          setBlocks(prev => {
-            const lastBlock = prev[prev.length - 1];
-            if (lastBlock && lastBlock.type === 'proposal' && lastBlock.content === content) {
-              return prev;
-            }
-             return [...prev, {
-              id: Date.now(),
-              type: 'proposal',
-              content,
-              timestamp: new Date().toLocaleTimeString(),
-              executed: false
-            }];
-          });
-          break;
-
-        case 'command_result':
-           setBlocks(prev => [...prev, {
-              id: Date.now(),
-              type: 'SHELL',
-              content: content || '',
-              timestamp: new Date().toLocaleTimeString(),
-              result: metadata
-            }]);
-          break;
-      }
+      // Pass directly to BlockManager State Machine
+      handleEvent(chunk);
     });
 
     const unsubError = chatService.onError((error) => {
       if (!isMounted.current) return;
-      logger.error('Chat error received', { error });
-      setBlocks(prev => [...prev, {
-        id: Date.now(),
-        type: 'agent',
-        content: `❌ Error: ${error.message} / Erro: ${error.message}`,
-        timestamp: new Date().toLocaleTimeString()
-      }]);
+      handleEvent({ type: 'error', content: error.message });
       setLoading(false);
     });
 
     const unsubComplete = chatService.onComplete((metadata) => {
       if (!isMounted.current) return;
-      logger.info('Chat complete received', { metadata });
       setLoading(false);
-      setBlocks(prev => {
-        const lastBlock = prev[prev.length - 1];
-        if (lastBlock && lastBlock.type === 'agent') {
-          return prev.map((block, idx) => 
-            idx === prev.length - 1
-              ? { ...block, completed: true }
-              : block
-          );
-        }
-        return prev;
-      });
+      // Ensure last block is closed
+      completeActiveBlock(metadata);
 
       if (metadata && metadata.stopped_early && metadata.iterations >= metadata.max_iterations) {
          setShowIterationLimitReached(true);
-         setBlocks(prev => [...prev, {
-            id: Date.now(),
-            type: 'limit_prompt',
-            timestamp: new Date().toLocaleTimeString()
-         }]);
+         // Optional: Add a limit warning block if needed
       }
     });
 
@@ -228,16 +166,14 @@ const useChatManager = (api, aiConfig) => {
       unsubError();
       unsubComplete();
     };
-  }, [chatService, logger]);
+  }, [chatService, logger, handleEvent, completeActiveBlock]);
 
   return {
     blocks,
-    setBlocks,
+    setBlocks: () => logger.warn("setBlocks is deprecated in Block Architecture"), // Read-only mostly
     isLoading,
     inputMode,
     setInputMode,
-    autoScroll,
-    setAutoScroll,
     showIterationLimitReached,
     sendMessage,
     manualExecute,

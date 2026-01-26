@@ -3,6 +3,7 @@
         "theme": "dark",
         "language": "auto",
         "auto_save_session": true,
+        "allow_infinite_mode": false,
         "debug_mode": false
     },
     "services": {

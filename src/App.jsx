@@ -82,6 +82,9 @@ const App = () => {
   const maxIterations = aiConfig?.ai?.max_iterations || 10;
   const unlimitedIterations = aiConfig?.ai?.unlimited_iterations || false;
   const [autoExecute, setAutoExecute] = useState(false);
+  
+  // UI Preferences
+  const [autoScroll, setAutoScroll] = useState(true);
 
   // Sync language
   useEffect(() => {
@@ -221,6 +224,17 @@ const App = () => {
 
         {/* Action Buttons - No Drag */}
         <div className="flex items-center gap-2" style={{ WebkitAppRegion: 'no-drag' }}>
+          {activeManager.isLoading && (
+            <button
+              onClick={activeManager.stopGeneration}
+              className="px-3 py-1.5 bg-red-900/50 hover:bg-red-800 text-red-200 border border-red-500/50 rounded flex items-center gap-2 animate-pulse transition-all shadow-[0_0_10px_rgba(239,68,68,0.3)]"
+              title={t('common.stop') || 'EMERGENCY STOP'}
+            >
+               <div className="w-2 h-2 bg-red-500 rounded-full animate-ping" />
+               <span className="text-xs font-bold tracking-wider">STOP</span>
+            </button>
+          )}
+
           {systemConfig?.system?.debug_mode && (
             <button
               onClick={() => {
@@ -351,6 +365,7 @@ const App = () => {
                 t={t}
                 aiConfig={aiConfig}
                 mode={appMode} // Pass mode to Block to render differently if needed
+                onAbort={activeManager.stopGeneration}
               />
             ))
           )}

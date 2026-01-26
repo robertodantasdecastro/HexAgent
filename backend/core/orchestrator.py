@@ -48,6 +48,7 @@ class AgentOrchestrator:
         chat_context: Optional[List[Dict[str, str]]] = None,
         auto_execute: bool = False,
         max_iterations: int = 10
+        abort_signal: Optional[Any] = None
     ) -> Generator[Dict[str, Any], None, None]:
         """
         Process the user input through the autonomous loop.
@@ -57,8 +58,17 @@ class AgentOrchestrator:
         current_context = user_input
         
         while iteration < max_iterations:
+            # SAFETY CHECK 1: Abort Signal
+            if abort_signal and abort_signal.is_set():
+                logger.warning("Orchestrator: Abort signal received. Terminating loop.")
+                yield {"type": "abort", "content": "Process aborted by user", "metadata": {}}
+                break
+
             iteration += 1
             logger.info(f"Orchestrator: Starting iteration {iteration}/{max_iterations}")
+
+            # Notify: Thinking Block Start
+            yield {"type": "block_start", "block": "thinking", "metadata": {"iteration": iteration}}
 
             # 1. AI Thinking / Pensamento da IA
             full_response = ""
@@ -67,12 +77,24 @@ class AgentOrchestrator:
                 iter_context = chat_context if iteration == 1 else None
                 
                 for chunk in self.provider.chat_step(prompt=current_context, chat_context=iter_context):
+                    # SAFETY CHECK 2: Abort during stream
+                    if abort_signal and abort_signal.is_set():
+                         logger.warning("Orchestrator: Aborted / Thinking.")
+                         break
+
                     full_response += chunk
                     yield ResponseFactory.create_text(chunk, iteration, max_iterations)
             
             except Exception as e:
                 logger.error(f"AI Error: {e}")
                 yield ResponseFactory.create_error(f"AI Error: {str(e)}")
+                yield {"type": "block_end", "block": "thinking", "metadata": {"status": "error"}}
+                break
+            
+            # Notify: Thinking Block End
+            yield {"type": "block_end", "block": "thinking", "metadata": {}}
+
+            if abort_signal and abort_signal.is_set():
                 break
 
             # 2. Extract Commands / Extrair Comandos
@@ -80,29 +102,40 @@ class AgentOrchestrator:
             
             if not commands:
                 logger.info("Orchestrator: No commands found. Task likely complete.")
+                # Notify: Narrative Block
+                yield {"type": "block_start", "block": "narrative", "metadata": {}}
+                yield {"type": "text", "content": full_response} # Or specialized narrative type
+                yield {"type": "block_end", "block": "narrative", "metadata": {}}
                 break
 
             # 3. Process Commands / Processar Comandos
             any_executed = False
             
             for cmd_idx, cmd in enumerate(commands, 1):
+                if abort_signal and abort_signal.is_set(): break
+
                 # Tool Call Check
                 if cmd.startswith("MCP_TOOL_CALL|"):
                     yield from self._handle_tool_call(cmd, auto_execute)
-                    any_executed = True # Tool calls are "executed" or "attempted"
+                    any_executed = True 
                     continue
 
-                # Bash Command
+                # Bash Command - Notify Shell Block Start if Executing
                 meta = {
                     "iteration": iteration,
                     "command_index": cmd_idx,
                     "total_commands": len(commands),
                     "auto_execute": auto_execute
                 }
+                
                 yield ResponseFactory.create_proposal(cmd, meta)
 
                 if auto_execute and self.executor.is_available():
                     logger.info(f"Orchestrator: Auto-executing {cmd}")
+                    
+                    # Notify: Shell Block Start
+                    yield {"type": "block_start", "block": "shell", "metadata": {"command": cmd}}
+                    
                     try:
                         result = self.executor.execute_command(cmd)
                         yield ResponseFactory.create_result(
@@ -121,6 +154,9 @@ class AgentOrchestrator:
                     except Exception as e:
                         logger.error(f"Execution Error: {e}")
                         yield ResponseFactory.create_error(f"Execution Error: {str(e)}")
+                    
+                    # Notify: Shell Block End
+                    yield {"type": "block_end", "block": "shell", "metadata": {"exit_code": result.get("exit_code", 1) if 'result' in locals() else 1}}
                 
             # 4. Loop Control / Controle do Loop
             if not auto_execute:

@@ -51,6 +51,28 @@ class ChatController(BaseController):
         # Chat - Endpoint principal de chat com IA e integração AgentCore
         # ============================================================================
         
+        
+        @self.blueprint.route('/chat/abort', methods=['POST'])
+        def abort_chat():
+            """
+            Abort current AI generation
+            Abortar geração de IA atual
+            """
+            try:
+                self.log_request('POST /chat/abort')
+                
+                # Signal abort
+                if hasattr(self, 'abort_event'):
+                    self.abort_event.set()
+                    self.logger.warning("Abort signal sent to Orchestrator")
+                    return self.success_response(message="Abort signal sent")
+                
+                return self.error_response("No active abort controller", 400)
+                
+            except Exception as e:
+                self.log_error('POST /chat/abort', e)
+                return self.error_response(f"Abort failed: {str(e)}", 500)
+
         @self.blueprint.route('/chat', methods=['POST'])
         def process_chat():
             """
@@ -71,14 +93,7 @@ class ChatController(BaseController):
             }
             
             Response (SSE stream) / Resposta (stream SSE):
-                data: {"type": "text", "content": str, "metadata": {...}}
-                data: {"type": "command_proposal", "content": str, "metadata": {...}}
-                data: {"type": "command_result", "content": str, "metadata": {...}}
-                data: {"type": "complete", "content": "", "metadata": {...}}
-            
-            Returns:
-                SSE stream with AI responses and command execution results
-                Stream SSE com respostas da IA e resultados de execução de comandos
+            ...
             """
             try:
                 self.log_request('POST /chat')
@@ -94,6 +109,12 @@ class ChatController(BaseController):
                 auto_execute = options.get('auto_execute', False)
                 max_iterations = options.get('max_iterations', 10)
                 
+                # Reset Abort Event
+                if not hasattr(self, 'abort_event'):
+                    import threading
+                    self.abort_event = threading.Event()
+                self.abort_event.clear()
+                
                 # Validate input / Valida entrada
                 if not prompt:
                     return self.error_response("Prompt cannot be empty / Prompt não pode estar vazio", 400)
@@ -102,27 +123,25 @@ class ChatController(BaseController):
                 if self.core_ref:
                     self.logger.info(f"Processing with AgentCore (auto_exec={auto_execute}, max_iter={max_iterations})")
                     
-                    # Add context to AI brain passed via args now
-                    # Adiciona contexto ao cérebro IA via argumentos agora
-                    # Note: We rely on AgentCore to handle context passing to provider
-                    
                     # Define SSE generator function
-                    # Define função geradora SSE
                     def generate_sse():
                         """
                         Generate Server-Sent Events stream from AgentCore
                         Gera stream Server-Sent Events do AgentCore
                         """
                         try:
+                            # Pass user config "Allow Infinite" if needed to override max_iterations
+                            # Passar config "Permitir Infinito" se necessário para substituir max_iterations
+                            
                             for chunk in self.core_ref.process_message(
                                 user_input=prompt,
                                 chat_context=context,
                                 auto_execute=auto_execute,
                                 max_iterations=max_iterations,
-                                stream=stream_enabled
+                                stream=stream_enabled,
+                                abort_signal=self.abort_event  # NEW: Pass abort signal
                             ):
                                 # Yield SSE formatted data
-                                # Retorna dados formatados SSE
                                 yield f"data: {json.dumps(chunk)}\n\n"
                                 
                         except Exception as e:
@@ -136,7 +155,6 @@ class ChatController(BaseController):
                     
                     if stream_enabled:
                         # Return SSE stream response
-                        # Retorna resposta de stream SSE
                         return Response(
                             generate_sse(),
                             mimetype='text/event-stream',
@@ -147,29 +165,22 @@ class ChatController(BaseController):
                             }
                         )
                     else:
-                        # Collect all chunks and return JSON
-                        # Coletar todos os chunks e retornar JSON
+                        # Collect all chunks and return JSON (Synchronous mode)
                         full_content = ""
                         final_metadata = {}
                         
                         try:
-                            # Iterate generator to consume all chunks
-                            # Iterar gerador para consumir todos os chunks
                             for chunk in self.core_ref.process_message(
                                 user_input=prompt,
                                 chat_context=context,
                                 auto_execute=auto_execute,
                                 max_iterations=max_iterations,
-                                stream=False
+                                stream=False,
+                                abort_signal=self.abort_event
                             ):
                                 if chunk.get("type") == "text":
                                     full_content += chunk.get("content", "")
                                     final_metadata = chunk.get("metadata", {})
-                                elif chunk.get("type") == "command_proposal":
-                                     # For now, append proposals to content or handle appropriately
-                                     pass
-                                elif chunk.get("type") == "command_result":
-                                     pass
                             
                             return self.success_response(
                                 data={
@@ -182,7 +193,9 @@ class ChatController(BaseController):
                             return self.error_response(f"Processing error: {str(e)}", 500)
                 
                 else:
-                    # Fallback: Simple OpenRouter mode without AgentCore
+                    # Fallback removed for brevity in this update - kept original logic if needed but focusing on AgentCore
+                    # Fallback logic is preserved if not modified, but here replacing the whole block
+                     # Fallback: Simple OpenRouter mode without AgentCore
                     # Fallback: Modo OpenRouter simples sem AgentCore
                     self.logger.warning("AgentCore not available, using simple fallback mode")
                     

@@ -24,7 +24,8 @@ DEFAULT_SYSTEM_CONFIG = {
         "theme": "dark",
         "language": "auto",
         "auto_save_session": True,
-        "debug_mode": False
+        "debug_mode": False,
+        "allow_infinite_mode": False
     },
     "services": {
         "flask_port": 5000,

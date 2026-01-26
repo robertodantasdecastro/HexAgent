@@ -1,121 +1,56 @@
-# HexAgentGUI - Strategic Development Roadmap / Roteiro Estratégico de Desenvolvimento
+# HexAgentGUI Roadmap 2026-2027
+> **Strategic Vision:** The Cyberpunk-style Autonomous Security Agent
+> **Visão Estratégica:** O Agente de Segurança Autônomo estilo Cyberpunk
 
-> **Last Updated / Última Atualização:** 2026-01-23
-> **Project Identity:** HexStrike-AI Interface
-> **Status:** Refactoring & Evolution / Refatoração e Evolução
+## 📅 Q1 2026: Consolidation & Architecture (Current Phase)
+**Focus:** Stability, OOP Refactoring, and Core Integration.
+**Foco:** Estabilidade, Refatoração POO e Integração do Core.
 
----
+- [x] **Backend Modularization:** Split monolithic `app.py` into Blueprints/Controllers.
+- [x] **AgentCore Implementation:** Create central "Brain" orchestrator.
+- [x] **Configuration persistence:** Implement `~/.hexagent-gui` JSON storage.
+- [x] **AI Engine Diversity:** Support OpenRouter, LM Studio, Ollama.
+- [ ] **Variable Mapping Audit:** Final verification of new Block State variables (`isThinking`, `blockState`) vs Backend SSE events.
+- [ ] **Inference Blocks Refactor:** 
+    - [ ] Create `InputBlock` with abort/edit logic.
+    - [ ] Create `ThinkingBlock` with CoT toggles.
+    - [ ] Create `ShellBlock` with xterm.js.
+    - [ ] Implement `useBlockManager` hook for state machine.
+- [ ] **Safety Trigger:** Implement "Abort" and "Infinite Mode" authorization.
 
-## 🎯 Executive Vision / Visão Executiva
+## 📅 Q2 2026: Advanced Capability & HexStrike Deep-Link
+**Focus:** Tool Orchestration, Automation, and UI Polish.
+**Foco:** Orquestração de Ferramentas, Automação e Polimento da UI.
 
-**HexAgentGUI** is the official cross-platform interface for the **HexStrike-AI** ecosystem. It bridges local LLM intelligence with offensive security tools (Kali Linux), operating on a strict OOP architecture with bilingual documentation.
+- [ ] **HexStrike Shell:** Embed real ZSH terminal via MCP/WebSockets using `xterm.js`.
+- [ ] **MCP Registry:** Expand `MCPManager` to dynamically load external MCP servers (Kali tools).
+- [ ] **Workflows Templates:** Pre-defined mission profiles (Pentest, OSINT, Reversing).
+- [ ] **Cyberpunk UI 2.0:** Glassmorphism, Neon accents, smooth framer-motion animations.
+- [ ] **Bilingual Implementation:** 100% Code comment coverage (En/Pt-BR).
 
-**HexAgentGUI** é a interface oficial multiplataforma para o ecossistema **HexStrike-AI**. Ela conecta inteligência LLM local com ferramentas de segurança ofensiva (Kali Linux), operando sobre uma arquitetura POO estrita com documentação bilíngue.
+## 📅 Q3 2026: Autonomous Operations
+**Focus:** Long-running tasks and specialized agents.
+**Foco:** Tarefas de longa duração e agentes especializados.
 
----
-
-## 📅 MILESTONE 1: Stability & Foundation (Refactor)
-**Focus:** Code Hygiene, OOP, Rebranding
-**Foco:** Higiene de Código, POO, Rebranding
-
-### 1.1 "HexSecGPT" Extinction / Extinção do "HexSecGPT"
-*   **Objective:** Remove all legacy references to "HexSecGPT". Rename to **HexStrike-AI**.
-*   **Actions:**
-    *   Refactor `backend/core/hex_brain.py` and references.
-    *   Update `locales/*.json` (UI Text).
-    *   Update all docstrings and comments.
-
-### 1.2 OOP Enforcement / Aplicação de POO
-*   **Objective:** Convert procedural scripts in `src/` to Class-based Services.
-*   **Actions:**
-    *   Refactor `install.sh` logic (where applicable) or ensure robust setup classes in Python/JS.
-    *   Ensure `ChatService.js`, `ConfigService.js` follow Singleton/Factory patterns.
-
-### 1.3 Variable Synchronization / Sincronização de Variáveis
-*   **Objective:** Map all GUI states to persistent config.
-*   **Actions:**
-    *   Audit `~/.hexagent-gui/` persistence.
-    *   Ensure `system-config.json` and `ai-config.json` are fully synced with UI switches.
-
----
-
-## 📅 MILESTONE 2: MCP Ecosystem Integration
-**Focus:** Extensibility & Tooling
-**Foco:** Extensibilidade e Ferramentas
-
-### 2.1 File System Authority (`mcp-filesystem`)
-*   **Objective:** Safe access to local files for analysis.
-*   **Actions:**
-    *   Integrate `mcp-filesystem` server.
-    *   Implement "File Explorer" tab in GUI.
-    *   Security scoping (Sandboxing).
-
-### 2.2 Kali Linux Bridge (`mcp-kali-server`)
-*   **Objective:** Expose Kali tools as MCP resources.
-*   **Actions:**
-    *   Develop `mcp-kali-server` (Python/FastAPI).
-    *   Wrap `nmap`, `gobuster`, `metasploit` (RPC).
-    *   Standardize JSON outputs for LLM parsing.
+- [ ] **Shadow Mode:** Agent runs in background, monitoring logs/traffic.
+- [ ] **Collaboration Mode:** Multi-agent swarms (Scout + Exploiter + Analyst).
+- [ ] **Report Generation:** PDF/Markdown reports of missions.
 
 ---
 
-## 📅 MILESTONE 3: Passive Monitoring (The Watchdog)
-**Focus:** Awareness & Defense
-**Foco:** Consciência e Defesa
+# Detailed Task List (Next Sprint) / Lista de Tarefas Detalhada
 
-### 3.1 NetWatcher Service
-*   **Objective:** Background network traffic analysis.
-*   **Actions:**
-    *   Implement `NetWatcher` class (Raw Sockets).
-    *   Passive ARP monitoring.
-    *   Outbound traffic anomaly detection.
+## 1. UI Refactoring (Inference Blocks)
+- [ ] Create `src/blocks/ThinkingBlock.jsx`: Visualization of `Chain of Thought`.
+- [ ] Create `src/blocks/ShellBlock.jsx`: Syntax highlighted command execution result.
+- [ ] Create `src/blocks/NarrativeBlock.jsx`: Markdown rendering of AI explanation.
+- [ ] Update `ChatController` to stream block delimiters clearly.
 
-### 3.2 Event Bus & Alerts
-*   **Objective:** Real-time user notifications.
-*   **Actions:**
-    *   Backend `EventBus` implementation.
-    *   WebSocket push to GUI.
-    *   Configurable alert rules (e.g., "New Port Opened").
+## 2. Safety & Control
+- [ ] Backend: Add `POST /chat/abort` to `ChatController.py`.
+- [ ] Backend: Update `Orchestrator.py` to check an `abort_flag` during loops.
+- [ ] Frontend: Add "Emergency Stop" button to `HeaderBar`.
 
----
-
-## 📅 MILESTONE 4: Dynamic Personalization
-**Focus:** Adaptability
-**Foco:** Adaptabilidade
-
-### 4.1 Behavior Profiles / Perfis de Comportamento
-*   **Objective:** Context-switching for different operational modes.
-*   **Profiles:**
-    *   🕵️ **Stealth**: Passive recon only.
-    *   ⚔️ **Assault**: Active exploitation allowed.
-    *   🛡️ **Defense**: Hardening and analysis.
-
-### 4.2 Dynamic Context / Contexto Dinâmico
-*   **Objective:** Inject profile-specific rules into LLM context.
-*   **Actions:**
-    *   `ProfileManager` service.
-    *   Dynamic System Prompt injection based on active profile.
-
----
-
-## 🛠️ Technical Standards / Padrões Técnicos
-
-1.  **Language:** English (Primary) + Portuguese-BR (Secondary) in all comments/docs.
-2.  **Architecture:** Strict OOP (Classes, Interfaces).
-3.  **Persistence:** All state must survive restarts via `~/.hexagent-gui/`.
-4.  **Error Handling:** Graceful degradation (GUI must work even if Backend is offline).
-
----
-
-## 🚀 RECENT UPDATES / ATUALIZAÇÕES RECENTES (2026-01-24)
-
-### ✅ Phase 1, 2 & 3 Complete / Fases 1, 2 e 3 Concluídas
-*   **Inference Engine Rewrite:** Transitioned from spaghetti code to `AgentOrchestrator` + `InferenceStrategy` (SOLID/OOP).
-*   **Multi-Provider Architecture:** Added support for **OpenRouter.ai**, creating a unified interface for OpenAI, DeepSeek, Claude, and Local LLMs.
-*   **Mode Refactoring:** Split UI into **Chat Mode** (Conversational) and **Command Mode** (Terminal-like).
-*   **Resilience:** Implemented self-healing configuration and connection retry logic.
-*   **Debug Tools:** Added "Context Dump" feature for rapid state analysis.
-
-### 🔜 NEXT: Phase 4 (Documentation & Hardening)
-*   Standardizing all code comments to EN/PT-BR.
-*   Finalizing Executive Summary.
+## 3. HexStrike Integration
+- [ ] Verify `HexStrikeClient` timeout settings for long Nmap scans.
+- [ ] Implement "Streamed Output" for tools (real-time stdout via SSE).
