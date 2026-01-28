@@ -1,0 +1,15 @@
+{
+    "id": "native_nmap",
+    "name": "Native Nmap Scan",
+    "description": "Execute Nmap directly via HexStrike Engine",
+    "icon": "Radar",
+    "type": "native_api",
+    "endpoint": "/api/tools/nmap",
+    "method": "POST",
+    "parameters": [
+        { "name": "target", "label": "Target IP/Domain", "type": "text", "required": true, "placeholder": "127.0.0.1" },
+        { "name": "scan_type", "label": "Scan Type", "type": "select", "options": ["-sS", "-sV", "-sC", "-A"], "default": "-sV" },
+        { "name": "ports", "label": "Ports", "type": "text", "placeholder": "leave empty for top 1000" },
+        { "name": "additional_args", "label": "Extra Args", "type": "text", "default": "-T4 -Pn" }
+    ]
+}

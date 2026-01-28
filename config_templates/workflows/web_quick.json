@@ -1,0 +1,13 @@
+{
+    "id": "web_quick",
+    "name": "Web Quick Scan",
+    "description": "Checks for common web vulnerabilities (robots.txt, headers)",
+    "icon": "Globe",
+    "variables": ["target"],
+    "steps": [
+        {
+            "type": "prompt",
+            "content": "Target: {target}. Check for robots.txt, security headers using curl, and identify the technology stack (Wappalyzer style). Provide a summary of findings."
+        }
+    ]
+}

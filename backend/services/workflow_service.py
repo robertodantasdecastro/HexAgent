@@ -6,10 +6,11 @@ Orchestrates AgentCore and HexStrike to perform complex tasks like Reconnaissanc
 Orquestra AgentCore e HexStrike para realizar tarefas complexas como Reconhecimento e Varredura de Vulnerabilidades.
 """
 
+import json
+import os
 import logging
-import threading
-import time
-from typing import Dict, Any
+from pathlib import Path
+from typing import Dict, Any, List
 
 class WorkflowService:
     """
@@ -20,61 +21,116 @@ class WorkflowService:
     def __init__(self, agent_core=None):
         self.logger = logging.getLogger(__name__)
         self.core = agent_core
-        self.active_workflows = {}
+        self.workflow_dir = Path.home() / ".hexagent-gui" / "workflows"
+        self._ensure_dir()
         
-    def execute_workflow(self, workflow_type: str, target: str) -> Dict[str, Any]:
+    def _ensure_dir(self):
+        """Ensure workflow directory exists"""
+        self.workflow_dir.mkdir(parents=True, exist_ok=True)
+        
+    def list_workflows(self) -> List[Dict[str, Any]]:
         """
-        Execute a specific workflow against a target
-        Executar um fluxo de trabalho específico contra um alvo
-        
-        Args:
-            workflow_type: Type of workflow ('recon', 'vuln_scan', etc.)
-            target: Target IP or domain
-            
-        Returns:
-            Dict containing execution ID and initial status
+        List available workflow templates
+        Listar templates de fluxo de trabalho disponíveis
         """
-        self.logger.info(f"[WORKFLOW] Starting {workflow_type} against {target}")
-        
-        # In a real implementation, this would spawn a thread or task
-        # Em uma implementação real, isso iniciaria uma thread ou tarefa
-        
-        execution_id = f"{workflow_type}_{int(time.time())}"
-        
-        # Simulate execution / Simular execução
-        if workflow_type == 'recon':
-            return self._run_recon(execution_id, target)
-        elif workflow_type == 'vuln_scan':
-            return self._run_vuln_scan(execution_id, target)
-        else:
-            self.logger.warning(f"[WORKFLOW] Unknown workflow type: {workflow_type}")
-            return {
-                "success": False,
-                "message": f"Unknown workflow type: {workflow_type}",
-                "execution_id": execution_id
-            }
+        workflows = []
+        try:
+            for file_path in self.workflow_dir.glob("*.json"):
+                try:
+                    with open(file_path, 'r') as f:
+                        data = json.load(f)
+                        # Minimal validation
+                        if 'id' in data and 'name' in data:
+                            workflows.append({
+                                'id': data['id'],
+                                'name': data['name'],
+                                'description': data.get('description', ''),
+                                'icon': data.get('icon', 'Terminal'),
+                                'variables': data.get('variables', [])
+                            })
+                except Exception as e:
+                    self.logger.error(f"Error loading workflow {file_path}: {e}")
+        except Exception as e:
+            self.logger.error(f"Error listing workflows: {e}")
             
-    def _run_recon(self, execution_id: str, target: str) -> Dict[str, Any]:
-        """Run reconnaissance workflow / Executar fluxo de reconhecimento"""
-        # Placeholder logic
-        cmd = f"nmap -sV {target}"
-        self.logger.info(f"[WORKFLOW] Executing: {cmd}")
+        return sorted(workflows, key=lambda x: x['name'])
+
+    def get_workflow(self, workflow_id: str) -> Dict[str, Any]:
+        """Get full workflow definition"""
+        file_path = self.workflow_dir / f"{workflow_id}.json"
+        if not file_path.exists():
+            return None
+        with open(file_path, 'r') as f:
+            return json.load(f)
+
+    def execute_workflow(self, workflow_type: str, target: str, params: Dict[str, Any] = None) -> Dict[str, Any]:
+        """
+        Execute a workflow.
+        If 'native_api', calls HexStrike API directly.
+        If 'prompt', generates text for the Chat.
+        """
+        workflow = self.get_workflow(workflow_type)
+        if not workflow:
+            raise ValueError(f"Workflow {workflow_type} not found")
         
-        # If we had async execution, we'd fire it here. 
-        # For now, just return success acknowledgment.
+        # Check type
+        w_type = workflow.get('type', 'prompt')
+        
+        if w_type == 'native_api':
+            return self._execute_native(workflow, params or {})
+            
+        # Default Prompt logic
+        steps = workflow.get('steps', [])
+        initial_prompt = ""
+        
+        # We only look at the first prompt step to start the conversation
+        for step in steps:
+            if step.get('type') == 'prompt':
+                initial_prompt = step.get('content', '').replace('{target}', target)
+                break
         
         return {
             "success": True,
-            "message": f"Reconnaissance started against {target}",
-            "execution_id": execution_id,
-            "steps": ["Create Workspace", "Nmap Scan", "Gather Results"]
+            "message": f"Workflow {workflow['name']} initiated",
+            "initial_prompt": initial_prompt,
+            "workflow": workflow
         }
 
-    def _run_vuln_scan(self, execution_id: str, target: str) -> Dict[str, Any]:
-        """Run vulnerability scan workflow / Executar fluxo de varredura de vulnerabilidade"""
-        return {
-            "success": True,
-            "message": f"Vulnerability scan started against {target}",
-            "execution_id": execution_id,
-            "steps": ["Check Services", "Run NSE Scripts", "Analyze Risks"]
-        }
+    def _execute_native(self, workflow: Dict[str, Any], params: Dict[str, Any]) -> Dict[str, Any]:
+        """Execute a native API workflow against HexStrike"""
+        import requests
+        
+        endpoint = workflow.get('endpoint')
+        method = workflow.get('method', 'POST')
+        
+        # Build URL (HexStrike Port 8888)
+        url = f"http://127.0.0.1:8888{endpoint}"
+        
+        try:
+            self.logger.info(f"[WORKFLOW] Native Call {method} {url} with {params}")
+            
+            if method == 'POST':
+                response = requests.post(url, json=params, timeout=30)
+            elif method == 'GET':
+                 # Convert params to query string if needed, or just allow empty
+                response = requests.get(url, params=params, timeout=30)
+            else:
+                return {"success": False, "error": f"Method {method} not supported"}
+                
+            if response.status_code >= 200 and response.status_code < 300:
+                return {
+                    "success": True,
+                    "type": "native_response",
+                    "data": response.json(),
+                    "workflow": workflow
+                }
+            else:
+                return {
+                    "success": False, 
+                    "error": f"API Error {response.status_code}: {response.text}"
+                }
+                
+        except Exception as e:
+            self.logger.error(f"[WORKFLOW] Native Execution Failed: {e}")
+            return {"success": False, "error": str(e)}
+

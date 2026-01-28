@@ -1,0 +1,22 @@
+{
+    "id": "workflow_osint_domain",
+    "name": "OSINT Domain Analysis",
+    "description": "Gather intelligence on a target domain (WHOIS, DNS, Subdomains)",
+    "icon": "Globe",
+    "type": "prompt",
+    "steps": [
+        {
+            "type": "prompt",
+            "content": "Perform OSINT Analysis on domain: {target}.\n\nObjective: Gather public information to map the attack surface.\n\nSteps to Execute:\n1. WHOIS Lookup: Identify registrar and contacts.\n2. DNS Enumeration: Dig for A, MX, TXT, and NS records.\n3. subdomains: Suggest tools or methods to find subdomains.\n\nPlease start by executing a component-level analysis (WHOIS/DNS) and summarize the findings."
+        }
+    ],
+    "variables": [
+        { 
+            "name": "target", 
+            "label": "Target Domain", 
+            "type": "text", 
+            "required": true, 
+            "placeholder": "example.com" 
+        }
+    ]
+}

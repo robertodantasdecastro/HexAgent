@@ -1,0 +1,15 @@
+{
+    "id": "native_bb_recon",
+    "name": "Bug Bounty Recon",
+    "description": "Full Reconnaissance Workflow (Subdomains, Tech, Risks)",
+    "icon": "Shield",
+    "type": "native_api",
+    "endpoint": "/api/bugbounty/reconnaissance-workflow",
+    "method": "POST",
+    "parameters": [
+        { "name": "domain", "label": "Root Domain", "type": "text", "required": true, "placeholder": "example.com" },
+        { "name": "program_type", "label": "Program Type", "type": "select", "options": ["web", "mobile", "api"], "default": "web" },
+        { "name": "scope", "label": "In-Scope (Comma separated)", "type": "array", "placeholder": "*.example.com, api.example.com" },
+        { "name": "out_of_scope", "label": "Out-of-Scope (Comma separated)", "type": "array", "placeholder": "dev.example.com" }
+    ]
+}

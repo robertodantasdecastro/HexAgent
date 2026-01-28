@@ -80,18 +80,23 @@ The Chat Interface will be refactored from a simple list to a **State Machine of
 - **`ProviderFactory.py`**: Strategy Pattern for AI Providers.
 - **`HexStrikeClient.py`**: Proxy to the local HexStrike Security Server.
 
-### 3. Data Persistence / Persistência de Dados
+### 3. Workflow Layer (New)
+*   **`WorkflowService`**: Manages specialized mission templates (Pentest, OSINT, RevEng).
+*   **Templates**: JSON definitions in `~/.hexagent-gui/workflows/`.
+
+### 4. Data Persistence / Persistência de Dados
 
 All user data is stored in `~/.hexagent-gui`:
 - `ai-config.json`: Private keys and model selection.
 - `system-config.json`: Theme, UI preferences.
 - `sessions/`: JSON dumps of chat histories.
+- `workflows/`: Custom mission templates.
 
 ---
 
 ## 🔄 Execution Flow (Cyberpunk Inference) / Fluxo de Execução
 
-1.  **User Input**: Typed in `InputBlock`.
+1.  **User Input**: Typed in `InputBlock` or triggered via `WorkflowModal`.
 2.  **Dispatch**: Sent to `POST /chat`.
 3.  **Reasoning**: `Orchestrator` yields "Thinking" events (visible in `ThinkingBlock`).
 4.  **Proposal**: AI proposes a command (visible as "Proposal" in `ShellBlock`).
@@ -101,6 +106,6 @@ All user data is stored in `~/.hexagent-gui`:
 
 ---
 
-**Last Updated:** 2026-01-26
-**Version:** 2.1.0 (Inference Blocks Plan)
+**Last Updated:** 2026-01-28
+**Version:** 2.1.0 (Inference Blocks & Workflows Implemented)
 **Maintainer:** Roberto Dantas de Castro

@@ -80,6 +80,27 @@ class AIConfigService:
             with open(AI_CONFIG_FILE, 'r') as f:
                 config = json.load(f)
             
+            # AUTO-MIGRATE: Check for root-level legacy keys and merge into 'ai'
+            # AUTO-MIGRAÇÃO: Verificar chaves legadas na raiz e mesclar em 'ai'
+            changed = False
+            if 'ai' not in config:
+                config['ai'] = {}
+                changed = True
+            
+            # List of keys that might float at root level
+            legacy_keys = ['api_key', 'engine', 'model', 'host', 'port']
+            for key in legacy_keys:
+                if key in config and key not in config['ai']:
+                    config['ai'][key] = config[key]
+                    # Create a task to clean up later or just keep for safety
+                    self.logger.info(f"[AI-SERVICE] Migrated root key '{key}' to 'ai' section")
+                    changed = True
+            
+            # If we migrated, save the structure back to normalize the file
+            if changed:
+                 self.logger.info("[AI-SERVICE] Auto-correcting legacy config structure...")
+                 self._save_config(config)
+
             # Log (protect API key!)
             if 'ai' in config:
                 has_key = bool(config.get('ai', {}).get('api_key', ''))
@@ -183,9 +204,17 @@ class AIConfigService:
             'host': ai_config.get('host'),
             'port': ai_config.get('port'),
             'timeout': ai_config.get('timeout'),
-            # Legacy/Compatibility keys
-            'base_url': f"{ai_config.get('host')}:{ai_config.get('port')}/v1" if ai_config.get('host') and ai_config.get('port') else None
+            'timeout': ai_config.get('timeout'),
         }
+        
+        # Only set base_url from host/port for known local engines
+        # Apenas define base_url a partir de host/port para motores locais conhecidos
+        local_engines = ['lmstudio', 'ollama', 'localai', '5ire', 'text-generation-webui']
+        is_local = engine in local_engines
+        
+        if is_local and ai_config.get('host'):
+            port_suffix = f":{ai_config.get('port')}" if ai_config.get('port') else ""
+            provider_config['base_url'] = f"{ai_config.get('host')}{port_suffix}/v1"
         
         # Clean None values
         provider_config = {k: v for k, v in provider_config.items() if v is not None}

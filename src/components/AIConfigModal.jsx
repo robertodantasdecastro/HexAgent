@@ -1,6 +1,7 @@
 import { Cpu, Key, RefreshCw, Settings, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from '../hooks/useTranslation';
+import APIClient from '../utils/APIClient';
 // ... (imports)
 
 // ...
@@ -20,7 +21,7 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
   const [availableModels, setAvailableModels] = useState([]);
   
   // Local state for config editing
-  const [localConfig, setLocalConfig] = useState(config || {
+  const [localConfig, setLocalConfig] = useState(config?.ai || config || {
       engine: 'openai',
       model: 'gpt-4o',
       max_iterations: 10,
@@ -30,26 +31,93 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
   });
 
   // Effect to update local state when prop changes
-  // Effect to update local state when prop changes
   useEffect(() => {
     if (config) {
-        setLocalConfig(config);
+        // Safeguard: Check if config is nested under 'ai' key (Backend convention)
+        // Salvaguarda: Verificar se config está aninhado sob chave 'ai' (Convenção Backend)
+        const source = config.ai || config;
+        
+        setLocalConfig({
+            ...source,
+            // Ensure numeric defaults to avoid .toFixed() crashes
+            // Garantir padrões numéricos para evitar crashes .toFixed()
+            temperature: typeof source.temperature === 'number' ? source.temperature : 0.7,
+            max_iterations: source.max_iterations || 10,
+            max_tokens: source.max_tokens || 4000
+        });
     }
   }, [config]);
+
+  // Get API client instance
+  const api = APIClient.getInstance();
 
   const testConnection = async () => {
     setLoading(true);
     setConnectionTestResult({ loading: true });
-    // ... logic (omitted, will remain)
+    
+    try {
+      const response = await api.post('/config/engines/test', {
+        engine: localConfig.engine,
+        config: localConfig
+      });
+
+      if (response.success) {
+        setConnectionTestResult({
+          success: response.data.success,
+          message: response.data.message,
+          loading: false
+        });
+      } else {
+        setConnectionTestResult({
+          success: false,
+          error: response.message || 'Unknown error',
+          loading: false
+        });
+      }
+    } catch (error) {
+      console.error("Test Connection Error:", error);
+      setConnectionTestResult({
+        success: false,
+        error: error.message || 'Network error',
+        loading: false
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const fetchAvailableModels = async (engine) => {
-      // ... logic
+      setLoading(true);
+      try {
+          const response = await api.get(`/config/engines/${engine}/models`);
+          if (response.success && response.data && response.data.models) {
+              setAvailableModels(response.data.models);
+          }
+      } catch (error) {
+          console.error("Fetch Models Error:", error);
+      } finally {
+          setLoading(false);
+      }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (onSave) {
-        onSave(localConfig);
+        setLoading(true);
+        try {
+            // If we unwrapped from 'ai', re-wrap it to preserve structure
+            // Se desenvelopamos de 'ai', re-envelopar para preservar estrutura
+            if (config && config.ai) {
+                 await onSave({ ...config, ai: localConfig });
+            } else {
+                 // Otherwise save as is (flat or new structure)
+                 // Caso contrário, salvar como está
+                 await onSave(localConfig);
+            }
+        } catch (error) {
+            console.error("Save Error:", error);
+        } finally {
+            setLoading(false);
+        }
     }
   };
   const engineDescriptions = {
@@ -94,6 +162,8 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
     { id: 'behavior', label: 'Comportamento', icon: RefreshCw },
     { id: 'advanced', label: 'Avançado', icon: Settings }
   ];
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -459,9 +529,11 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
           </button>
           <button
             onClick={handleSave}
-            className="px-4 py-2 bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 rounded hover:bg-cyan-500/30 transition-all font-mono text-sm"
+            disabled={loading}
+            className="px-4 py-2 bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 rounded hover:bg-cyan-500/30 transition-all font-mono text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Salvar Configuração / Save Configuration
+            {loading ? <RefreshCw size={14} className="animate-spin" /> : null}
+            {loading ? 'Salvando... / Saving...' : 'Salvar Configuração / Save Configuration'}
           </button>
         </div>
       </div>

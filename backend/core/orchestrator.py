@@ -47,7 +47,7 @@ class AgentOrchestrator:
         user_input: str,
         chat_context: Optional[List[Dict[str, str]]] = None,
         auto_execute: bool = False,
-        max_iterations: int = 10
+        max_iterations: int = 10,
         abort_signal: Optional[Any] = None
     ) -> Generator[Dict[str, Any], None, None]:
         """
@@ -57,6 +57,11 @@ class AgentOrchestrator:
         iteration = 0
         current_context = user_input
         
+        if not self.provider:
+            logger.error("Orchestrator: No AI Provider configured (Lazy Init)")
+            yield ResponseFactory.create_error("AI Brain not initialized. Please configure API Key.")
+            return
+
         while iteration < max_iterations:
             # SAFETY CHECK 1: Abort Signal
             if abort_signal and abort_signal.is_set():
@@ -67,10 +72,10 @@ class AgentOrchestrator:
             iteration += 1
             logger.info(f"Orchestrator: Starting iteration {iteration}/{max_iterations}")
 
-            # Notify: Thinking Block Start
-            yield {"type": "block_start", "block": "thinking", "metadata": {"iteration": iteration}}
+            # Notify: Narrative Block Start / Início do Bloco de Narrativa
+            yield {"type": "block_start", "block": "narrative", "metadata": {"iteration": iteration}}
 
-            # 1. AI Thinking / Pensamento da IA
+            # 1. AI Response Streaming / Streaming de Resposta da IA
             full_response = ""
             try:
                 # Pass context only on first iteration or handle history properly
@@ -79,7 +84,7 @@ class AgentOrchestrator:
                 for chunk in self.provider.chat_step(prompt=current_context, chat_context=iter_context):
                     # SAFETY CHECK 2: Abort during stream
                     if abort_signal and abort_signal.is_set():
-                         logger.warning("Orchestrator: Aborted / Thinking.")
+                         logger.warning("Orchestrator: Aborted / stream.")
                          break
 
                     full_response += chunk
@@ -88,11 +93,11 @@ class AgentOrchestrator:
             except Exception as e:
                 logger.error(f"AI Error: {e}")
                 yield ResponseFactory.create_error(f"AI Error: {str(e)}")
-                yield {"type": "block_end", "block": "thinking", "metadata": {"status": "error"}}
+                yield {"type": "block_end", "block": "narrative", "metadata": {"status": "error"}}
                 break
             
-            # Notify: Thinking Block End
-            yield {"type": "block_end", "block": "thinking", "metadata": {}}
+            # Notify: Narrative Block End / Fim do Bloco de Narrativa
+            yield {"type": "block_end", "block": "narrative", "metadata": {}}
 
             if abort_signal and abort_signal.is_set():
                 break
@@ -102,10 +107,6 @@ class AgentOrchestrator:
             
             if not commands:
                 logger.info("Orchestrator: No commands found. Task likely complete.")
-                # Notify: Narrative Block
-                yield {"type": "block_start", "block": "narrative", "metadata": {}}
-                yield {"type": "text", "content": full_response} # Or specialized narrative type
-                yield {"type": "block_end", "block": "narrative", "metadata": {}}
                 break
 
             # 3. Process Commands / Processar Comandos

@@ -128,56 +128,49 @@ def create_app(core_ref=None, hexstrike_ref=None):
             # Verificar se podemos prosseguir (Chave API presente OU motor local)
             # Logic is handled inside get_active_provider_config/validate, but we double check for init
             
-            # If provider config is empty/invalid, skip init
-            if not engine:
-                 app.logger.warning("⚠️  No active engine configured - AgentCore not initialized")
-                 agent_core = None
-            else:
-                # Initialize AgentCore
-                # Inicializa AgentCore
-                
-                # Extract api_key, model from flattened config
-                api_key = provider_config.get('api_key')
-                model = provider_config.get('model')
-                
-                # Pass remainder as kwargs
-                # provider_config already has host/port etc
-                
-                agent_core = AgentCore(
-                    api_key=api_key,
-                    hexstrike_url=hexstrike_url,
-                    engine=engine,
-                    model=model,
-                    provider_kwargs=provider_config 
-                )
+            # Always initialize AgentCore (supports Lazy Init if no engine/key)
+            # Sempre inicializa AgentCore (suporta Lazy Init se sem engine/key)
+            
+            # Extract api_key, model from flattened config
+            api_key = provider_config.get('api_key')
+            model = provider_config.get('model')
+            
+            # Initialize AgentCore
+            agent_core = AgentCore(
+                api_key=api_key,
+                hexstrike_url=hexstrike_url,
+                engine=engine or 'openai', # Default to openai if None, AgentCore handles failure
+                model=model,
+                provider_kwargs=provider_config 
+            )
 
-                # Initialize Profile Service (Personalization)
-                try:
-                    from services.profile_service import ProfileService
-                    profile_service = ProfileService()
-                    
-                    # Inject Profile Context into AI System Prompt
-                    # Injetar Contexto de Perfil no Prompt de Sistema da IA
-                    profile_context = profile_service.get_system_prompt_context()
-                    
-                    if profile_context:
-                        app.logger.info("Injecting User Profile Context into AgentCore")
-                        # We append it to the base system prompt via provider
-                        # Adicionamos ao prompt de sistema base via provedor
-                        # Note: This depends on the Provider implementation allowing prompt updates
-                        # or we pass it during chat_step as a system message override
-                        # For now, we assume simple appendage if supported, or logic in AgentCore
-                        agent_core.set_profile_context(profile_context)
-
-                except Exception as e:
-                    app.logger.warning(f"Failed to load User Profile: {e}")
-
+            # Initialize Profile Service (Personalization)
+            try:
+                from services.profile_service import ProfileService
+                profile_service = ProfileService()
                 
-                app.logger.info("✅ AgentCore initialized successfully")
-                app.logger.info(f"   - AI Engine: {agent_core.engine}")
-                app.logger.info(f"   - AI Provider: {agent_core.provider.get_provider_name()}")
-                app.logger.info(f"   - AI Model: {agent_core.provider.get_default_model()}")
-                app.logger.info(f"   - HexStrike: {'✓ Available' if agent_core.hexstrike_available else '✗ Unavailable'}")
+                # Inject Profile Context into AI System Prompt
+                # Injetar Contexto de Perfil no Prompt de Sistema da IA
+                profile_context = profile_service.get_system_prompt_context()
+                
+                if profile_context:
+                    app.logger.info("Injecting User Profile Context into AgentCore")
+                    # We append it to the base system prompt via provider
+                    # Adicionamos ao prompt de sistema base via provedor
+                    # Note: This depends on the Provider implementation allowing prompt updates
+                    # or we pass it during chat_step as a system message override
+                    # For now, we assume simple appendage if supported, or logic in AgentCore
+                    agent_core.set_profile_context(profile_context)
+
+            except Exception as e:
+                app.logger.warning(f"Failed to load User Profile: {e}")
+
+            
+            app.logger.info("✅ AgentCore initialized successfully")
+            app.logger.info(f"   - AI Engine: {agent_core.engine}")
+            app.logger.info(f"   - AI Provider: {agent_core.provider.get_provider_name() if agent_core.provider else 'None (Lazy)'}")
+            app.logger.info(f"   - AI Model: {agent_core.provider.get_default_model() if agent_core.provider else 'N/A'}")
+            app.logger.info(f"   - HexStrike: {'✓ Available' if agent_core.hexstrike_available else '✗ Unavailable'}")
 
                 
         except ImportError as e:

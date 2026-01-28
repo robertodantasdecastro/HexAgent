@@ -26,6 +26,26 @@ class WorkflowController(BaseController):
     def _register_routes(self):
         """Register workflow routes / Registra rotas de fluxo de trabalho"""
         
+        @self.blueprint.route('/', methods=['GET'])
+        def list_workflows():
+            """List available workflows"""
+            try:
+                workflows = self.service.list_workflows()
+                return self.success_response(data=workflows)
+            except Exception as e:
+                return self.error_response(str(e))
+
+        @self.blueprint.route('/<workflow_id>', methods=['GET'])
+        def get_workflow_details(workflow_id):
+            """Get workflow details"""
+            try:
+                workflow = self.service.get_workflow(workflow_id)
+                if not workflow:
+                    return self.error_response("Workflow not found", 404)
+                return self.success_response(data=workflow)
+            except Exception as e:
+                return self.error_response(str(e))
+
         @self.blueprint.route('/start', methods=['POST'])
         def start_workflow():
             """
@@ -34,11 +54,15 @@ class WorkflowController(BaseController):
             """
             try:
                 self.log_request('POST /api/workflow/start')
-                data = self.validate_request(['workflow_type', 'target'])
+                data = self.validate_request(['workflow_type'])
+                
+                # Extract known param 'target', pass the rest as kwargs dict
+                target = data.get('target', '') 
                 
                 result = self.service.execute_workflow(
                     workflow_type=data['workflow_type'],
-                    target=data['target']
+                    target=target,
+                    params=data
                 )
                 
                 return self.success_response(
@@ -50,12 +74,3 @@ class WorkflowController(BaseController):
             except Exception as e:
                 self.log_error('POST /api/workflow/start', e)
                 return self.error_response("Failed to start workflow", 500)
-                
-        @self.blueprint.route('/status/<execution_id>', methods=['GET'])
-        def get_status(execution_id):
-            """
-            Get workflow status
-            Obter status do fluxo de trabalho
-            """
-            # Placeholder for future implementation
-            return self.success_response(data={"status": "running", "progress": 50})

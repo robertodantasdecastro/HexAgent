@@ -1,0 +1,13 @@
+{
+    "id": "recon_summary",
+    "name": "Quick Recon Summary",
+    "description": "Performs a fast Nmap scan and summarizes open ports",
+    "icon": "Radar",
+    "variables": ["target"],
+    "steps": [
+        {
+            "type": "prompt",
+            "content": "Perform a quick reconnaissance on {target}. First, run a fast nmap scan (top 100 ports). Then, summarize the open ports and suggest potential attack vectors. Do not run heavy scripts yet."
+        }
+    ]
+}

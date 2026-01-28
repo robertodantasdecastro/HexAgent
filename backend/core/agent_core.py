@@ -92,8 +92,11 @@ class AgentCore:
             logger.info(f"Engine: {engine}, Model: {self.provider.get_default_model()}")
             
         except Exception as e:
-            logger.error(f"Failed to initialize AI provider '{engine}': {e}")
-            raise
+            logger.warning(f"Failed to initialize AI provider '{engine}': {e}")
+            logger.warning("AgentCore starting in LAZY/UNCONFIGURED mode")
+            self.provider = None
+            # Do NOT raise, continue initialization
+            # Não levantar exceção, continuar inicialização
         
         # Initialize command executor / Inicializa executor de comandos
         self.hexstrike = HexStrikeClient(base_url=hexstrike_url)
@@ -120,6 +123,7 @@ class AgentCore:
         # Initialize AgentOrchestrator
         # Inicializa o Orquestrador do Agente
         from .orchestrator import AgentOrchestrator
+        # Pass provider (can be None)
         self.orchestrator = AgentOrchestrator(self.provider, self.executor, self.mcp_manager)
         
         # Initialize ActionDispatcher (Legacy/Compatibility)
@@ -307,5 +311,6 @@ class AgentCore:
     
     def __repr__(self) -> str:
         """String representation / Representação em string"""
-        return (f"AgentCore(provider={self.provider.get_provider_name()}, "
+        provider_name = self.provider.get_provider_name() if self.provider else "None (Lazy)"
+        return (f"AgentCore(provider={provider_name}, "
                 f"hexstrike={'available' if self.hexstrike_available else 'unavailable'})")

@@ -1,13 +1,10 @@
 {
-  "mcpServers": {
-    "filesystem": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-filesystem",
-        "/home/d4r13n/iatools"
-      ],
-      "enabled": false
+    "mcpServers": {
+        "example-echo": {
+            "command": "echo",
+            "args": ["Hello from MCP"],
+            "enabled": false,
+            "env": {}
+        }
     }
-  }
 }

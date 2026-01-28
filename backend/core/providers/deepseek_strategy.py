@@ -42,6 +42,26 @@ class DeepSeekStrategy(OpenAIStrategy):
     # Herda chat_step, init (chama super), etc de OpenAIStrategy
 
 
+    def _create_client(self):
+        """
+        Create OpenAI client with DeepSeek configuration
+        Cria cliente OpenAI com configuração DeepSeek
+        """
+        # DeepSeek ALWAYS uses its own base_url, ignore local host/port unless specifically overridden
+        # DeepSeek SEMPRE usa sua própria base_url, ignorar host/port local a menos que especificamente sobrescrito
+        
+        base_url = self.config.get('base_url')
+        if not base_url or "localhost" in base_url or "127.0.0.1" in base_url:
+             # Force correct DeepSeek URL if it looks like a local misconfiguration
+             # Força URL correta do DeepSeek se parecer uma má configuração local
+             base_url = self.DEFAULT_BASE_URL
+             
+        self.client = openai.OpenAI(
+            api_key=self.api_key,
+            base_url=base_url,
+            timeout=self.timeout
+        )
+
 # Register with ProviderFactory
 from .provider_factory import ProviderFactory
 ProviderFactory.register_provider('deepseek', DeepSeekStrategy)

@@ -87,19 +87,38 @@ const SettingsModal = ({ isOpen, onClose, config, onSave, t }) => {
 
   if (!isOpen) return null;
 
-  // Loading State
+  // Loading State with Automatic Timeout Fallback
+  // Estado de Carregamento com Fallback de Timeout Automático
   if (!localConfig) {
+      // If config is missing for too long, we should probably just initialize with defaults or allow escape
+      // Se a config estiver faltando por muito tempo, devemos provavelmente inicializar com padrões ou permitir saída
     return (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
              <div className="flex flex-col items-center gap-4">
                  <RefreshCw size={32} className="animate-spin text-cyan-400" />
                  <p className="text-white font-mono text-sm">Loading System Config...</p>
-                 <button 
-                    onClick={onClose}
-                    className="mt-4 px-4 py-2 bg-red-500/10 text-red-400 border border-red-500/30 rounded hover:bg-red-500/20 text-xs font-mono"
-                 >
-                    Force Close
-                 </button>
+                 <div className="flex gap-2">
+                    <button 
+                        onClick={() => {
+                            // Emergency init if stuck
+                            setLocalConfig({ 
+                                system: { language: 'auto', theme: 'dark' },
+                                services: { backend_host: '127.0.0.1', flask_port: 5000 },
+                                ui: { custom_colors: {} },
+                                terminal: { shell_type: 'auto' }
+                            });
+                        }}
+                        className="mt-4 px-4 py-2 bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 rounded hover:bg-yellow-500/20 text-xs font-mono"
+                     >
+                        Use Defaults
+                     </button>
+                     <button 
+                        onClick={onClose}
+                        className="mt-4 px-4 py-2 bg-red-500/10 text-red-400 border border-red-500/30 rounded hover:bg-red-500/20 text-xs font-mono"
+                     >
+                        Force Close
+                     </button>
+                 </div>
              </div>
         </div>
     );

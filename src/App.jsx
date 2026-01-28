@@ -7,7 +7,9 @@ import ServiceManagerModal from './components/ServiceManagerModal';
 import SessionModal from './components/SessionModal';
 import SettingsModal from './components/SettingsModal';
 import ShutdownModal from './components/ShutdownModal';
-import WorkflowManagerModal from './components/WorkflowManagerModal';
+import WorkflowModal from './components/modals/WorkflowModal'; // Updated import path
+
+
 import Block from './components/chat/Block';
 import useAIConfig from './hooks/useAIConfig';
 import useBackendInit from './hooks/useBackendInit';
@@ -137,6 +139,32 @@ const App = () => {
       alert("Feature Pending: Resume Chat Loop logic not fully implemented in frontend-backend bridge.");
   }
 
+  // Handler: Run Workflow
+  const handleRunWorkflow = async (workflowId, params) => {
+      try {
+          // Attempt to start workflow via API
+          const response = await fetch('http://127.0.0.1:5000/api/workflow/start', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ workflow_type: workflowId, target: params.target })
+          });
+          
+          if (!response.ok) throw new Error("Failed to start workflow");
+          const data = await response.json();
+          
+          // If the backend returns an initial prompt, execute it as if the user typed it
+          if (data.data && data.data.initial_prompt) {
+               // Use sendMessage (which delegates to chatManager or commandManager)
+               activeManager.sendMessage(data.data.initial_prompt);
+          }
+      } catch (err) {
+          console.error("Workflow Start Error:", err);
+          // Fallback: Just trigger it via text if API failed
+          activeManager.sendMessage(`Perform workflow ${workflowId} on target ${params.target}`);
+      }
+  };
+
+
   // Auto-scroll
   useEffect(() => {
     if (autoScroll && bottomRef.current) {
@@ -238,33 +266,43 @@ const App = () => {
           {systemConfig?.system?.debug_mode && (
             <button
               onClick={() => {
-                const dump = {
-                  timestamp: new Date().toISOString(),
-                  app_info: {
-                    version: "2.1",
-                    status: status,
-                    service_status: serviceStatus
-                  },
-                  configs: {
-                    system: systemConfig,
-                    ai: aiConfig
-                  },
-                  session: {
-                    name: currentSessionName,
-                    blocks: chatManager.blocks
-                  },
-                  logs: logger.getLogs ? logger.getLogs() : "Logger does not support getLogs"
-                };
-                
-                const blob = new Blob([JSON.stringify(dump, null, 2)], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `debug_dump_${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
+                try {
+                    const safeGetLogs = () => {
+                        try { return logger.getLogs ? logger.getLogs() : []; } 
+                        catch (e) { return ["Error retrieving logs: " + e.message]; }
+                    };
+
+                    const dump = {
+                      timestamp: new Date().toISOString(),
+                      app_info: {
+                        version: "2.1",
+                        status: status || 'unknown',
+                        service_status: serviceStatus || {}
+                      },
+                      configs: {
+                        system: systemConfig || {},
+                        ai: aiConfig || {}
+                      },
+                      session: {
+                        name: currentSessionName || 'untitled',
+                        blocks: chatManager?.blocks || []
+                      },
+                      logs: safeGetLogs()
+                    };
+                    
+                    const blob = new Blob([JSON.stringify(dump, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `debug_dump_${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                } catch (err) {
+                    console.error("Failed to generate debug dump:", err);
+                    alert("Failed to save debug logs. Check console for details.");
+                }
               }}
               className="p-2 text-red-400 hover:bg-[#2a1a1a] rounded transition relative group border border-red-500/30"
               title="Debug: Save Context Dump"
@@ -491,7 +529,11 @@ const App = () => {
       />
 
       <HelpModal isOpen={helpModal.isOpen} onClose={helpModal.close} />
-      <WorkflowManagerModal isOpen={workflowModal.isOpen} onClose={workflowModal.close} />
+      <WorkflowModal 
+          isOpen={workflowModal.isOpen} 
+          onClose={workflowModal.close} 
+          onRunWorkflow={handleRunWorkflow}
+      />
       <ShutdownModal 
         isOpen={shutdownModal.isOpen} 
         onShutdownComplete={handleShutdownComplete}
