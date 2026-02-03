@@ -17,11 +17,15 @@ import { useEffect, useRef, useState } from 'react';
 const InputBlock = ({ 
     initialContent = '', 
     status = 'editing', // editing, frozen, executing
+    metadata = {},
     onSend,
     onAbort,
     onEdit 
 }) => {
-  const [content, setContent] = useState(initialContent);
+  // Fix for empty history: Use metadata.content if initialContent is empty
+  // Correção para histórico vazio: Usar metadata.content se initialContent estiver vazio
+  const resolvedContent = initialContent || metadata?.content || '';
+  const [content, setContent] = useState(resolvedContent);
   const textareaRef = useRef(null);
 
   // Auto-resize textarea

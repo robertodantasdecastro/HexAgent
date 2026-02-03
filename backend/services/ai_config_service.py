@@ -227,6 +227,13 @@ class AIConfigService:
         Método interno para escrever config no arquivo (operação atômica)
         """
         try:
+            import time
+            
+            # Update timestamp for SSoT synchronization
+            # Atualizar timestamp para sincronização SSoT
+            if 'ai' in config:
+                config['ai']['last_updated'] = time.time()
+            
             # Atomic write using temp file
             temp_path = AI_CONFIG_FILE.with_suffix('.tmp')
             

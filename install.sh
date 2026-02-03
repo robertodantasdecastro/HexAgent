@@ -193,19 +193,43 @@ setup_user_config() {
         python3 scripts/verify_config.py "$USER_CONFIG_DIR/ai-config.json" "config_templates/ai-config.json"
     fi
 
-    # 3. Install/Update user_profile.json
-    if [ -f "config_templates/user_profile.json" ]; then
-        print_info "Verifying user_profile.json..."
-        python3 scripts/verify_config.py "$USER_CONFIG_DIR/user_profile.json" "config_templates/user_profile.json"
+
+    # 3. Install/Update profile.json (Persona/User)
+    # Checks for legacy user_profile.json and migrates it
+    if [ -f "$USER_CONFIG_DIR/user_profile.json" ]; then
+        if [ ! -f "$USER_CONFIG_DIR/profile.json" ]; then
+            print_warning "Migrating legacy user_profile.json to profile.json..."
+            mv "$USER_CONFIG_DIR/user_profile.json" "$USER_CONFIG_DIR/profile.json"
+        else
+            print_warning "Both profile.json and legacy user_profile.json exist. Backing up legacy..."
+            mv "$USER_CONFIG_DIR/user_profile.json" "$USER_CONFIG_DIR/user_profile.json.bak"
+        fi
     fi
 
-    # 4. Install/Update mcp_config.json (MCP Registry)
+    if [ -f "config_templates/profile.json" ]; then
+        print_info "Verifying profile.json..."
+        python3 scripts/verify_config.py "$USER_CONFIG_DIR/profile.json" "config_templates/profile.json"
+    fi
+
+    # 4. Install/Update hexstrike.json (Agent Ops)
+    if [ -f "config_templates/hexstrike.json" ]; then
+        print_info "Verifying hexstrike.json..."
+        python3 scripts/verify_config.py "$USER_CONFIG_DIR/hexstrike.json" "config_templates/hexstrike.json"
+    fi
+
+    # 5. Install/Update moltbot.json (Resources)
+    if [ -f "config_templates/moltbot.json" ]; then
+        print_info "Verifying moltbot.json..."
+        python3 scripts/verify_config.py "$USER_CONFIG_DIR/moltbot.json" "config_templates/moltbot.json"
+    fi
+
+    # 6. Install/Update mcp_config.json (MCP Registry)
     if [ -f "config_templates/mcp_config.json" ]; then
         print_info "Verifying mcp_config.json..."
         python3 scripts/verify_config.py "$USER_CONFIG_DIR/mcp_config.json" "config_templates/mcp_config.json"
     fi
 
-    # 5. Cleanup Legacy 'config/' folder if it exists
+    # 7. Cleanup Legacy 'config/' folder if it exists
     # Limpeza da pasta 'config/' legada se existir
     if [ -d "$USER_CONFIG_DIR/config" ]; then
         print_warning "Found legacy 'config/' folder. Backing up..."
@@ -228,7 +252,7 @@ setup_configs() {
     setup_python_env
     
     # Run setup with venv python / Executa setup com python do venv
-    ./venv/bin/python3 backend/app.py > /dev/null 2>&1 || true
+    ./venv/bin/python3 backend/app.py || true
 }
 
 # Setup Python Environment / Configura Ambiente Python

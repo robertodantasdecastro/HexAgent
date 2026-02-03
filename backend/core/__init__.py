@@ -6,11 +6,10 @@ from .errors import *
 
 # New core modules for AI and command execution
 # Novos módulos core para IA e execução de comandos
-from .hex_brain import HexBrain
 from .hex_strike_client import HexStrikeClient
 from .agent_core import AgentCore
 
 __all__ = [
     'BaseController', 'HexAgentError', 'ConfigError', 'ValidationError',
-    'HexBrain', 'HexStrikeClient', 'AgentCore'
+    'HexStrikeClient', 'AgentCore'
 ]

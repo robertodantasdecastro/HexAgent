@@ -6,12 +6,11 @@ Standardizes how AI responses are formatted and sent to the frontend.
 Padroniza como as respostas da IA são formatadas e enviadas ao frontend.
 
 @author: Roberto Dantas de Castro <robertodantasdecastro@gmail.com>
-@version: 1.0.0
+@version: 1.1.0
 """
 
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional
-import json
 import logging
 
 logger = logging.getLogger(__name__)
@@ -36,10 +35,12 @@ class TextResponse(ResponseStrategy):
     Estratégia para streaming de pedaços de texto.
     """
     def format(self, content: str, metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        meta = metadata or {}
+        meta['status'] = 'streaming'
         return {
             "type": "text",
             "content": content,
-            "metadata": metadata or {}
+            "metadata": meta
         }
 
 class CommandProposalResponse(ResponseStrategy):
@@ -48,10 +49,12 @@ class CommandProposalResponse(ResponseStrategy):
     Estratégia para propor comandos ao usuário.
     """
     def format(self, command: str, metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        meta = metadata or {}
+        meta['status'] = 'proposal'
         return {
             "type": "command_proposal",
             "content": command,
-            "metadata": metadata or {}
+            "metadata": meta
         }
 
 class CommandResultResponse(ResponseStrategy):
@@ -60,10 +63,12 @@ class CommandResultResponse(ResponseStrategy):
     Estratégia para retornar resultados da execução de comandos.
     """
     def format(self, output: str, metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        meta = metadata or {}
+        meta['status'] = 'complete'
         return {
             "type": "command_result",
             "content": output,
-            "metadata": metadata or {}
+            "metadata": meta
         }
 
 class ErrorResponse(ResponseStrategy):
@@ -72,10 +77,40 @@ class ErrorResponse(ResponseStrategy):
     Estratégia para relato de erros.
     """
     def format(self, error_msg: str, metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        meta = metadata or {}
+        meta['status'] = 'error'
         return {
             "type": "error",
             "content": error_msg,
-            "metadata": metadata or {}
+            "metadata": meta
+        }
+
+class BlockStartResponse(ResponseStrategy):
+    """
+    Strategy for signaling the start of a UI block.
+    Estratégia para sinalizar o início de um bloco de UI.
+    """
+    def format(self, block_type: str, metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        meta = metadata or {}
+        meta['status'] = 'start'
+        return {
+            "type": "block_start",
+            "block": block_type,
+            "metadata": meta
+        }
+
+class BlockEndResponse(ResponseStrategy):
+    """
+    Strategy for signaling the end of a UI block.
+    Estratégia para sinalizar o fim de um bloco de UI.
+    """
+    def format(self, block_type: str, metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        meta = metadata or {}
+        meta['status'] = 'end'
+        return {
+            "type": "block_end",
+            "block": block_type,
+            "metadata": meta
         }
 
 class ResponseFactory:
@@ -106,3 +141,11 @@ class ResponseFactory:
     @staticmethod
     def create_error(error: str) -> Dict[str, Any]:
         return ErrorResponse().format(error)
+
+    @staticmethod
+    def create_block_start(block_type: str, metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        return BlockStartResponse().format(block_type, metadata)
+
+    @staticmethod
+    def create_block_end(block_type: str, metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        return BlockEndResponse().format(block_type, metadata)

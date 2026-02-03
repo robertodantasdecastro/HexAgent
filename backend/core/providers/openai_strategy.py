@@ -100,9 +100,13 @@ class OpenAIStrategy(InferenceStrategy):
             if chat_context:
                 for msg in chat_context:
                     if isinstance(msg, dict) and 'role' in msg and 'content' in msg:
-                        messages.append({"role": msg['role'], "content": msg['content']})
+                        # Safety check for None content
+                        content = msg['content'] if msg['content'] is not None else ""
+                        messages.append({"role": msg['role'], "content": content})
 
-            messages.append({"role": "user", "content": prompt})
+            # Only append prompt if provided (Orchestrator might send it in context)
+            if prompt:
+                messages.append({"role": "user", "content": prompt})
             
             kwargs = {
                 "model": model_to_use,
@@ -145,23 +149,19 @@ class OpenAIStrategy(InferenceStrategy):
                 func_name = tc_data["function"]["name"]
                 func_args = tc_data["function"]["arguments"]
                 
-                # Verify JSON
-                try:
-                    # Just to ensure valid JSON, though the model usually emits valid JSON
-                    # We won't parse it here, just pass the string
-                    pass
-                except:
-                    pass
-                
                 # Format as special markdown block
                 tool_block = f"\n```tool_call\n{{\"name\": \"{func_name}\", \"arguments\": {func_args}}}\n```\n"
                 logger.debug(f"Yielding tool call: {func_name}")
                 yield tool_block
                     
+        except openai.APIError as e:
+            # Re-raise API errors with context
+            logger.error(f"OpenAI API Error: {e}")
+            raise e
         except Exception as e:
-            error_msg = f"AI Error ({self.get_provider_name()}): {str(e)}"
-            logger.error(error_msg)
-            yield error_msg
+            # Fatal errors must be raised
+            logger.error(f"Critical AI Error: {e}")
+            raise e
     
     def validate_config(self, config: Dict[str, Any]) -> bool:
         return 'api_key' in config and bool(config['api_key'])

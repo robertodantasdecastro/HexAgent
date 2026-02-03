@@ -14,7 +14,8 @@ garantindo validação, logging e segurança consistentes.
 import logging
 from typing import Dict, Any, Optional
 from services.file_service import FileService
-from services.system_config_service import SystemConfigService
+# Removed top-level import to prevent circular dependency with core/__init__.py
+# Removido import de nível superior para prevenir dependência circular
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +36,9 @@ class ActionDispatcher:
         """
         self.core = agent_core
         self.file_service = FileService()
+        
+        # Local import to avoid circular dependency
+        from services.system_config_service import SystemConfigService
         self.config_service = SystemConfigService()
         
     def dispatch(self, action_type: str, params: Dict[str, Any]) -> Dict[str, Any]:

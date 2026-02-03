@@ -51,7 +51,7 @@ def configure_openrouter():
         "config": {
             "ai": {
                 "engine": "openrouter",
-                "model": "google/gemini-2.0-flash-exp:free", # Using free model for testing
+                "model": "microsoft/phi-3-mini-128k-instruct:free", # Using working free model
                 "api_key": api_key,
                 "temperature": 0.7
             }

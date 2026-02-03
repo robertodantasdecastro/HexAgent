@@ -33,6 +33,8 @@ from controllers.project_controller import ProjectController
 from controllers.workflow_controller import WorkflowController
 from controllers.profile_controller import ProfileController  # Import Profile Controller
 from controllers.mcp_controller import MCPController
+from controllers.maltbot_controller import MaltbotController  # Import Maltbot Controller
+from controllers.hexstrike_controller import HexStrikeController # Import HexStrike Controller
 
 
 def create_app(core_ref=None, hexstrike_ref=None):
@@ -196,7 +198,9 @@ def create_app(core_ref=None, hexstrike_ref=None):
         ProjectController(),
         WorkflowController(core_ref=agent_core),
         ProfileController(),  # Personalization API
-        MCPController(agent_core=agent_core)      # MCP Registry API
+        MCPController(agent_core=agent_core),     # MCP Registry API
+        MaltbotController(core_ref=agent_core),    # Maltbot Integration
+        HexStrikeController(core_ref=agent_core)   # HexStrike Integration
     ]
     
     # Register all blueprints / Registrar todos os blueprints

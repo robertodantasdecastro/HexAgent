@@ -80,7 +80,8 @@ class InferenceStrategy(ABC):
                 Chunks de texto da resposta da IA
         
         Raises / Lança:
-            Exception: If inference fails / Se inferência falhar
+            Exception: Implementations MUST raise exceptions for errors.
+                      Implementações DEVEM lançar exceções para erros.
         """
         pass
     

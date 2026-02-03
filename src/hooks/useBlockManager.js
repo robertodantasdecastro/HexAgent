@@ -36,10 +36,13 @@ const useBlockManager = () => {
     const newBlock = {
       id: uuidv4(),
       type,
-      content: '',
+      content: metadata.initialContent || '', // Allow initialization with content
       status: 'active', // active, done, error
       metadata: { ...metadata, timestamp: Date.now() }
     };
+    
+    // Cleanup helper prop
+    if (newBlock.metadata.initialContent) delete newBlock.metadata.initialContent;
     
     setBlocks(prev => [...prev, newBlock]);
     activeBlockIdRef.current = newBlock.id;
@@ -130,9 +133,34 @@ const useBlockManager = () => {
         if (activeBlockIdRef.current) {
              completeActiveBlock();
         }
-        addBlock(BlockType.ERROR);
-        updateActiveBlock(content);
+        addBlock(BlockType.ERROR, { initialContent: content }); // Pass content immediately
         completeActiveBlock();
+        break;
+
+      case 'command_proposal':
+        // Close current narrative block if open
+        if (activeBlockIdRef.current) completeActiveBlock();
+        
+        // Create a new Shell Block in "Thinking/Proposed" state
+        addBlock(BlockType.SHELL, { 
+            command: content,
+            status: 'proposal', // Waiting for user or auto-execution
+            ...metadata
+        });
+        // Note: We don't complete it yet, waiting for result or user action
+        break;
+
+      case 'command_result':
+        // Update the active Shell Block (assuming sequential consistency)
+        if (activeBlockIdRef.current) {
+            updateActiveBlock(content, false); // Replace content with result output? Or append?
+            // Usually output is the "content" of a Shell Block.
+            // The command itself is in metadata.
+            completeActiveBlock({
+                ...metadata,
+                status: metadata.success ? 'done' : 'error'
+            });
+        }
         break;
         
       default:

@@ -16,9 +16,12 @@ import Logger from '../utils/Logger';
 const useCommandMode = (aiConfig) => {
   const [history, setHistory] = useState([]);
   const [isLoading, setLoading] = useState(false);
-  const [inputMode, setInputMode] = useState('command'); // Always 'command' in this mode
   const [cwd, setCwd] = useState('~/'); // Track current working directory
   
+  // Command History Navigation
+  const [cmdHistory, setCmdHistory] = useState([]);
+  const [historyPointer, setHistoryPointer] = useState(-1);
+
   // Services
   const chatService = ChatService.getInstance();
   const logger = Logger.getInstance();
@@ -29,7 +32,7 @@ const useCommandMode = (aiConfig) => {
     setHistory([{
         id: 'init',
         type: 'system',
-        content: 'HexAgent Terminal v2.0\nType commands to execute or start with "?" for AI assistance.\n',
+        content: 'HexAgent Terminal v2.0\nType commands to execute or start with "?" for AI assistance.\nType "clear" to reset screen.',
         timestamp: new Date().toLocaleTimeString()
     }]);
   }, []);
@@ -37,13 +40,19 @@ const useCommandMode = (aiConfig) => {
   /**
    * Execute a command or ask AI
    */
-  const executeCommand = useCallback(async (input) => {
+  const executeCommand = useCallback(async (input, autoExecute, unlimitedIterations, maxIterations) => {
     if (!input.trim() || isLoading) return;
+
+    // Handle Local "clear" command
+    if (input.trim() === 'clear') {
+        setHistory([]);
+        return;
+    }
 
     setLoading(true);
     const timestamp = new Date().toLocaleTimeString();
 
-    // 1. Add User Input to History
+    // 1. Add User Input to Display History
     setHistory(prev => [...prev, {
       id: Date.now(),
       type: 'user',
@@ -51,16 +60,15 @@ const useCommandMode = (aiConfig) => {
       timestamp
     }]);
 
+    // Update Command Input History (for Up/Down navigation)
+    setCmdHistory(prev => [...prev, input]);
+    setHistoryPointer(-1); // Reset pointer
+
     // 2. Check for AI assistance prefix (?)
     if (input.startsWith('?') || input.startsWith('/')) {
         // AI Assistance Logic
         const prompt = input.substring(1).trim();
         try {
-            // We reuse ChatService but with specific Command Mode context
-            // Ideally, backend should have a 'command_mode' endpoint, but 'chat' works for now
-            // if we instruct it properly.
-            
-            // For Phase 3, we might want a specific backend strategy, but let's reuse chat for MVP
             const context = [{
                 role: 'system',
                 content: `You are in Command Mode. The user is asking for a shell command to: "${prompt}".
@@ -70,7 +78,7 @@ const useCommandMode = (aiConfig) => {
             }];
 
             await chatService.sendMessage(prompt, context, {
-                autoExecute: false, // In cmd mode, we might want to confirm first
+                autoExecute: false, 
                 maxIterations: 1,
                 stream: true
             });
@@ -90,13 +98,18 @@ const useCommandMode = (aiConfig) => {
         try {
             const res = await api.post('/execute', { command: input });
             
+            // Update CWD if present in response
+            if (res.data && res.data.cwd) {
+                setCwd(res.data.cwd);
+            }
+
             setHistory(prev => [...prev, {
                 id: Date.now() + 1,
                 type: 'output',
-                content: res.output,
+                content: res.data ? res.data.output : 'No output',
                 result: {
-                    success: res.success,
-                    exit_code: res.exit_code
+                    success: res.data ? res.data.success : false,
+                    exit_code: res.data ? res.data.exit_code : -1
                 },
                 timestamp: new Date().toLocaleTimeString()
             }]);
@@ -128,10 +141,26 @@ const useCommandMode = (aiConfig) => {
     }]);
   }, [chatService]);
 
-  // ========================================================================
-  // ChatService Subscriptions (For AI Assistance)
-  // ========================================================================
-  
+  // Navigate History Helper
+  const navigateHistory = useCallback((direction) => {
+      setHistoryPointer(prev => {
+          let newPtr = direction === 'up' ? prev + 1 : prev - 1;
+          if (newPtr < -1) newPtr = -1;
+          if (newPtr >= cmdHistory.length) newPtr = cmdHistory.length - 1;
+          return newPtr;
+      });
+      
+      // We need to return the value because state updates are async
+      // But checking prev values inside setState is better.
+      // Instead, we return the command at the new pointer
+      // However, typical React pattern for input sync suggests we just expose pointer and history
+      // or a getCommand(direction) function.
+      
+      // Simplified: return the command string immediately for the UI to setInput
+      // This requires accessing current cmdHistory state.
+  }, [cmdHistory.length]);
+
+  // Hook subscriptions...
   useEffect(() => {
     const unsubMessage = chatService.onMessage((chunk) => {
         const { type, content } = chunk;
@@ -172,7 +201,10 @@ const useCommandMode = (aiConfig) => {
     isLoading,
     executeCommand,
     stopExecution,
-    cwd
+    cwd,
+    cmdHistory,       // Expose history
+    historyPointer,   // Expose pointer
+    setHistoryPointer // Allow UI to reset or change pointer
   };
 };
 

@@ -1,12 +1,8 @@
-import { Cpu, Key, RefreshCw, Settings, X } from 'lucide-react';
+import { Box, Cpu, Key, RefreshCw, Settings, Shield, User, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from '../hooks/useTranslation';
 import APIClient from '../utils/APIClient';
-// ... (imports)
-
-// ...
-
-// Tabs definition moved inside component to access 't'
+// New Config Tabs
 
 /**
  * AIConfigModal - Dynamic AI/LLM Configuration with ProviderFactory Integration
@@ -30,17 +26,20 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
       auto_execute: false
   });
 
+  // Additional Config States
+  const [profileConfig, setProfileConfig] = useState({});
+  const [hexConfig, setHexConfig] = useState({});
+  const [moltConfig, setMoltConfig] = useState({});
+  const [configLoaded, setConfigLoaded] = useState({ profile: false, hex: false, molt: false });
+
   // Effect to update local state when prop changes
   useEffect(() => {
     if (config) {
         // Safeguard: Check if config is nested under 'ai' key (Backend convention)
-        // Salvaguarda: Verificar se config está aninhado sob chave 'ai' (Convenção Backend)
         const source = config.ai || config;
         
         setLocalConfig({
             ...source,
-            // Ensure numeric defaults to avoid .toFixed() crashes
-            // Garantir padrões numéricos para evitar crashes .toFixed()
             temperature: typeof source.temperature === 'number' ? source.temperature : 0.7,
             max_iterations: source.max_iterations || 10,
             max_tokens: source.max_tokens || 4000
@@ -50,6 +49,47 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
 
   // Get API client instance
   const api = APIClient.getInstance();
+
+  const fetchSpecificConfig = async (type) => {
+      // Don't fetch if already loaded
+      if (type === 'profile' && configLoaded.profile) return;
+      if (type === 'hexstrike' && configLoaded.hex) return;
+      if (type === 'moltbot' && configLoaded.molt) return;
+      
+      setLoading(true);
+      try {
+          if (type === 'profile') {
+              const res = await api.get('/config/profile');
+              if (res.success) {
+                  setProfileConfig(res.data); 
+                  setConfigLoaded(prev => ({...prev, profile: true}));
+              }
+          } else if (type === 'hexstrike') {
+              const res = await api.get('/hexstrike/config');
+              if (res.success) {
+                  setHexConfig(res.data);
+                  setConfigLoaded(prev => ({...prev, hex: true}));
+              }
+          } else if (type === 'moltbot') {
+              const res = await api.get('/maltbot/config');
+              if (res.success) {
+                  setMoltConfig(res.data);
+                  setConfigLoaded(prev => ({...prev, molt: true}));
+              }
+          }
+      } catch (err) {
+          console.error(`Failed to load ${type} config`, err);
+      } finally {
+          setLoading(false);
+      }
+  };
+
+  useEffect(() => {
+     // Fetch data when tab switches
+     if (activeTab === 'profile') fetchSpecificConfig('profile');
+     if (activeTab === 'hexstrike') fetchSpecificConfig('hexstrike');
+     if (activeTab === 'moltbot') fetchSpecificConfig('moltbot');
+  }, [activeTab]);
 
   const testConnection = async () => {
     setLoading(true);
@@ -75,10 +115,9 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
         });
       }
     } catch (error) {
-      console.error("Test Connection Error:", error);
       setConnectionTestResult({
         success: false,
-        error: error.message || 'Network error',
+        error: error.message || 'Connection failed',
         loading: false
       });
     } finally {
@@ -87,80 +126,63 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
   };
 
   const fetchAvailableModels = async (engine) => {
-      setLoading(true);
-      try {
-          const response = await api.get(`/config/engines/${engine}/models`);
-          if (response.success && response.data && response.data.models) {
-              setAvailableModels(response.data.models);
-          }
-      } catch (error) {
-          console.error("Fetch Models Error:", error);
-      } finally {
-          setLoading(false);
+    setLoading(true);
+    try {
+      const api = new APIClient();
+      const response = await api.get(`/service/ai/models?engine=${engine}`);
+      if (response && response.models) {
+        setAvailableModels(response.models);
       }
+    } catch (error) {
+      console.error('Failed to fetch models:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSave = async () => {
-    if (onSave) {
-        setLoading(true);
-        try {
-            // If we unwrapped from 'ai', re-wrap it to preserve structure
-            // Se desenvelopamos de 'ai', re-envelopar para preservar estrutura
-            if (config && config.ai) {
+    setLoading(true);
+    try {
+        // 1. Save Base AI Config (Legacy/Primary)
+        if (onSave) {
+             if (config && config.ai) {
                  await onSave({ ...config, ai: localConfig });
-            } else {
-                 // Otherwise save as is (flat or new structure)
-                 // Caso contrário, salvar como está
+             } else {
                  await onSave(localConfig);
-            }
-        } catch (error) {
-            console.error("Save Error:", error);
-        } finally {
-            setLoading(false);
+             }
         }
+
+        // 2. Save Separate Configs if loaded/modified
+        if (configLoaded.profile) await api.post('/config/profile', { config: profileConfig });
+        if (configLoaded.hex) await api.post('/hexstrike/config', { config: hexConfig });
+        if (configLoaded.molt) await api.post('/maltbot/config', { config: moltConfig });
+        
+        onClose();
+
+    } catch (error) {
+        console.error("Save Error:", error);
+    } finally {
+        setLoading(false);
     }
   };
+  
   const engineDescriptions = {
-    openai: {
-      name: 'OpenAI',
-      description: 'Standard OpenAI API (GPT-4o, GPT-4 Turbo)',
-      requires_api_key: true
-    },
-    deepseek: {
-      name: 'DeepSeek',
-      description: 'DeepSeek AI Models (High Performance, Low Cost)',
-      requires_api_key: true
-    },
-    openrouter: {
-      name: 'OpenRouter.ai',
-      description: 'Access to All Models (GPT, Claude, Llama, Mistral)',
-      requires_api_key: true
-    },
-    claude: {
-      name: 'Claude',
-      description: 'Anthropic Claude 3.5 Sonnet & Opus',
-      requires_api_key: true
-    },
-    lmstudio: {
-      name: 'LM Studio',
-      description: 'Local Offline Inference (OpenAI Compatible)',
-      requires_api_key: false,
-      is_local: true
-    },
-    '5ire': {
-      name: '5ire',
-      description: '5ire Local Inference Environment',
-      requires_api_key: false,
-      is_local: true
-    }
+    'openai': { name: 'OpenAI (GPT)', description: 'Industry standard for reasoning and coding (GPT-4/3.5). Requires API Key.' },
+    'deepseek': { name: 'DeepSeek', description: 'Strong reasoning capabilities, cost-effective. Requires API Key.' },
+    'claude': { name: 'Anthropic Claude', description: 'Excellent for large context and coding. Requires API Key.' },
+    'lmstudio': { name: 'LM Studio (Local)', description: 'Run models locally (Llama 3, Mistral, etc). No API cost. Privacy focused.' },
+    '5ire': { name: '5ire (Local/Cloud)', description: 'Specialized for blockchain/web3 tasks.' },
+    'openrouter': { name: 'OpenRouter', description: 'Aggregator for multiple models (Llama, Mistral, Goliath, etc).' }
   };
 
   const tabs = [
     { id: 'engine', label: 'Motor / Engine', icon: Cpu },
-    { id: 'api', label: 'API & Conexão', icon: Key },
-    { id: 'params', label: 'Parâmetros', icon: Settings },
-    { id: 'behavior', label: 'Comportamento', icon: RefreshCw },
-    { id: 'advanced', label: 'Avançado', icon: Settings }
+    { id: 'api', label: 'API & Connection', icon: Key },
+    { id: 'params', label: 'Params', icon: Settings },
+    { id: 'behavior', label: 'Behavior', icon: RefreshCw },
+    { id: 'profile', label: 'Persona', icon: User },
+    { id: 'hexstrike', label: 'Agent Ops', icon: Shield },
+    { id: 'moltbot', label: 'Resources', icon: Box }
   ];
 
   if (!isOpen) return null;
@@ -477,45 +499,19 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
             </div>
           )}
 
-          {/* HexStrike Tab */}
+            {/* HexStrike Tab */}
           {activeTab === 'hexstrike' && (
-            <div className="space-y-6">
-                <div className="p-4 bg-green-900/10 border border-green-500/20 rounded-lg">
-                    <h3 className="text-sm font-bold text-green-400 mb-2">HexStrike AI Integration</h3>
-                    <p className="text-xs text-gray-400 mb-4">
-                        Configuration for the vulnerability scanner and command execution engine.
-                    </p>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                             <label className="block text-xs font-mono text-gray-300 mb-1">Status</label>
-                             <div className="text-xs font-mono text-green-400 bg-black/40 px-2 py-1 rounded inline-block border border-green-500/20">
-                                 ACTIVE (Managed by System)
-                             </div>
-                        </div>
-                    </div>
-                </div>
+             <HexStrikeConfigTab config={hexConfig} onChange={setHexConfig} />
+          )}
 
-                <div className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-mono text-gray-300 mb-2">HexStrike URL</label>
-                         <div className="flex gap-2">
-                            <input
-                                type="text"
-                                value="http://localhost:8888" 
-                                disabled
-                                className="w-full bg-[#111] border border-[#333] rounded px-3 py-2 text-gray-500 font-mono text-sm cursor-not-allowed"
-                            />
-                            <div className="p-2 bg-[#222] rounded border border-[#333] text-gray-400 text-xs flex items-center">
-                                Locked
-                            </div>
-                         </div>
-                         <p className="text-[10px] text-gray-600 mt-1">
-                             Managed by System Config. To change port, go to Settings `{'>'}` Services.
-                         </p>
-                    </div>
-                </div>
-            </div>
+          {/* Profile Tab */}
+          {activeTab === 'profile' && (
+             <ProfileConfigTab config={profileConfig} onChange={setProfileConfig} />
+          )}
+
+          {/* Moltbot Tab */}
+          {activeTab === 'moltbot' && (
+             <MoltbotConfigTab config={moltConfig} onChange={setMoltConfig} />
           )}
         </div>
 

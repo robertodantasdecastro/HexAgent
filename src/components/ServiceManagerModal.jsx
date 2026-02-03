@@ -6,7 +6,7 @@
  * Modal para gerenciar todos os serviços do HexAgentGUI
  */
 
-import { Box, Power, RefreshCw, Server, Settings, Shield, XCircle, Zap } from 'lucide-react';
+import { Box, RefreshCw, Server, Settings, Shield, XCircle, Zap } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from '../hooks/useTranslation';
 
@@ -20,7 +20,8 @@ const ServiceManagerModal = ({ isOpen, onClose }) => {
   const [services, setServices] = useState({
     backend: { ready: false, status: 'pending', message: 'Checking...' },
     hexstrike: { ready: false, status: 'pending', message: 'Checking...' },
-    brain: { ready: false, status: 'pending', message: 'Checking...' }
+    brain: { ready: false, status: 'pending', message: 'Checking...' },
+    maltbot: { ready: false, status: 'pending', message: 'Checking...' }
   });
   const [loading, setLoading] = useState(false);
   const isMounted = useRef(true);
@@ -52,6 +53,14 @@ const ServiceManagerModal = ({ isOpen, onClose }) => {
       } catch (e) {
           logger.warn('ServiceManager: Failed to fetch services status', e);
       }
+
+      let maltbotStatus = {};
+      try {
+          const maltbotData = await api.get('/maltbot/status');
+          maltbotStatus = maltbotData.data || {};
+      } catch (e) {
+         logger.warn('ServiceManager: Failed to fetch maltbot status', e);
+      }
       
       if (isMounted.current && systemData.success) {
         const data = systemData.data || {};
@@ -65,7 +74,12 @@ const ServiceManagerModal = ({ isOpen, onClose }) => {
               message: servicesData.hexstrike === 'running' ? 'Active & Listening (Port 8888)' : (servicesData.hexstrike === 'starting' ? 'Initializing...' : 'Service Stopped'),
               host: servicesData.hexstrike_host || '127.0.0.1' // Assume local if not present
           },
-          brain: data.brain || { ready: false, status: 'pending', message: 'AI Engine Loading...' }
+          brain: data.brain || { ready: false, status: 'pending', message: 'AI Engine Loading...' },
+          maltbot: {
+              ready: maltbotStatus.status === 'running',
+              status: maltbotStatus.status || 'stopped',
+              message: maltbotStatus.status === 'running' ? `PID: ${maltbotStatus.pid}` : 'Service Stopped'
+          }
         });
       }
     } catch (error) {
@@ -88,6 +102,9 @@ const ServiceManagerModal = ({ isOpen, onClose }) => {
               endpoint = action === 'start' ? '/start_service' : '/stop_service';
               body = { service: 'hexstrike' };
           }
+      } else if (service === 'maltbot') {
+          endpoint = action === 'start' ? '/maltbot/start' : '/maltbot/stop';
+          body = {}; // No body needed for now
       }
 
       const data = await api.post(endpoint, body);
@@ -113,6 +130,15 @@ const ServiceManagerModal = ({ isOpen, onClose }) => {
                   }
               }));
             }
+          } else if (service === 'maltbot') {
+             setServices(prev => ({
+                  ...prev,
+                  maltbot: {
+                      ...prev.maltbot,
+                      status: action === 'start' ? 'starting' : 'stopping',
+                      message: action === 'start' ? 'Starting Node Process...' : 'Stopping Node Process...'
+                  }
+              })); 
           }
         // Wait a bit and refresh status
         setTimeout(fetchServiceStatus, 1500);
@@ -216,134 +242,177 @@ const ServiceManagerModal = ({ isOpen, onClose }) => {
         <div className="flex-1 overflow-y-auto p-6 bg-[#0a0a0a]">
             
             {activeTab === 'services' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Backend Service Card */}
-                    <div className={`rounded-lg p-5 border transition-all ${getStatusBg(services.backend.status)}`}>
-                        <div className="flex justify-between items-start mb-4">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-black/40 rounded border border-[#333]">
-                                    <Box size={20} className="text-blue-400" />
-                                </div>
-                                <h3 className="font-bold text-sm text-gray-200 uppercase tracking-wider">Backend Core</h3>
+                <div className="space-y-6">
+                    {/* Section: System Core */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Backend Service Card - Compact */}
+                        <div className={`rounded-xl p-4 border transition-all relative overflow-hidden group ${getStatusBg(services.backend.status)}`}>
+                            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                                <Box size={64} />
                             </div>
-                            <span className={`px-2 py-1 rounded text-[10px] font-mono font-bold uppercase border bg-black/50 ${getStatusColor(services.backend.status)} border-transparent`}>
-                                {services.backend.status}
-                            </span>
+                            <div className="flex justify-between items-center mb-2">
+                                <h3 className="font-bold text-gray-200 flex items-center gap-2">
+                                    <Box size={16} className="text-blue-400" /> Backend Core
+                                </h3>
+                                <span className={`text-[10px] font-mono uppercase font-bold ${getStatusColor(services.backend.status)}`}>
+                                    {services.backend.status}
+                                </span>
+                            </div>
+                             <div className="text-[10px] text-gray-500 font-mono mb-2">
+                                Port: 5000 (Internal)
+                            </div>
+                            <div className="h-1 w-full bg-gray-800 rounded-full overflow-hidden">
+                                <div className={`h-full ${services.backend.ready ? 'bg-blue-500 w-full' : 'bg-gray-600 w-1/3 animate-pulse'}`}></div>
+                            </div>
                         </div>
-                        <p className="text-xs text-gray-400 mb-4 h-8 font-mono">
-                            Flask API Server running on port 5000. Handles all request routing.
-                        </p>
-                        <div className="pt-3 border-t border-[#333] flex justify-between items-center text-[10px] font-mono text-gray-500">
-                            <span>Host: 127.0.0.1</span>
-                            <span>Internal</span>
+
+                        {/* AI Engine Card - Compact */}
+                         <div className={`rounded-xl p-4 border transition-all relative overflow-hidden group ${getStatusBg(services.brain.status)}`}>
+                            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                                <Zap size={64} />
+                            </div>
+                             <div className="flex justify-between items-center mb-2">
+                                <h3 className="font-bold text-gray-200 flex items-center gap-2">
+                                    <Zap size={16} className="text-yellow-400" /> AI Engine
+                                </h3>
+                                <span className={`text-[10px] font-mono uppercase font-bold ${services.brain.status === 'ready' ? 'text-green-400' : 'text-yellow-400'}`}>
+                                    {services.brain.status === 'ready' ? 'ACTIVE' : (services.brain.status || 'OFFLINE')}
+                                </span>
+                            </div>
+                            <div className="text-[10px] text-gray-500 font-mono flex flex-col gap-0.5">
+                                <span>Provider: <strong className="text-gray-300">{services.brain.provider || 'Auto'}</strong></span>
+                                <span className="truncate">Model: {services.brain.model || 'Default'}</span>
+                            </div>
                         </div>
                     </div>
 
-                    {/* Brain/AI Service Card */}
-                    <div className={`rounded-lg p-5 border transition-all ${getStatusBg(services.brain.status)}`}>
-                        <div className="flex justify-between items-start mb-4">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-black/40 rounded border border-[#333]">
-                                    <Zap size={20} className="text-yellow-400" />
-                                </div>
-                                <h3 className="font-bold text-sm text-gray-200 uppercase tracking-wider">AI Engine</h3>
-                            </div>
-                            <span className={`px-2 py-1 rounded text-[10px] font-mono font-bold uppercase border ${
-                                services.brain.status === 'ready' || services.brain.status === 'running' 
-                                ? 'border-[#00ff00]/30 bg-[#00ff00]/10 text-[#00ff00]' 
-                                : 'border-red-500/30 bg-red-500/10 text-red-500'
-                            }`}>
-                                {services.brain.status === 'ready' ? 'RUNNING' : (services.brain.status || 'OFFLINE')}
-                            </span>
-                        </div>
-                        <p className="text-xs text-gray-400 mb-4 h-8 font-mono">
-                        AI Provider Factory Status. Active Strategy: <span className="text-blue-400">{services.brain.engine || 'Auto'}</span>
-                        </p>
-                        <div className="pt-3 border-t border-[#333] flex justify-between items-center text-[10px] font-mono text-gray-500">
-                            <span>Model: <span className="text-gray-300">{services.brain.model || 'Configured'}</span></span>
-                            <span>Provider: <span className="text-gray-300">{services.brain.provider || 'Standard'}</span></span>
-                        </div>
-                    </div>
+                    <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest border-b border-[#222] pb-2 mt-4 mb-2">
+                        Active Agents & Tools
+                    </h4>
 
-                    {/* HexStrike Service Card */}
-                    <div className={`md:col-span-2 rounded-lg p-6 border transition-all ${getStatusBg(services.hexstrike.status)}`}>
-                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-                            <div className="flex items-center gap-4">
-                                <div className="p-3 bg-black/40 rounded border border-[#333]">
-                                    <Shield size={24} className={services.hexstrike.ready ? "text-[#00ff00]" : "text-gray-400"} />
-                                </div>
+                    {/* Section: Agents (Maltbot + HexStrike) */}
+                    <div className="grid grid-cols-1 gap-4">
+                        
+                        {/* Maltbot Agent - Horizontal Card */}
+                        <div className={`rounded-xl border transition-all flex flex-col md:flex-row overflow-hidden ${getStatusBg(services.maltbot.status)}`}>
+                             {/* Left: Status & Icon */}
+                             <div className="p-5 flex flex-col justify-between w-full md:w-1/3 border-b md:border-b-0 md:border-r border-[#333] bg-black/20">
                                 <div>
-                                    <h3 className="font-bold text-lg text-white">HexStrike AI</h3>
-                                    <p className="text-[10px] text-gray-400 uppercase tracking-widest">Vulnerability Scanner & Command Engine</p>
+                                    <div className="flex items-center gap-2 mb-1">
+                                         <Zap size={18} className="text-purple-400" />
+                                         <h3 className="font-bold text-gray-100">Maltbot Agent</h3>
+                                    </div>
+                                    <p className="text-[10px] text-gray-400 leading-tight">
+                                        Browser Automation & Gateway Service.
+                                    </p>
                                 </div>
-                            </div>
+                                <div className="mt-4">
+                                     {services.maltbot.status === 'running' ? (
+                                        <button
+                                            onClick={() => controlService('maltbot', 'stop')}
+                                            disabled={loading}
+                                            className="w-full py-1.5 bg-red-900/20 hover:bg-red-900/40 border border-red-900/50 text-red-400 rounded transition font-mono text-xs shadow-inner"
+                                        >
+                                            STOP AGENT
+                                        </button>
+                                    ) : (
+                                        <button
+                                            onClick={() => controlService('maltbot', 'start')}
+                                            disabled={loading}
+                                            className="w-full py-1.5 bg-green-900/20 hover:bg-green-900/40 border border-green-900/50 text-green-400 rounded transition font-mono text-xs shadow-[0_0_10px_rgba(0,255,0,0.1)] hover:shadow-[0_0_15px_rgba(0,255,0,0.2)]"
+                                        >
+                                            START AGENT
+                                        </button>
+                                    )}
+                                </div>
+                             </div>
 
-                            <div className="flex items-center gap-4 w-full md:w-auto">
-                                <div className="flex flex-col items-end mr-4 hidden md:flex">
-                                    <span className={`text-xs font-bold font-mono tracking-wider uppercase ${getStatusColor(services.hexstrike.status)}`}>
-                                        {services.hexstrike.status}
-                                    </span>
-                                    <span className="text-[10px] text-gray-500">Port: 8888</span>
+                             {/* Right: Output Console */}
+                             <div className="flex-1 p-4 bg-black/40 font-mono text-[10px] flex flex-col">
+                                <div className="flex justify-between items-center border-b border-[#333] pb-1 mb-2">
+                                     <span className="text-gray-500">Maltbot Console</span>
+                                     <span className={services.maltbot.status === 'running' ? "text-green-500" : "text-gray-600"}>
+                                         ● {services.maltbot.status.toUpperCase()}
+                                     </span>
+                                </div>
+                                <div className="flex-1 overflow-hidden relative">
+                                     <div className="absolute inset-0 overflow-y-auto custom-scrollbar text-gray-300 whitespace-pre-wrap">
+                                        {services.maltbot.message || "Waiting for signal..."}
+                                     </div>
+                                </div>
+                             </div>
+                        </div>
+
+                        {/* HexStrike AI - Horizontal Card */}
+                        <div className={`rounded-xl border transition-all flex flex-col md:flex-row overflow-hidden ${getStatusBg(services.hexstrike.status)}`}>
+                             {/* Left: Status & Control */}
+                             <div className="p-5 flex flex-col justify-between w-full md:w-1/3 border-b md:border-b-0 md:border-r border-[#333] bg-black/20">
+                                <div>
+                                    <div className="flex items-center gap-2 mb-1">
+                                         <Shield size={18} className={services.hexstrike.ready ? "text-green-400" : "text-gray-400"} />
+                                         <h3 className="font-bold text-gray-100">HexStrike AI</h3>
+                                    </div>
+                                    <p className="text-[10px] text-gray-400 leading-tight">
+                                        Vulnerability Scanner Engine.
+                                    </p>
                                 </div>
                                 
-                                {services.hexstrike.status === 'running' ? (
-                                    <button
-                                        onClick={() => controlService('hexstrike', 'stop')}
-                                        disabled={loading}
-                                        className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 rounded-lg transition font-mono text-xs"
-                                    >
-                                        <Power size={14} />
-                                        STOP SERVICE
-                                    </button>
-                                ) : (
-                                    <button
-                                        onClick={() => controlService('hexstrike', 'start')}
-                                        disabled={loading}
-                                        className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2 bg-[#00ff00]/10 hover:bg-[#00ff00]/20 border border-[#00ff00]/30 text-[#00ff00] rounded-lg transition shadow-lg shadow-green-900/20 font-mono text-xs"
-                                    >
-                                        <Power size={14} />
-                                        {loading ? 'STARTING...' : 'START SERVICE'}
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Network Access Control & Output */}
-                        <div className="mt-4 flex flex-col md:flex-row gap-4">
-                             {/* Access Toggle */}
-                             <div className="flex-none w-full md:w-48 bg-black/40 rounded p-3 border border-[#333]">
-                                <h4 className="text-[10px] text-gray-500 uppercase tracking-wider mb-2 font-bold">Network Access</h4>
-                                <div className="flex flex-col gap-2">
-                                    <button 
+                                <div className="mt-4 grid grid-cols-2 gap-2">
+                                     <div className="col-span-2">
+                                        {services.hexstrike.status === 'running' ? (
+                                            <button
+                                                onClick={() => controlService('hexstrike', 'stop')}
+                                                disabled={loading}
+                                                className="w-full py-1.5 bg-red-900/20 hover:bg-red-900/40 border border-red-900/50 text-red-400 rounded transition font-mono text-xs"
+                                            >
+                                                STOP
+                                            </button>
+                                        ) : (
+                                            <button
+                                                onClick={() => controlService('hexstrike', 'start')}
+                                                disabled={loading}
+                                                className="w-full py-1.5 bg-green-900/20 hover:bg-green-900/40 border border-green-900/50 text-green-400 rounded transition font-mono text-xs"
+                                            >
+                                                START
+                                            </button>
+                                        )}
+                                     </div>
+                                     {/* Network Access Toggles - Mini */}
+                                     <button 
                                         onClick={() => controlService('hexstrike', 'configure_access', { access: 'local' })}
                                         disabled={loading || services.hexstrike.status !== 'running'}
-                                        className={`px-3 py-1.5 rounded text-[10px] font-mono border transition text-left flex items-center gap-2 ${services.hexstrike.host !== '0.0.0.0' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'bg-[#111] border-[#333] text-gray-500 hover:text-gray-300'}`}
+                                        title="Local Access Only"
+                                        className={`py-1 rounded text-[10px] font-mono border transition flex items-center justify-center gap-1 ${services.hexstrike.host !== '0.0.0.0' ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' : 'bg-[#111] border-[#333] text-gray-500'}`}
                                     >
-                                        <div className={`w-1.5 h-1.5 rounded-full ${services.hexstrike.host !== '0.0.0.0' ? 'bg-blue-400' : 'bg-gray-600'}`} />
-                                        <span>Local (127.0.0.1)</span>
+                                        <div className={`w-1 h-1 rounded-full ${services.hexstrike.host !== '0.0.0.0' ? 'bg-blue-400' : 'bg-gray-600'}`} /> Local
                                     </button>
                                     <button 
                                         onClick={() => controlService('hexstrike', 'configure_access', { access: 'public' })}
-                                        disabled={loading || services.hexstrike.status !== 'running'} // Only allow changing when running or fully stopped? Actually safer to allow anytime but backend handles restart
-                                        className={`px-3 py-1.5 rounded text-[10px] font-mono border transition text-left flex items-center gap-2 ${services.hexstrike.host === '0.0.0.0' ? 'bg-red-500/20 border-red-500/50 text-red-400' : 'bg-[#111] border-[#333] text-gray-500 hover:text-gray-300'}`}
+                                        disabled={loading || services.hexstrike.status !== 'running'}
+                                        title="Public Network Access (0.0.0.0)"
+                                        className={`py-1 rounded text-[10px] font-mono border transition flex items-center justify-center gap-1 ${services.hexstrike.host === '0.0.0.0' ? 'bg-red-500/20 border-red-500/50 text-red-400' : 'bg-[#111] border-[#333] text-gray-500'}`}
                                     >
-                                        <div className={`w-1.5 h-1.5 rounded-full ${services.hexstrike.host === '0.0.0.0' ? 'bg-red-400' : 'bg-gray-600'}`} />
-                                        <span>Public (0.0.0.0)</span>
+                                        <div className={`w-1 h-1 rounded-full ${services.hexstrike.host === '0.0.0.0' ? 'bg-red-400' : 'bg-gray-600'}`} /> Public
                                     </button>
                                 </div>
                              </div>
 
-                            {/* Console / Info Area */}
-                            <div className="flex-1 bg-black/80 rounded p-4 font-mono text-xs border border-[#333]">
-                                <div className="flex items-center justify-between mb-2 border-b border-[#222] pb-1">
-                                    <span className="text-gray-500 uppercase tracking-wider">Service Output</span>
-                                    {services.hexstrike.status === 'running' && <span className="flex items-center gap-2 text-[#00ff00]"><div className="w-1.5 h-1.5 rounded-full bg-[#00ff00] animate-pulse"/> Live</span>}
+                             {/* Right: Console */}
+                             <div className="flex-1 p-4 bg-black/40 font-mono text-[10px] flex flex-col">
+                                <div className="flex justify-between items-center border-b border-[#333] pb-1 mb-2">
+                                     <span className="text-gray-500">Service Output (Port 8888)</span>
+                                     <span className={services.hexstrike.status === 'running' ? "text-green-500" : "text-gray-600"}>
+                                         ● {services.hexstrike.status.toUpperCase()}
+                                     </span>
                                 </div>
-                                <div className="text-gray-300 whitespace-pre-wrap h-[88px] overflow-y-auto custom-scrollbar">
-                                    {services.hexstrike.message}
+                                <div className="flex-1 overflow-hidden relative">
+                                     <div className="absolute inset-0 overflow-y-auto custom-scrollbar text-gray-300 whitespace-pre-wrap">
+                                        {services.hexstrike.message || "Ready."}
+                                     </div>
                                 </div>
-                            </div>
+                             </div>
                         </div>
+
                     </div>
                 </div>
             )}

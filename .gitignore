@@ -48,6 +48,8 @@ backend.log
 .env
 .env.local
 .env.*.local
+.key
+.keyhexagent.txt
 
 # API Keys (IMPORTANT!)
 .HexSec

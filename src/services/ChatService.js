@@ -197,7 +197,6 @@ class ChatService extends BaseService {
 
     switch (type) {
       case 'text':
-        // AI response text chunk / Chunk de texto da resposta IA
         this.#notifyMessage({
           type: 'text',
           content,
@@ -205,8 +204,34 @@ class ChatService extends BaseService {
         });
         break;
 
+      case 'thinking':
+        // Thinking Chain / Cadeia de Pensamento
+        this.#notifyMessage({
+          type: 'thinking',
+          content,
+          metadata
+        });
+        break;
+
+      case 'block_start':
+        // Lifecycle Event: Start Block / Evento Ciclo de Vida: Iniciar Bloco
+        this.#notifyMessage({
+          type: 'block_start',
+          content: metadata.block_name || 'unknown',
+          metadata
+        });
+        break;
+
+      case 'block_end':
+        // Lifecycle Event: End Block / Evento Ciclo de Vida: Terminar Bloco
+        this.#notifyMessage({
+          type: 'block_end',
+          content: metadata.block_name || 'unknown',
+          metadata
+        });
+        break;
+
       case 'command_proposal':
-        // Command proposed by AI / Comando proposto pela IA
         this.#notifyMessage({
           type: 'command_proposal',
           content,
@@ -215,7 +240,6 @@ class ChatService extends BaseService {
         break;
 
       case 'command_result':
-        // Result from command execution / Resultado da execução de comando
         this.#notifyMessage({
           type: 'command_result',
           content,
@@ -224,19 +248,23 @@ class ChatService extends BaseService {
         break;
 
       case 'error':
-        // Error message / Mensagem de erro
         this.#notifyError(new Error(content));
         break;
 
       case 'complete':
-        // Streaming complete / Streaming completo
         this._logger.info('ChatService: Streaming complete', { metadata });
         this.#notifyComplete(metadata);
-        this.abortCurrentRequest(); // Clean up / Limpar
+        this.abortCurrentRequest();
         break;
 
       default:
-        this._logger.warn(`ChatService: Unknown chunk type: ${type}`);
+        // Generic handler for custom blocks if needed / Handler genérico
+        if (type.startsWith('custom_')) {
+             this.#notifyMessage({ type, content, metadata });
+        } else {
+             this._logger.warn(`ChatService: Unknown chunk type: ${type}`);
+        }
+        break;
     }
   }
 

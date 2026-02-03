@@ -29,8 +29,96 @@ const useChatManager = (api, aiConfig) => {
   const logger = Logger.getInstance();
   
   // New Block Manager State Machine
-  const blockManager = useBlockManager();
-  const { blocks, addBlock, updateActiveBlock, completeActiveBlock, handleEvent, clearBlocks } = blockManager;
+  const { 
+    blocks, 
+    addBlock, 
+    updateActiveBlock, 
+    completeActiveBlock, 
+    clearBlocks, 
+    setBlocks: rawSetBlocks 
+  } = useBlockManager();
+
+  // Branching Logic
+  const [branches, setBranches] = useState({ 
+      'main': { id: 'main', blocks: [], parentId: null } 
+  });
+  const [currentBranchId, setCurrentBranchId] = useState('main');
+
+  // Sync: Active blocks -> Current Branch Storage
+  // Sincronização: Blocos ativos -> Armazenamento do Branch atual
+  useEffect(() => {
+     setBranches(prev => {
+         // Avoid infinite loops by checking equality if possible, 
+         // but simpler to just update the current branch reference.
+         // Simplified check: if reference is same or length is same (naive)
+         if (prev[currentBranchId]?.blocks === blocks) return prev;
+         
+         return {
+             ...prev,
+             [currentBranchId]: { 
+                 ...prev[currentBranchId], 
+                 blocks: blocks 
+             }
+         };
+     });
+  }, [blocks, currentBranchId]);
+
+  /**
+   * Switch to a different branch
+   * Alternar para um branch diferente
+   */
+  const switchBranch = useCallback((branchId) => {
+      if (branches[branchId]) {
+          // 1. Snapshot current state is handled by useEffect, but forceful save for safety
+          // (Actually useEffect handles it)
+
+          // 2. Switch ID
+          setCurrentBranchId(branchId);
+          
+          // 3. Hydrate View from Branch
+          // Using internal clear/add loop to ensure proper state machine reset
+          clearBlocks(); 
+          
+          // Small timeout to allow clear to settle if needed, or just sync
+          // Ideally setBlocks should be supported, passing raw array
+          if (branches[branchId].blocks.length > 0) {
+             branches[branchId].blocks.forEach(b => addBlock(b.type, b));
+          }
+      }
+  }, [branches, clearBlocks, addBlock]);
+
+  /**
+   * Fork the conversation from a specific block
+   * Ramificar a conversa a partir de um bloco específico
+   */
+  const forkBranch = useCallback((blockIndex) => {
+      if (blockIndex < 0 || blockIndex >= blocks.length) return;
+
+      const newBranchId = `branch_${Date.now()}`;
+      
+      // Slice blocks up to the fork point
+      const forkedBlocks = blocks.slice(0, blockIndex + 1);
+      
+      const newBranch = {
+          id: newBranchId,
+          blocks: forkedBlocks,
+          parentId: currentBranchId,
+          forkIndex: blockIndex
+      };
+
+      // Create Branch
+      setBranches(prev => ({ ...prev, [newBranchId]: newBranch }));
+      
+      // Switch Context
+      setCurrentBranchId(newBranchId);
+      
+      // Update UI
+      clearBlocks();
+      forkedBlocks.forEach(b => addBlock(b.type, b));
+      
+      return newBranchId;
+  }, [blocks, currentBranchId, clearBlocks, addBlock]);
+
 
   /**
    * Send a new message
@@ -42,24 +130,33 @@ const useChatManager = (api, aiConfig) => {
     setLoading(true);
     setShowIterationLimitReached(false);
 
-    // 1. Create Input Block (Frozen State)
-    addBlock(BlockType.INPUT, { 
+    // 1. Add Input Block to UI
+    const newBlock = { 
+        id: `block_${Date.now()}`,
+        type: BlockType.INPUT,
         content: text, 
-        status: 'frozen', // Display as frozen input
+        status: 'frozen', 
         timestamp: Date.now() 
-    });
-    
-    // Manually set content since addBlock initializes empty
-    updateActiveBlock(text, false); 
-    completeActiveBlock(); // Mark input as done so next events start new blocks
+    };
+    addBlock(BlockType.INPUT, newBlock); 
 
     try {
-      const context = blocks
+      // 2. Build Context from UI Blocks (Source of Truth)
+      // Filter only relevant blocks for context
+      // Note: We need to use a functional update or access current 'blocks' ref for latest state
+      // But 'blocks' in dependency array ensures this closure is fresh.
+      
+      // We manually append the new block to the context because 'blocks' 
+      // might not have updated in this render cycle yet (React batching).
+      
+      const previousContext = blocks
         .filter(b => b.type === BlockType.INPUT || b.type === BlockType.NARRATIVE)
         .map(b => ({
             role: b.type === BlockType.INPUT ? 'user' : 'assistant',
             content: b.content
       }));
+      
+      const context = [...previousContext, { role: 'user', content: text }];
 
       await chatService.sendMessage(text, context, {
         autoExecute,
@@ -69,19 +166,15 @@ const useChatManager = (api, aiConfig) => {
       
     } catch (error) {
        logger.error('Failed to send message', error);
-       addBlock(BlockType.ERROR, { error: error.message });
-       updateActiveBlock(error.message);
-       completeActiveBlock();
+       addBlock(BlockType.ERROR, { initialContent: error.message, error: error.message });
        setLoading(false);
     }
-  }, [blocks, isLoading, chatService, logger, addBlock, updateActiveBlock, completeActiveBlock]);
+  }, [blocks, isLoading, chatService, logger, addBlock]);
 
   /**
    * Execute a command manually
-   * Executar um comando manualmente
    */
   const manualExecute = useCallback(async (cmd) => {
-    // Note: In new architecture, manual execute usually triggers a ShellBlock
     addBlock(BlockType.SHELL, { command: cmd });
     
     try {
@@ -101,26 +194,25 @@ const useChatManager = (api, aiConfig) => {
 
   /**
    * Stop generation
-   * Parar geração
    */
   const stopGeneration = useCallback(async () => {
-    // 1. Send Abort to Backend
     try {
         await api.post('/chat/abort', {});
     } catch (e) {
         logger.error("Failed to send abort signal", e);
     }
 
-    // 2. Abort Frontend Service
     chatService.abortCurrentRequest();
     setLoading(false);
     
-    // 3. Update UI
+    // Pass abort event to block manager to finalize UI
     handleEvent({ type: 'abort' });
     
-  }, [chatService, api, handleEvent, logger]);
-
-  // Track mount status / Rastrear status de montagem
+  }, [chatService, api, logger]); // handleEvent is used below via hoisting or ref? No, defined below. 
+  // Wait, handleEvent needs to be defined BEFORE stopGeneration if used there.
+  // Or use a ref. Or move handleEvent up.
+  
+  // Track mount status
   const isMounted = useRef(true);
 
   useEffect(() => {
@@ -129,17 +221,71 @@ const useChatManager = (api, aiConfig) => {
   }, []);
 
   // ========================================================================
-  // ChatService Subscriptions
+  // ChatService Subscriptions & Event Handler
   // ========================================================================
+  
+  // Internal Event Handler that routes to BlockManager
+  // MOVED UP to be accessible by stopGeneration (if we use 'var' or function hoisting, but const needs order)
+  // Actually, circular dependency: stopGeneration uses handleEvent, handleEvent uses addBlock.
+  // We can define handleEvent first.
+  
+  const handleEvent = useCallback((chunk) => {
+      
+      // Map Backend Loop Types to Frontend Block Types
+      const blockTypeMap = {
+          'thinking': BlockType.THINKING,
+          'narrative': BlockType.NARRATIVE, // Maps 'text' block from backend
+          'shell': BlockType.SHELL,
+          'command': BlockType.SHELL // Alias
+      };
+
+      if (chunk.type === 'block_start') {
+          const typeName = chunk.content; // 'thinking', 'narrative', 'shell'
+          const blockType = blockTypeMap[typeName] || BlockType.NARRATIVE;
+          
+          // Start new block
+          addBlock(blockType, chunk.metadata);
+
+      } else if (chunk.type === 'text') {
+           // Standard text, append to active
+           updateActiveBlock(chunk.content);
+           
+      } else if (chunk.type === 'thinking') {
+           // Thinking content
+           updateActiveBlock(chunk.content);
+
+      } else if (chunk.type === 'block_end') {
+           completeActiveBlock(chunk.metadata);
+
+      } else if (chunk.type === 'shell_start') { // Legacy fallback
+          addBlock(BlockType.SHELL, { command: chunk.metadata?.command });
+
+      } else if (chunk.type === 'shell_end') { // Legacy fallback
+          completeActiveBlock(chunk.metadata);
+
+      } else if (chunk.type === 'command_proposal') { // Legacy fallback or specific event
+           addBlock(BlockType.SHELL, { command: chunk.content, status: 'proposal', ...chunk.metadata });
+
+      } else if (chunk.type === 'command_result') { // Legacy fallback
+           updateActiveBlock(chunk.content);
+           completeActiveBlock({ ...chunk.metadata, status: chunk.metadata.success ? 'done' : 'error' });
+
+      } else if (chunk.type === 'error' || chunk.type === 'abort') {
+          completeActiveBlock(); // Close current
+          if (chunk.type === 'error') {
+               addBlock(BlockType.ERROR, { initialContent: chunk.content });
+          }
+      }
+  }, [addBlock, updateActiveBlock, completeActiveBlock]);
+
+  // Redefine stopGeneration to implicitly use handleEvent if needed
+  // Or just call it directly.
   
   useEffect(() => {
     logger.info('Setting up ChatService event handlers in useChatManager (Block Arch)');
 
-    // Map ChatService events to BlockManager events
     const unsubMessage = chatService.onMessage((chunk) => {
       if (!isMounted.current) return;
-      
-      // Pass directly to BlockManager State Machine
       handleEvent(chunk);
     });
 
@@ -152,12 +298,10 @@ const useChatManager = (api, aiConfig) => {
     const unsubComplete = chatService.onComplete((metadata) => {
       if (!isMounted.current) return;
       setLoading(false);
-      // Ensure last block is closed
       completeActiveBlock(metadata);
 
       if (metadata && metadata.stopped_early && metadata.iterations >= metadata.max_iterations) {
          setShowIterationLimitReached(true);
-         // Optional: Add a limit warning block if needed
       }
     });
 
@@ -168,16 +312,28 @@ const useChatManager = (api, aiConfig) => {
     };
   }, [chatService, logger, handleEvent, completeActiveBlock]);
 
+  // Handle direct setBlocks (e.g. from Session Load)
+  const setBlocks = useCallback((newBlocks) => {
+      clearBlocks();
+      newBlocks.forEach(b => addBlock(b.type, b));
+  }, [clearBlocks, addBlock]);
+
   return {
-    blocks,
-    setBlocks: () => logger.warn("setBlocks is deprecated in Block Architecture"), // Read-only mostly
+    blocks, // Single usage
+    setBlocks, 
     isLoading,
     inputMode,
     setInputMode,
     showIterationLimitReached,
     sendMessage,
     manualExecute,
-    stopGeneration
+    stopGeneration,
+    
+    // Branching API
+    branches,
+    currentBranchId,
+    switchBranch,
+    forkBranch
   };
 };
 

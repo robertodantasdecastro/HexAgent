@@ -1,48 +1,46 @@
 """
-AgentCore - Main Orchestration Engine
-AgentCore - Motor Principal de Orquestração
+AgentCore - Central Intelligence System
+AgentCore - Sistema Central de Inteligência
 
-Coordinates AI brain + Command execution in iterative loops.
-Coordena cérebro IA + Execução de comandos em loops iterativos.
+Coordinating Brain of the HexAgent Platform.
+Cérebro Coordenador da Plataforma HexAgent.
+
+Responsibilities / Responsabilidades:
+- AI Provider Management / Gerenciamento de Provedores IA
+- Loop Orchestration / Orquestração de Loop
+- Command Execution Binding / Vínculo de Execução de Comandos
+- State Persistence / Persistência de Estado
 
 @author: Roberto Dantas de Castro <robertodantasdecastro@gmail.com>
-@version: 1.0.0
+@version: 3.0.0 (Strict OOP & Bilingual)
 """
 
 from typing import Generator, Dict, Any, Optional, List
-import re
 import logging
-from .hex_brain import HexBrain
+import threading
+
+# Core Components / Componentes do Core
 from .hex_strike_client import HexStrikeClient
-from .inference_engine import InferenceEngine
 from .command_executor import CommandExecutor
-from .providers import ProviderFactory, InferenceStrategy
+from .providers import ProviderFactory
 from .mcp_manager import MCPManager
-import json
+from .orchestrator import AgentOrchestrator
+from .action_dispatcher import ActionDispatcher
 
 logger = logging.getLogger(__name__)
 
-
 class AgentCore:
     """
-    Main orchestration engine combining AI + Commands
-    Motor principal combinando IA + Comandos
+    Main Logic Core.
+    Núcleo Lógico Principal.
     
-    Coordinates iterative problem-solving loop:
-    1. AI proposes solution/commands
-    2. Commands are executed (if auto-execute or approved)
-    3. Results are fed back to AI
-    4. AI analyzes and continues
-    5. Repeat until problem solved or max iterations
-    
-    Coordena loop iterativo de resolução de problemas:
-    1. IA propõe solução/comandos
-    2. Comandos são executados (se auto-executar ou aprovado)
-    3. Resultados são retornados à IA
-    4. IA analisa e continua
-    5. Repetir até problema resolvido ou máximo de iterações
+    Acts as the Director in the Builder/Director pattern for AI tasks.
+    Atua como o Diretor no padrão Builder/Director para tarefas de IA.
     """
     
+    # Class-level lock for thread safety if needed
+    _lock = threading.Lock()
+
     def __init__(
         self, 
         api_key: Optional[str] = None,
@@ -53,134 +51,121 @@ class AgentCore:
         provider_kwargs: Optional[Dict[str, Any]] = None
     ):
         """
-        Initialize Agent Core with multi-provider support
-        Inicializa Agent Core com suporte multi-provedor
+        Initialize the Core System.
+        Inicializa o Sistema Central.
         
         Args:
-            api_key: AI provider API key (defaults to env var)
-                    Chave API do provedor IA (padrão: variável de ambiente)
-            hexstrike_url: HexStrike server URL (default: http://localhost:8888)
-                          URL do servidor HexStrike (padrão: http://localhost:8888)
-            model: AI model name (provider-specific)
-                  Nome do modelo IA (específico do provedor)
-            system_prompt: Custom system prompt (optional)
-                          Prompt de sistema customizado (opcional)
-            engine: AI provider engine ('hexsecgpt', 'openai', 'deepseek', 'ollama')
-                   Motor provedor IA (padrão: 'hexsecgpt')
-            provider_kwargs: Additional provider settings (host, port, etc.)
-                            Configurações adicionais do provedor
+            api_key: Credential for AI Service / Credencial para Serviço de IA
+            hexstrike_url: URL for Execution Engine / URL para Motor de Execução
+            engine: AI Provider Name / Nome do Provedor de IA
+            provider_kwargs: Extra connection args / Argumentos extras de conexão
         """
-        # Initialize AI provider using ProviderFactory (Strategy Pattern)
-        # Inicializa provedor IA usando ProviderFactory (Padrão Strategy)
+        self.engine = engine
+        self.provider = None
+        self.profile_context = None
+        
+        logger.info(f"Booting AgentCore [Engine={engine}]")
+        
+        # 1. Initialize Subsystems / Inicializar Subsistemas
+        # HexStrike Client (Execution Layer)
+        self.hexstrike = HexStrikeClient(base_url=hexstrike_url)
+        self.executor = CommandExecutor(self.hexstrike)
+        
+        # MCP Manager (Tools Layer)
+        self.mcp_manager = MCPManager()
+        
+        # 2. Initialize AI Brain / Inicializar Cérebro IA
+        self._initialize_provider(api_key, model, system_prompt, engine, provider_kwargs)
+        
+        # 3. Check Health / Verificar Saúde
+        self._check_subsystems()
+        
+        # 4. Bind Orchestrator / Vincular Orquestrador
+        self.orchestrator = AgentOrchestrator(
+            provider=self.provider, 
+            executor=self.executor, 
+            mcp_manager=self.mcp_manager
+        )
+        
+        # 5. Legacy Dispatcher (for backward compatibility with pure commands)
+        self.dispatcher = ActionDispatcher(self)
+
+    def _initialize_provider(
+        self, 
+        api_key: Optional[str], 
+        model: Optional[str], 
+        system_prompt: Optional[str], 
+        engine: str, 
+        provider_kwargs: Optional[Dict[str, Any]]
+    ):
+        """
+        Setup the AI Strategy.
+        Configura a Estratégia de IA.
+        """
         try:
-            # Build provider configuration / Construir configuração do provedor
-            provider_config = {
+            config = {
                 'api_key': api_key,
                 'model': model,
                 'system_prompt': system_prompt
             }
             
-            # Merge additional kwargs if provided (e.g. host/port for LM Studio)
             if provider_kwargs:
-                provider_config.update(provider_kwargs)
+                config.update(provider_kwargs)
             
-            # Create provider instance via factory / Criar instância via fábrica
-            self.engine = engine
-            self.provider = ProviderFactory.create_provider(engine, provider_config)
-            
-            logger.info(f"AI Provider initialized: {self.provider}")
-            logger.info(f"Engine: {engine}, Model: {self.provider.get_default_model()}")
+            self.provider = ProviderFactory.create_provider(engine, config)
+            logger.info(f"AI Provider Online: {engine.upper()} / {model or 'default'}")
             
         except Exception as e:
-            logger.warning(f"Failed to initialize AI provider '{engine}': {e}")
-            logger.warning("AgentCore starting in LAZY/UNCONFIGURED mode")
+            logger.warning(f"AI Provider Init Failed: {e}")
             self.provider = None
-            # Do NOT raise, continue initialization
-            # Não levantar exceção, continuar inicialização
-        
-        # Initialize command executor / Inicializa executor de comandos
-        self.hexstrike = HexStrikeClient(base_url=hexstrike_url)
-        
-        # Check HexStrike availability / Verifica disponibilidade do HexStrike
+
+    def _check_subsystems(self):
+        """
+        Verify status of dependencies.
+        Verificar status das dependências.
+        """
         health = self.hexstrike.health_check()
-        self.hexstrike_available = health.get("status") != "error"
+        self.hexstrike_available = (health.get("status") != "error")
         
-        if not self.hexstrike_available:
-            logger.warning("HexStrike not available - command execution will be disabled")
-            logger.warning("Commands can still be proposed but won't be executed automatically")
+        if self.hexstrike_available:
+            logger.info("HexStrike-AI: ONLINE")
         else:
-            logger.info("HexStrike available and ready")
-        
-        # Initialize new POO components / Inicializa novos componentes POO
-        # CommandExecutor wraps HexStrike client
-        # CommandExecutor encapsula cliente HexStrike
-        self.executor = CommandExecutor(self.hexstrike)
-        
-        # Initialize MCP Manager
-        self.mcp_manager = MCPManager()
-        logger.info("MCP Manager initialized in AgentCore")
-        
-        # Initialize AgentOrchestrator
-        # Inicializa o Orquestrador do Agente
-        from .orchestrator import AgentOrchestrator
-        # Pass provider (can be None)
-        self.orchestrator = AgentOrchestrator(self.provider, self.executor, self.mcp_manager)
-        
-        # Initialize ActionDispatcher (Legacy/Compatibility)
-        from .action_dispatcher import ActionDispatcher
-        self.dispatcher = ActionDispatcher(self)
+            logger.warning("HexStrike-AI: OFFLINE (Command Execution Limited)")
 
-        logger.info(f"AgentCore initialized with {engine} provider")
-
-    def set_profile_context(self, context: str):
-        """
-        Inject User Profile context into the AI Provider
-        Injetar contexto de Perfil de Usuário no Provedor de IA
-        """
-        if self.provider:
-            if hasattr(self.provider, 'set_system_context'):
-                self.provider.set_system_context(context)
-                logger.info("Profile context injected directly into Provider")
-            else:
-                self.profile_context = context
-                logger.info("Profile context stored in AgentCore (Provider doesn't support direct injection)")
-    
     def initialize(
         self, 
         api_key: str = None, 
         engine: str = None, 
-        model: str = None,
+        model: str = None, 
         provider_kwargs: Optional[Dict[str, Any]] = None
     ) -> bool:
         """
-        Re-initialize the agent with new configuration
-        Re-inicializa o agente com nova configuração
+        Hot-reload configuration.
+        Recarga a quente da configuração.
         """
-        try:
-            logger.info(f"Re-initializing AgentCore: Engine={engine}, Model={model}")
-            
-            current_engine = engine or self.engine
-            
-            provider_config = {
-                'api_key': api_key,
-                'model': model if model else (self.provider.get_default_model() if self.provider else None)
-            }
-            
-            if provider_kwargs:
-                provider_config.update(provider_kwargs)
-            
-            self.engine = current_engine
-            self.provider = ProviderFactory.create_provider(current_engine, provider_config)
-            
-            # Update Orchestrator with new provider
-            self.orchestrator.provider = self.provider
-            
-            logger.info("AgentCore re-initialized successfully")
-            return True
-        except Exception as e:
-            logger.error(f"Failed to re-initialize AgentCore: {e}")
-            return False
-    
+        with self._lock:
+            try:
+                target_engine = engine or self.engine
+                logger.info(f"Reloading Core Configuration -> {target_engine}")
+                
+                # Determine model / Determinar modelo
+                if not model and self.provider:
+                    try:
+                        model = self.provider.get_default_model()
+                    except:
+                        pass
+                
+                self._initialize_provider(api_key, model, None, target_engine, provider_kwargs)
+                self.engine = target_engine
+                
+                # Update Orchestrator / Atualizar Orquestrador
+                self.orchestrator.provider = self.provider
+                
+                return True
+            except Exception as e:
+                logger.error(f"Hot-reload failed: {e}")
+                return False
+
     def process_message(
         self, 
         user_input: str,
@@ -191,16 +176,19 @@ class AgentCore:
         abort_signal: Optional[Any] = None
     ) -> Generator[Dict[str, Any], None, None]:
         """
-        Process user message using AgentOrchestrator
-        Processa mensagem do usuário usando AgentOrchestrator
-        """
-        logger.info(f"AgentCore: Delegating to Orchestrator (Auto-Exec: {auto_execute})")
+        Main Execution Entry Point.
+        Ponto de Entrada de Execução Principal.
         
-        # Determine if context needs to be injected manually
-        if hasattr(self, 'profile_context') and self.profile_context:
-             # If provider doesn't support direct context, we might prepend it?
-             # For now, Orchestrator handles text-based context if passed
-             pass
+        Delegates to Orchestrator.
+        Delega para o Orquestrador.
+        """
+        if not self.provider:
+             yield {
+                 "type": "error", 
+                 "content": "AI Core not configured. Please check Settings.",
+                 "metadata": {"source": "AgentCore"}
+             }
+             return
 
         yield from self.orchestrator.process(
             user_input=user_input,
@@ -210,107 +198,46 @@ class AgentCore:
             abort_signal=abort_signal
         )
 
-    def complete_code(
-        self,
-        code_context: str,
-        language: str = 'python'
-    ) -> List[str]:
+    def complete_code(self, code_context: str, language: str = 'python') -> List[str]:
         """
-        Generate completion suggestions for code or commands
-        Gera sugestões de completion para código ou comandos
+        Code Completion Facade.
+        Facade de Completion de Código.
         """
+        if not self.provider:
+            return []
+            
         try:
-            # Construct a prompt for the model
+            # Simple prompt for completion / Prompt simples para completion
             prompt = (
-                f"You are an intelligent code completion engine. "
-                f"Complete the following {language} code snippet. "
-                f"Return ONLY the completion part, no markdown, no explanations.\n\n"
-                f"{code_context}"
+                f"Complete this {language} code. Return ONLY code:\n\n{code_context}"
             )
             
-            # Use non-streaming chat step for simplicity
-            response_text = ""
-            for chunk in self.provider.chat_step(prompt=prompt, model=self.provider.get_default_model()):
-                response_text += chunk
+            # Simple sync call / Chamada síncrona simples
+            response = ""
+            for chunk in self.provider.chat_step(prompt=prompt, chat_context=[]):
+                response += chunk
                 
-            # Basic parsing: split by newlines or return single block
-            # For command mode, we often want single line completions
-            return [response_text.strip()]
-            
+            return [response.strip()]
         except Exception as e:
-            logger.error(f"Completion failed: {e}")
+            logger.error(f"Completion Error: {e}")
             return []
-    
-    def reset(self):
-        """
-        Reset AI conversation history
-        Reseta histórico de conversa IA
-        """
-        # Note: Reset not in generic InferenceStrategy interface
-        # Would need provider-specific implementation
-        # Nota: Reset não está na interface genérica InferenceStrategy  
-        # Precisaria de implementação específica do provedor
-        pass
-        logger.info("Agent conversation reset")
 
-    def shutdown(self):
-        """
-        Gracefully shutdown agent resources
-        Encerra graciosamente recursos do agente
-        """
-        logger.info("AgentCore shutting down...")
-        pass
-    
     def get_status(self) -> Dict[str, Any]:
-        """
-        Get current agent status
-        Obtém status atual do agente
-        """
+        """Diagnostic Status / Status de Diagnóstico"""
+        model = "unknown"
+        if self.provider:
+            # Try to get model from provider attribute or config
+            if hasattr(self.provider, 'model'):
+                model = self.provider.model
+            elif hasattr(self.provider, 'config'):
+                model = self.provider.config.get('model', 'unknown')
+        
         return {
-            "brain_ready": self.provider is not None,
-            "hexstrike_available": self.hexstrike_available,
-            "conversation_length": 0,  # TODO: Provider-specific
-            "model": self.provider.get_default_model() if self.provider else None,
-            "provider": self.provider.get_provider_name() if self.provider else None,
             "engine": self.engine,
-            "hexstrike_url": self.hexstrike.base_url
+            "provider": self.engine, # Alias for consistency
+            "model": model,
+            "brain_ready": self.provider is not None, # Alias for SystemController
+            "provider_ready": self.provider is not None,
+            "hexstrike_online": self.hexstrike_available,
+            "orchestrator_ready": self.orchestrator is not None
         }
-    
-    def health_check(self) -> Dict[str, Any]:
-        """
-        Perform comprehensive health check
-        Realiza verificação completa de saúde
-        """
-        health = {
-            "overall": "healthy",
-            "components": {}
-        }
-        
-        # Check AI brain
-        try:
-            health["components"]["brain"] = {
-                "status": "ok",
-                "model": self.provider.get_default_model() if self.provider else None,
-                "history_length": 0
-            }
-        except Exception as e:
-            health["components"]["brain"] = {
-                "status": "error",
-                "error": str(e)
-            }
-            health["overall"] = "degraded"
-        
-        # Check HexStrike
-        hexstrike_health = self.hexstrike.health_check()
-        health["components"]["hexstrike"] = hexstrike_health
-        
-        if hexstrike_health.get("status") == "error":
-            health["overall"] = "degraded"
-        
-        return health
-    
-    def __repr__(self) -> str:
-        """String representation / Representação em string"""
-        provider_name = self.provider.get_provider_name() if self.provider else "None (Lazy)"
-        return (f"AgentCore(provider={provider_name}, "
-                f"hexstrike={'available' if self.hexstrike_available else 'unavailable'})")

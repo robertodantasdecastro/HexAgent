@@ -1,60 +1,62 @@
 """
-Profile Controller - API Endpoints for Personalization
-Controlador de Perfil - Endpoints API para Personalização
+Profile Controller
+Controlador de Perfil
 
-Exposes routes to get/update user profile data.
-Expõe rotas para obter/atualizar dados de perfil do usuário.
+Handles user profile and persona configuration endpoints.
+Gerencia endpoints de configuração de perfil e persona de usuário.
 
-@author: Roberto Dantas de Castro
+@author: Roberto Dantas de Castro <robertodantasdecastro@gmail.com>
+@version: 1.0.0
 """
 
 from core.base_controller import BaseController
-from services.profile_service import ProfileService
-from flask import request
-
+from services.profile_config_service import ProfileConfigService
+from core.errors import ConfigError
 
 class ProfileController(BaseController):
-    """Controller for user profile operations / Controlador para operações de perfil"""
+    """
+    Controller for Profile configuration
+    Controlador para configuração de Perfil
+    """
     
-    def __init__(self):
-        super().__init__(name='profile', import_name=__name__, url_prefix='/config/profile')
+    def __init__(self, core_ref=None):
+        self.service = ProfileConfigService()
+        self.core = core_ref
+        super().__init__(
+            name='profile',
+            import_name=__name__,
+            url_prefix='/config/profile'
+        )
     
     def _register_routes(self):
         """Register profile routes / Registra rotas de perfil"""
         
-        # Override the url_prefix behavior slightly or map root to GET/POST
-        # Note: BaseController usually sets prefix. So this maps to /config/profile/
-        
         @self.blueprint.route('/', methods=['GET'])
         def get_profile():
-            """Get current user profile / Obter perfil atual do usuário"""
+            """Get profile config / Obter config de perfil"""
             try:
-                service = ProfileService()
-                data = service.load_profile()
-                # BaseController.success_response format
-                return self.success_response(data={'profile': data})
+                self.log_request('GET /config/profile')
+                config = self.service.load_config()
+                return self.success_response(data=config)
             except Exception as e:
-                self.log_error('get_profile', e)
-                return self.error_response(str(e), 500)
+                self.log_error('GET /config/profile', e)
+                return self.error_response("Failed to load profile", 500)
 
         @self.blueprint.route('/', methods=['POST'])
         def save_profile():
-            """Save user profile / Salvar perfil do usuário"""
+            """Save profile config / Salvar config de perfil"""
             try:
-                data = request.json.get('profile')
-                if not data:
-                     return self.error_response("No profile data provided", 400)
-
-                service = ProfileService()
-                if service.save_profile(data):
-                    return self.success_response(message="Profile saved")
-                else:
-                    return self.error_response("Failed to save profile", 500)
-                    
+                self.log_request('POST /config/profile')
+                data = self.validate_request(['config'])
+                self.service.save_config(data['config'])
+                
+                # Update Core Context if running
+                # Atualizar Contexto do Core se estiver rodando
+                if self.core:
+                    ctx = self.service.get_system_context()
+                    self.core.set_profile_context(ctx)
+                
+                return self.success_response(message="Profile saved")
             except Exception as e:
-                self.log_error('save_profile', e)
-                return self.error_response(str(e), 500)
-
-# Expose the blueprint for app.py if it still needs direct access (though BaseController handles it)
-# In app.py loop, 'controller.blueprint' is used.
-profile_bp = None # Not needed if instantiated in app.py logic using blueprint property
+                self.log_error('POST /config/profile', e)
+                return self.error_response("Failed to save profile", 500)

@@ -70,12 +70,21 @@ const App = () => {
       stopGeneration: commandManager.stopExecution,
       inputMode: 'command', // Fixed
       setInputMode: () => {}, // No-op in command mode
-      autoScroll: true
+      autoScroll: true,
+      cmdHistory: commandManager.cmdHistory // Expose history
   };
 
   const [input, setInput] = useState('');
+  const [historyIndex, setHistoryIndex] = useState(-1); // Local pointer for App.jsx
   const scrollRef = useRef(null);
   const bottomRef = useRef(null);
+
+  // ... (Translation Hook)
+
+  // ... (Effects)
+
+  // ...
+
 
   // Translation Hook / Hook de Tradução
   const { t, language, setLanguage } = useTranslation();
@@ -215,6 +224,24 @@ const App = () => {
   }
 
   const colors = systemConfig?.theme?.colors || {};
+
+  // Handle Branch Forking
+  const handleFork = (blockId) => {
+      if (appMode !== 'chat') return; // Only for chat for now
+      
+      const blockIndex = activeManager.blocks.findIndex(b => b.id === blockId);
+      if (blockIndex !== -1 && activeManager.forkBranch) {
+          // Pre-fill input with content of the block being edited
+          const blockContent = activeManager.blocks[blockIndex].content;
+          setInput(blockContent);
+          
+          const forkPoint = blockIndex > 0 ? blockIndex - 1 : -1;
+          
+          if (confirm("Create new branch from here?")) { 
+             activeManager.forkBranch(forkPoint);
+          }
+      }
+  };
 
   return (
     <div className={`flex flex-col h-screen text-gray-200 font-sans ${systemConfig?.theme?.mode === 'dark' ? 'bg-[#050505]' : 'bg-gray-900'}`}
@@ -402,16 +429,18 @@ const App = () => {
                 colors={colors}
                 t={t}
                 aiConfig={aiConfig}
-                mode={appMode} // Pass mode to Block to render differently if needed
+                mode={appMode} 
                 onAbort={activeManager.stopGeneration}
+                onFork={handleFork}
               />
             ))
           )}
           <div ref={bottomRef} />
         </div>
+      </main>
 
-        {/* 3. Input Area */}
-        <div className="flex-none p-4 bg-[#0a0a0a] border-t border-[#333] z-30 relative"> 
+      {/* 3. Input Area */}
+      <div className="flex-none p-4 bg-[#0a0a0a] border-t border-[#333] z-30 relative"> 
             <div className="max-w-4xl mx-auto relative group">
                 
                 {/* Input Box */}
@@ -430,6 +459,29 @@ const App = () => {
                          // Send to active manager!
                          activeManager.sendMessage(input, autoExecute, unlimitedIterations, maxIterations);
                          setInput('');
+                         setHistoryIndex(-1);
+                       }
+                       
+                       // Command Mode History Navigation
+                       if (appMode === 'command' && activeManager.cmdHistory && activeManager.cmdHistory.length > 0) {
+                           if (e.key === 'ArrowUp') {
+                               e.preventDefault();
+                               const newIndex = historyIndex === -1 ? activeManager.cmdHistory.length - 1 : Math.max(0, historyIndex - 1);
+                               setHistoryIndex(newIndex);
+                               setInput(activeManager.cmdHistory[newIndex] || '');
+                           } else if (e.key === 'ArrowDown') {
+                               e.preventDefault();
+                               if (historyIndex === -1) return; // Already at bottom
+                               
+                               const newIndex = historyIndex + 1;
+                               if (newIndex >= activeManager.cmdHistory.length) {
+                                   setHistoryIndex(-1);
+                                   setInput('');
+                               } else {
+                                   setHistoryIndex(newIndex);
+                                   setInput(activeManager.cmdHistory[newIndex]);
+                               }
+                           }
                        }
                      }}
                      placeholder={
@@ -482,7 +534,6 @@ const App = () => {
                 </div>
             </div>
         </div>
-      </main>
 
       {/* Modals */}
       <SettingsModal

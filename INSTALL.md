@@ -103,7 +103,6 @@ pip install -r backend/requirements.txt
 # Copy HexAgent and HexStrike to project
 cp -r ../HexAgent backend/
 cp -r ../hexstrike-ai backend/
-cp -r ../HexSecGPT-main backend/
 ```
 
 #### Step 5: Build Application
@@ -128,13 +127,10 @@ sudo ln -s $(pwd)/dist/mac-arm64/HexAgentGUI.app/Contents/MacOS/HexAgentGUI /usr
 HexAgentGUI requires an API key for the AI model (OpenRouter).
 
 1. Get your API key from [OpenRouter](https://openrouter.ai/)
-2. Create API key file:
+2. Configure via Settings UI or environment variable:
 
 ```bash
-# Create .HexSec file in HexSecGPT-main directory
-echo "YOUR_API_KEY_HERE" > ~/iatools/HexAgent/HexSecGPT-main/.HexSec
-
-# Or use environment variable
+# Use environment variable
 export OPENROUTER_API_KEY="YOUR_API_KEY_HERE"
 ```
 

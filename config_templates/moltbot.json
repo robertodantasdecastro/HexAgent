@@ -1,0 +1,20 @@
+{
+  "core": {
+    "enabled": false,
+    "node_path": "node",
+    "app_path": "~/iatools/moltbot"
+  },
+  "resources": {
+    "max_memory_mb": 512,
+    "log_level": "info"
+  },
+  "skills": {
+    "web_search": {"enabled": true},
+    "browser": {"enabled": true},
+    "code_interpreter": {"enabled": true}
+  },
+  "integrations": {
+    "discord": {"enabled": false, "token": ""},
+    "telegram": {"enabled": false, "token": ""}
+  }
+}
