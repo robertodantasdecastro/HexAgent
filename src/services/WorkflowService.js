@@ -19,19 +19,19 @@ class WorkflowService {
    * @private
    * @static
    */
-  static #instance = null;
+  static _instance = null;
 
   /**
    * API Client instance / Instância do Cliente API
    * @private
    */
-  #api;
+  _api;
 
   /**
    * Cached workflows / Workflows em cache
    * @private
    */
-  #cachedWorkflows = null;
+  _cachedWorkflows = null;
 
   /**
    * Private constructor (Singleton pattern)
@@ -39,13 +39,13 @@ class WorkflowService {
    * @private
    */
   constructor() {
-    if (WorkflowService.#instance) {
+    if (WorkflowService._instance) {
       throw new Error(
         'WorkflowService is a singleton. Use WorkflowService.getInstance() instead. / ' +
         'WorkflowService é um singleton. Use WorkflowService.getInstance() ao invés disso.'
       );
     }
-    this.#api = APIClient.getInstance();
+    this._api = APIClient.getInstance();
   }
 
   /**
@@ -54,10 +54,10 @@ class WorkflowService {
    * @returns {WorkflowService} WorkflowService instance / Instância do WorkflowService
    */
   static getInstance() {
-    if (!WorkflowService.#instance) {
-      WorkflowService.#instance = new WorkflowService();
+    if (!WorkflowService._instance) {
+      WorkflowService._instance = new WorkflowService();
     }
-    return WorkflowService.#instance;
+    return WorkflowService._instance;
   }
 
   /**
@@ -66,18 +66,18 @@ class WorkflowService {
    * @returns {Promise<Array<Object>>} Array of workflows / Array de workflows
    */
   async listWorkflows(useCache = true) {
-    if (useCache && this.#cachedWorkflows) {
+    if (useCache && this._cachedWorkflows) {
       console.log('[WorkflowService] Returning cached workflows');
-      return this.#cachedWorkflows;
+      return this._cachedWorkflows;
     }
 
     try {
       console.log('[WorkflowService] Listing workflows');
       
-      const data = await this.#api.get('/workflows');
+      const data = await this._api.get('/workflows');
 
       if (data && Array.isArray(data.workflows)) {
-        this.#cachedWorkflows = data.workflows;
+        this._cachedWorkflows = data.workflows;
         console.log(`[WorkflowService] Found ${data.workflows.length} workflows`);
         return data.workflows;
       }
@@ -104,7 +104,7 @@ class WorkflowService {
     try {
       console.log(`[WorkflowService] Executing workflow: ${name}`);
       
-      const data = await this.#api.post('/workflow/execute', {
+      const data = await this._api.post('/workflow/execute', {
         name,
         params
       });
@@ -141,10 +141,10 @@ class WorkflowService {
     try {
       console.log(`[WorkflowService] Creating workflow: ${definition.name}`);
       
-      const data = await this.#api.post('/workflow', definition);
+      const data = await this._api.post('/workflow', definition);
 
       // Invalidate cache / Invalidar cache
-      this.#cachedWorkflows = null;
+      this._cachedWorkflows = null;
 
       console.log(`[WorkflowService] Workflow "${definition.name}" created successfully`);
       
@@ -177,10 +177,10 @@ class WorkflowService {
     try {
       console.log(`[WorkflowService] Updating workflow: ${name}`);
       
-      const data = await this.#api.put(`/workflow/${encodeURIComponent(name)}`, definition);
+      const data = await this._api.put(`/workflow/${encodeURIComponent(name)}`, definition);
 
       // Invalidate cache / Invalidar cache
-      this.#cachedWorkflows = null;
+      this._cachedWorkflows = null;
 
       console.log(`[WorkflowService] Workflow "${name}" updated successfully`);
       
@@ -208,10 +208,10 @@ class WorkflowService {
     try {
       console.log(`[WorkflowService] Deleting workflow: ${name}`);
       
-      await this.#api.delete(`/workflow/${encodeURIComponent(name)}`);
+      await this._api.delete(`/workflow/${encodeURIComponent(name)}`);
 
       // Invalidate cache / Invalidar cache
-      this.#cachedWorkflows = null;
+      this._cachedWorkflows = null;
 
       console.log(`[WorkflowService] Workflow "${name}" deleted successfully`);
       
@@ -230,7 +230,7 @@ class WorkflowService {
    * @returns {void}
    */
   clearCache() {
-    this.#cachedWorkflows = null;
+    this._cachedWorkflows = null;
     console.log('[WorkflowService] Cache cleared');
   }
 

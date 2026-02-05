@@ -21,7 +21,7 @@
  */
 
 class Logger {
-  static #instance = null;
+  static _instance = null;
 
   /**
    * Log levels with priority / Níveis de log com prioridade
@@ -38,14 +38,14 @@ class Logger {
    * Current log level / Nível atual de log
    * Defaults based on environment / Padrão baseado no ambiente
    */
-  static #currentLevel = process.env.NODE_ENV === 'production' 
+  static _currentLevel = process.env.NODE_ENV === 'production' 
     ? Logger.LEVELS.ERROR 
     : Logger.LEVELS.DEBUG;
 
   /**
    * Color codes for console output / Códigos de cor para saída no console
    */
-  static #colors = {
+  static _colors = {
     DEBUG: '\x1b[36m',    // Cyan
     INFO: '\x1b[32m',     // Green
     WARN: '\x1b[33m',     // Yellow
@@ -54,7 +54,7 @@ class Logger {
   };
 
   constructor() {
-    if (Logger.#instance) {
+    if (Logger._instance) {
       throw new Error(
         'Logger is a singleton. Use Logger.getInstance() instead. / ' +
         'Logger é um singleton. Use Logger.getInstance().'
@@ -67,10 +67,10 @@ class Logger {
    * @returns {Logger} Logger instance
    */
   static getInstance() {
-    if (!Logger.#instance) {
-      Logger.#instance = new Logger();
+    if (!Logger._instance) {
+      Logger._instance = new Logger();
     }
-    return Logger.#instance;
+    return Logger._instance;
   }
 
   /**
@@ -79,7 +79,7 @@ class Logger {
    */
   static setLevel(level) {
     if (Logger.LEVELS.hasOwnProperty(level)) {
-      Logger.#currentLevel = Logger.LEVELS[level];
+      Logger._currentLevel = Logger.LEVELS[level];
     } else {
       console.warn(`Invalid log level: ${level}`);
     }
@@ -90,16 +90,16 @@ class Logger {
    * @returns {number} Current level number
    */
   static getLevel() {
-    return Logger.#currentLevel;
+    return Logger._currentLevel;
   }
 
   /**
    * Core logging method / Método central de log
    * @private
    */
-  #log(level, message, context = {}) {
+  _log(level, message, context = {}) {
     // Check if this level should be logged / Verificar se este nível deve ser logado
-    if (Logger.LEVELS[level] < Logger.#currentLevel) {
+    if (Logger.LEVELS[level] < Logger._currentLevel) {
       return;
     }
 
@@ -112,8 +112,8 @@ class Logger {
     };
 
     // Format console output / Formatar saída do console
-    const color = Logger.#colors[level] || '';
-    const reset = Logger.#colors.RESET;
+    const color = Logger._colors[level] || '';
+    const reset = Logger._colors.RESET;
     const contextStr = Object.keys(context).length > 0 
       ? JSON.stringify(context, null, 2) 
       : '';
@@ -134,7 +134,7 @@ class Logger {
 
     // Send to external service in production / Enviar para serviço externo em produção
     if (process.env.NODE_ENV === 'production' && level === 'ERROR') {
-      this.#sendToService(logEntry);
+      this._sendToService(logEntry);
     }
 
     return logEntry;
@@ -151,7 +151,7 @@ class Logger {
    * logger.debug('User data loaded', { userId: 123, items: 5 });
    */
   debug(message, context = {}) {
-    return this.#log('DEBUG', message, context);
+    return this._log('DEBUG', message, context);
   }
 
   /**
@@ -165,7 +165,7 @@ class Logger {
    * logger.info('Session started', { sessionId: 'abc123' });
    */
   info(message, context = {}) {
-    return this.#log('INFO', message, context);
+    return this._log('INFO', message, context);
   }
 
   /**
@@ -179,7 +179,7 @@ class Logger {
    * logger.warn('API rate limit approaching', { remaining: 10 });
    */
   warn(message, context = {}) {
-    return this.#log('WARN', message, context);
+    return this._log('WARN', message, context);
   }
 
   /**
@@ -203,7 +203,7 @@ class Logger {
       };
     }
 
-    return this.#log('ERROR', message, context);
+    return this._log('ERROR', message, context);
   }
 
   /**
@@ -211,7 +211,7 @@ class Logger {
    * Enviar entrada de log para serviço externo
    * @private
    */
-  #sendToService(logEntry) {
+  _sendToService(logEntry) {
     // TODO: Implement external logging service integration
     // Examples: Sentry, LogRocket, Datadog, CloudWatch
     // 

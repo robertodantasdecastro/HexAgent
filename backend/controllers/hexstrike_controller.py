@@ -84,3 +84,17 @@ class HexStrikeController(BaseController):
                 return self.success_response(data=status)
             except Exception as e:
                 return self.error_response(str(e), 500)
+
+        # TOOLS / FERRAMENTAS
+        @self.blueprint.route('/tools', methods=['GET'])
+        def list_tools():
+            try:
+                self.log_request('GET /hexstrike/tools')
+                if not self.core or not self.core.hexstrike:
+                     return self.error_response("Agent Core not ready", 503)
+                
+                tools = self.core.hexstrike.list_tools()
+                return self.success_response(data=tools)
+            except Exception as e:
+                self.log_error('GET /hexstrike/tools', e)
+                return self.error_response(str(e), 500)

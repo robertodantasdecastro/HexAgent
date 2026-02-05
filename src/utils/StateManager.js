@@ -16,13 +16,13 @@ class StateManager {
    * @private
    * @static
    */
-  static #instance = null;
+  static _instance = null;
 
   /**
    * State store / Armazém de estado
    * @private
    */
-  #state = {
+  _state = {
     // Session state / Estado da sessão
     session: {
       blocks: [],
@@ -75,7 +75,7 @@ class StateManager {
    * Observers for state changes / Observadores para mudanças de estado
    * @private
    */
-  #observers = new Map();
+  _observers = new Map();
 
   /**
    * Private constructor (Singleton pattern)
@@ -83,7 +83,7 @@ class StateManager {
    * @private
    */
   constructor() {
-    if (StateManager.#instance) {
+    if (StateManager._instance) {
       throw new Error(
         'StateManager is a singleton. Use StateManager.getInstance() instead. / ' +
         'StateManager é um singleton. Use StateManager.getInstance() ao invés disso.'
@@ -97,10 +97,10 @@ class StateManager {
    * @returns {StateManager} StateManager instance / Instância do StateManager
    */
   static getInstance() {
-    if (!StateManager.#instance) {
-      StateManager.#instance = new StateManager();
+    if (!StateManager._instance) {
+      StateManager._instance = new StateManager();
     }
-    return StateManager.#instance;
+    return StateManager._instance;
   }
 
   /**
@@ -109,16 +109,16 @@ class StateManager {
    * @returns {Object} State slice / Fatia de estado
    */
   getState(slice) {
-    if (slice && this.#state[slice]) {
-      return { ...this.#state[slice] };
+    if (slice && this._state[slice]) {
+      return { ...this._state[slice] };
     }
     // Return entire state if no slice specified
     return {
-      session: { ...this.#state.session },
-      ui: { ...this.#state.ui },
-      interaction: { ...this.#state.interaction },
-      history: { ...this.#state.history },
-      initialization: { ...this.#state.initialization }
+      session: { ...this._state.session },
+      ui: { ...this._state.ui },
+      interaction: { ...this._state.interaction },
+      history: { ...this._state.history },
+      initialization: { ...this._state.initialization }
     };
   }
 
@@ -130,21 +130,21 @@ class StateManager {
    * @returns {void}
    */
   setState(slice, key, value) {
-    if (!this.#state[slice]) {
+    if (!this._state[slice]) {
       console.warn(`[StateManager] Unknown slice: ${slice}`);
       return;
     }
 
-    const oldValue = this.#state[slice][key];
+    const oldValue = this._state[slice][key];
     
     if (oldValue === value) {
       return; // No change, skip notification
     }
 
-    this.#state[slice][key] = value;
+    this._state[slice][key] = value;
     
     // Notify observers / Notificar observadores
-    this.#notify(slice, key, value, oldValue);
+    this._notify(slice, key, value, oldValue);
   }
 
   /**
@@ -154,18 +154,18 @@ class StateManager {
    * @returns {void}
    */
   setMultiple(slice, updates) {
-    if (!this.#state[slice]) {
+    if (!this._state[slice]) {
       console.warn(`[StateManager] Unknown slice: ${slice}`);
       return;
     }
 
     Object.keys(updates).forEach(key => {
-      const oldValue = this.#state[slice][key];
+      const oldValue = this._state[slice][key];
       const newValue = updates[key];
       
       if (oldValue !== newValue) {
-        this.#state[slice][key] = newValue;
-        this.#notify(slice, key, newValue, oldValue);
+        this._state[slice][key] = newValue;
+        this._notify(slice, key, newValue, oldValue);
       }
     });
   }
@@ -183,16 +183,16 @@ class StateManager {
 
     const observerId = `${slice}_${Date.now()}_${Math.random()}`;
     
-    if (!this.#observers.has(slice)) {
-      this.#observers.set(slice, new Map());
+    if (!this._observers.has(slice)) {
+      this._observers.set(slice, new Map());
     }
     
-    this.#observers.get(slice).set(observerId, callback);
+    this._observers.get(slice).set(observerId, callback);
     
     // Return unsubscribe function / Retornar função de cancelamento
     return () => {
-      if (this.#observers.has(slice)) {
-        this.#observers.get(slice).delete(observerId);
+      if (this._observers.has(slice)) {
+        this._observers.get(slice).delete(observerId);
       }
     };
   }
@@ -206,12 +206,12 @@ class StateManager {
    * @param {any} oldValue - Old value
    * @returns {void}
    */
-  #notify(slice, key, newValue, oldValue) {
-    if (!this.#observers.has(slice)) {
+  _notify(slice, key, newValue, oldValue) {
+    if (!this._observers.has(slice)) {
       return;
     }
 
-    const sliceObservers = this.#observers.get(slice);
+    const sliceObservers = this._observers.get(slice);
     
     sliceObservers.forEach(callback => {
       try {
@@ -281,7 +281,7 @@ class StateManager {
    * @returns {void}
    */
   clearObservers() {
-    this.#observers.clear();
+    this._observers.clear();
     console.log('[StateManager] All observers cleared');
   }
 }

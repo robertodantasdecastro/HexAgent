@@ -1,6 +1,5 @@
 import TerminalBlock from './blocks/TerminalBlock';
 import TextBlock from './blocks/TextBlock';
-import ThinkingBlock from './blocks/ThinkingBlock';
 
 const BlockRenderer = ({ block }) => {
   if (!block) return null;
@@ -9,7 +8,8 @@ const BlockRenderer = ({ block }) => {
 
   switch (type) {
     case 'thinking':
-      return <ThinkingBlock content={content} />;
+      // return <ThinkingBlock content={content} />;
+      return null;
     
     case 'text':
       return <TextBlock content={content} />;

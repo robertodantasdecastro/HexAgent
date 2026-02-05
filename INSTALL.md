@@ -103,6 +103,7 @@ pip install -r backend/requirements.txt
 # Copy HexAgent and HexStrike to project
 cp -r ../HexAgent backend/
 cp -r ../hexstrike-ai backend/
+cp -r ../HexSecGPT-main backend/
 ```
 
 #### Step 5: Build Application
@@ -122,15 +123,18 @@ sudo ln -s $(pwd)/dist/linux-arm64-unpacked/hexagent-gui /usr/local/bin/hexagent
 sudo ln -s $(pwd)/dist/mac-arm64/HexAgentGUI.app/Contents/MacOS/HexAgentGUI /usr/local/bin/hexagent-gui
 ```
 
-### API Keys Configuration
+### Configuration & API Keys
 
-HexAgentGUI requires an API key for the AI model (OpenRouter).
+HexAgentGUI stores configuration in `~/.hexagent-gui/config.json` (System) and `~/.hexagent-gui/ai-config.json` (AI).
 
-1. Get your API key from [OpenRouter](https://openrouter.ai/)
-2. Configure via Settings UI or environment variable:
+You can configure the AI directly from the GUI (Settings Icon -> AI Configuration).
 
+**Supported Engines:**
+- **Local:** LM Studio (Default), Ollama, LocalAI.
+- **Classic Cloud:** OpenAI, Anthropic, DeepSeek, OpenRouter.
+
+To set an API Key manually (optional fallback):
 ```bash
-# Use environment variable
 export OPENROUTER_API_KEY="YOUR_API_KEY_HERE"
 ```
 
@@ -305,18 +309,18 @@ sudo ln -s $(pwd)/dist/linux-arm64-unpacked/hexagent-gui /usr/local/bin/hexagent
 sudo ln -s $(pwd)/dist/mac-arm64/HexAgentGUI.app/Contents/MacOS/HexAgentGUI /usr/local/bin/hexagent-gui
 ```
 
-### Configuração de Chaves API
+### Configuração e Chaves API
 
-HexAgentGUI requer uma chave API para o modelo de IA (OpenRouter).
+O HexAgentGUI armazena configurações em `~/.hexagent-gui/config.json` (Sistema) e `~/.hexagent-gui/ai-config.json` (IA).
 
-1. Obtenha sua chave API em [OpenRouter](https://openrouter.ai/)
-2. Crie arquivo de chave API:
+Você pode configurar a IA diretamente pela GUI (Ícone de Configurações -> Configuração de IA).
 
+**Motores Suportados:**
+- **Local:** LM Studio (Padrão), Ollama, LocalAI.
+- **Nuvem:** OpenAI, Anthropic, DeepSeek, OpenRouter.
+
+Para definir uma chave API manualmente (fallback opcional):
 ```bash
-# Criar arquivo .HexSec no diretório HexSecGPT-main
-echo "SUA_CHAVE_API_AQUI" > ~/iatools/HexAgent/HexSecGPT-main/.HexSec
-
-# Ou usar variável de ambiente
 export OPENROUTER_API_KEY="SUA_CHAVE_API_AQUI"
 ```
 

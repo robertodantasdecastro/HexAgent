@@ -15,6 +15,8 @@ const MCPRegistry = () => {
     const [servers, setServers] = useState({});
     const [loading, setLoading] = useState(false);
     const [newServer, setNewServer] = useState({ name: '', command: '', args: '' });
+    const [tools, setTools] = useState([]);
+    const [showTools, setShowTools] = useState(false);
     const logger = Logger.getInstance();
 
     useEffect(() => {
@@ -24,14 +26,34 @@ const MCPRegistry = () => {
     const fetchServers = async () => {
         try {
             const api = APIClient.getInstance();
-            const response = await api.get('/mcp/servers');
+            const response = await api.get('/mcp/config');
             if (response.success) {
+                // Backend returns the full config object { servers: { ... } } directly or wrapped in data?
+                // BaseController generic success returns: { success: true, data: config }
+                // So response.data is the config.
+                // config has 'servers'.
                 setServers(response.data.servers || {});
             }
         } catch (error) {
             logger.error('Failed to fetch MCP servers', error);
         }
     };
+
+    const fetchTools = async () => {
+        try {
+            const api = APIClient.getInstance();
+            const response = await api.get('/mcp/tools');
+            if (response.success) {
+                setTools(response.data || []);
+            }
+        } catch (error) {
+            logger.error('Failed to fetch tools', error);
+        }
+    };
+
+    useEffect(() => {
+        if (showTools) fetchTools();
+    }, [showTools]);
 
     const handleAddServer = async (e) => {
         e.preventDefault();
@@ -40,21 +62,29 @@ const MCPRegistry = () => {
         setLoading(true);
         try {
             const api = APIClient.getInstance();
-            // Parse args from string (space separated, respecting quotes is hard, but simple split for now)
-            // Better to use JSON parse if complex, but simple split is ok for basic
-            // Or allow multiline.
-            // Let's assume standard space split for V1.
             const argsList = newServer.args.split(' ').filter(a => a.trim() !== '');
+            
+            // 1. Get current config
+            const currentConfigResp = await api.get('/mcp/config');
+            let config = currentConfigResp.data || { servers: {} };
+            if (!config.servers) config.servers = {};
 
-            const response = await api.post('/mcp/servers', {
-                name: newServer.name,
+            // 2. Add server
+            config.servers[newServer.name] = {
                 command: newServer.command,
-                args: argsList
-            });
+                args: argsList,
+                env: {}, // Todo: Env support
+                enabled: true
+            };
 
-            if (response.success) {
-                setNewServer({ name: '', command: '', args: '' });
-                fetchServers();
+            // 3. Save config
+            const saveResp = await api.post('/mcp/config', config);
+
+            // 4. Restart Manager
+            if (saveResp.success) {
+                 await api.post('/mcp/restart', {});
+                 setNewServer({ name: '', command: '', args: '' });
+                 fetchServers();
             }
         } catch (error) {
             logger.error('Failed to add server', error);
@@ -68,8 +98,22 @@ const MCPRegistry = () => {
         
         try {
             const api = APIClient.getInstance();
-            await api.delete(`/mcp/servers/${name}`);
-            fetchServers();
+            
+            // 1. Get config
+            const currentConfigResp = await api.get('/mcp/config');
+            let config = currentConfigResp.data || {};
+            
+            // 2. Remove
+            if (config.servers && config.servers[name]) {
+                delete config.servers[name];
+                
+                // 3. Save & Restart
+                const saveResp = await api.post('/mcp/config', config);
+                 if (saveResp.success) {
+                     await api.post('/mcp/restart', {});
+                     fetchServers();
+                 }
+            }
         } catch (error) {
             logger.error('Failed to delete server', error);
         }
@@ -125,10 +169,37 @@ const MCPRegistry = () => {
                 </form>
             </div>
 
-            <h3 className="text-white font-bold mb-3 flex items-center gap-2">
-                <Server size={18} className="text-cyan-400" />
-                Configured Servers / Servidores Configurados
-            </h3>
+            <div className="flex items-center justify-between mb-3">
+                <h3 className="text-white font-bold flex items-center gap-2">
+                    <Server size={18} className="text-cyan-400" />
+                    Configured Servers / Servidores Configurados
+                </h3>
+                <button 
+                    onClick={() => setShowTools(!showTools)}
+                    className={`text-xs px-2 py-1 rounded border transition ${showTools ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/50' : 'bg-[#111] text-gray-500 border-[#333]'}`}
+                >
+                    {showTools ? 'Hide Tools' : 'Show Tools'}
+                </button>
+            </div>
+
+            {showTools && (
+                <div className="mb-6 space-y-2 bg-[#050505] p-3 rounded border border-[#222]">
+                    <h4 className="text-xs font-bold text-gray-400 uppercase">Discovered Tools ({tools.length})</h4>
+                    {tools.length === 0 ? (
+                        <div className="text-gray-600 text-[10px] italic">No tools discovered. Check server connection.</div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            {tools.map((tool, idx) => (
+                                <div key={idx} className="bg-[#111] p-2 rounded border border-[#222] text-[10px]">
+                                    <div className="font-bold text-cyan-400">{tool.name}</div>
+                                    <div className="text-gray-500 truncate">{tool.description}</div>
+                                    <div className="text-gray-600 font-mono mt-1 text-[9px]">{tool.server}</div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
             
             <div className="space-y-3">
                 {Object.keys(servers).length === 0 && (

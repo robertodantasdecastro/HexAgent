@@ -2,7 +2,7 @@
 ## Documentação de Arquitetura (v2.1.0)
 
 > **System architecture and technical design**  
-> **Arquitetura do sistema e design técnico**
+> **Arquitetura do tema e design técnico**
 
 ---
 

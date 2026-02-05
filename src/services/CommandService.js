@@ -19,25 +19,25 @@ class CommandService {
    * @private
    * @static
    */
-  static #instance = null;
+  static _instance = null;
 
   /**
    * API Client instance / Instância do Cliente API
    * @private
    */
-  #api;
+  _api;
 
   /**
    * Local command history / Histórico local de comandos
    * @private
    */
-  #localHistory = [];
+  _localHistory = [];
 
   /**
    * Shell history from backend / Histórico do shell do backend
    * @private
    */
-  #shellHistory = [];
+  _shellHistory = [];
 
   /**
    * Private constructor (Singleton pattern)
@@ -45,13 +45,13 @@ class CommandService {
    * @private
    */
   constructor() {
-    if (CommandService.#instance) {
+    if (CommandService._instance) {
       throw new Error(
         'CommandService is a singleton. Use CommandService.getInstance() instead. / ' +
         'CommandService é um singleton. Use CommandService.getInstance() ao invés disso.'
       );
     }
-    this.#api = APIClient.getInstance();
+    this._api = APIClient.getInstance();
   }
 
   /**
@@ -60,10 +60,10 @@ class CommandService {
    * @returns {CommandService} CommandService instance / Instância do CommandService
    */
   static getInstance() {
-    if (!CommandService.#instance) {
-      CommandService.#instance = new CommandService();
+    if (!CommandService._instance) {
+      CommandService._instance = new CommandService();
     }
-    return CommandService.#instance;
+    return CommandService._instance;
   }
 
   /**
@@ -80,7 +80,7 @@ class CommandService {
     try {
       console.log(`[CommandService] Executing: ${command}`);
       
-      const data = await this.#api.post('/execute', {
+      const data = await this._api.post('/execute', {
         command: command.trim()
       });
 
@@ -110,15 +110,15 @@ class CommandService {
     try {
       console.log('[CommandService] Loading shell history');
       
-      const data = await this.#api.get('/history/shell');
+      const data = await this._api.get('/history/shell');
 
       if (data && data.history) {
-        this.#shellHistory = data.history;
+        this._shellHistory = data.history;
         console.log(`[CommandService] Loaded ${data.history.length} shell commands`);
         return data.history;
       } else if (data && data.commands) {
         // Fallback for alternative response format
-        this.#shellHistory = data.commands;
+        this._shellHistory = data.commands;
         console.log(`[CommandService] Loaded ${data.commands.length} shell commands`);
         return data.commands;
       }
@@ -143,7 +143,7 @@ class CommandService {
     try {
       console.log(`[CommandService] Autocomplete for: "${partial}"`);
       
-      const data = await this.#api.post('/complete', {
+      const data = await this._api.post('/complete', {
         partial_command: partial.trim(),
         context: 'shell'
       });
@@ -165,7 +165,7 @@ class CommandService {
    * @returns {Array<string>} Local history / Histórico local
    */
   getLocalHistory() {
-    return [...this.#localHistory];
+    return [...this._localHistory];
   }
 
   /**
@@ -173,7 +173,7 @@ class CommandService {
    * @returns {Array<string>} Shell history / Histórico do shell
    */
   getShellHistory() {
-    return [...this.#shellHistory];
+    return [...this._shellHistory];
   }
 
   /**
@@ -192,8 +192,8 @@ class CommandService {
     }
 
     // Avoid duplicates / Evitar duplicatas
-    if (this.#localHistory[this.#localHistory.length - 1] !== trimmed) {
-      this.#localHistory.push(trimmed);
+    if (this._localHistory[this._localHistory.length - 1] !== trimmed) {
+      this._localHistory.push(trimmed);
       console.log(`[CommandService] Added to history: ${trimmed}`);
     }
   }
@@ -203,7 +203,7 @@ class CommandService {
    * @returns {void}
    */
   clearHistory() {
-    this.#localHistory = [];
+    this._localHistory = [];
     console.log('[CommandService] Local history cleared');
   }
 

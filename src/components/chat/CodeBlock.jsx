@@ -1,4 +1,4 @@
-import { CheckCircle, Copy, Download, Edit, Play } from 'lucide-react';
+import { CheckCircle, Copy, Download, Edit, Play, Terminal } from 'lucide-react';
 import Prism from 'prismjs';
 import 'prismjs/components/prism-bash';
 import 'prismjs/components/prism-javascript';
@@ -7,6 +7,7 @@ import 'prismjs/components/prism-python';
 import 'prismjs/themes/prism-tomorrow.css';
 import { useEffect, useRef, useState } from 'react';
 import { AnsiRenderer } from '../../utils/ansiRenderer';
+import APIClient from '../../utils/APIClient';
 
 /**
  * CodeBlock Component
@@ -23,6 +24,7 @@ const CodeBlock = ({ code, language, onExecute, colors }) => {
   const [saved, setSaved] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editedCode, setEditedCode] = useState(code);
+  const [sentToTerm, setSentToTerm] = useState(false);
   const codeRef = useRef(null);
 
   useEffect(() => {
@@ -58,6 +60,18 @@ const CodeBlock = ({ code, language, onExecute, colors }) => {
     if (onExecute) onExecute(editing ? editedCode : code, language);
   };
 
+  const handleTerminalRun = async () => {
+    const api = APIClient.getInstance();
+    const cmd = editing ? editedCode : code;
+    try {
+        await api.post('/terminal/input', { data: cmd + '\n' });
+        setSentToTerm(true);
+        setTimeout(() => setSentToTerm(false), 2000);
+    } catch(e) {
+        console.error("Terminal Run Failed", e);
+    }
+  };
+
   const handleEdit = () => {
     setEditing(!editing);
     if (editing) {
@@ -67,6 +81,7 @@ const CodeBlock = ({ code, language, onExecute, colors }) => {
   };
 
   const isExecutable = ['bash', 'python', 'javascript', 'sh'].includes(language);
+  const isShell = ['bash', 'sh'].includes(language);
 
   return (
     <div className="my-2 rounded-lg bg-[#1e1e1e] border border-[#333] overflow-hidden">
@@ -86,6 +101,12 @@ const CodeBlock = ({ code, language, onExecute, colors }) => {
             <Edit size={12} />
             {editing ? 'Fechar' : 'Editar'}
           </button>
+          {isShell && (
+             <button onClick={handleTerminalRun} className="flex items-center gap-1 px-2 py-1 text-[10px] rounded hover:bg-[#3d3d3d] text-cyan-400 hover:text-cyan-300 transition" title="Type into Terminal / Digitar no Terminal">
+                {sentToTerm ? <CheckCircle size={12} /> : <Terminal size={12} />}
+                {sentToTerm ? 'Enviado' : 'Terminal'}
+             </button>
+          )}
           {isExecutable && onExecute && (
             <button onClick={handleExecute} className="flex items-center gap-1 px-2 py-1 text-[10px] rounded hover:bg-[#3d3d3d] text-green-400 hover:text-green-300 transition">
               <Play size={12} />

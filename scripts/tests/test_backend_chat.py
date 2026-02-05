@@ -70,11 +70,14 @@ class BackendChatTester:
             
             if response.status_code == 200:
                 data = response.json()
-                if data.get('status') in ['ok', 'healthy', 'degraded']:
+                if data.get('status') in ['ok', 'healthy', 'degraded'] or \
+                   data.get('data', {}).get('status') in ['ok', 'healthy', 'degraded']:
+                    
+                    status = data.get('status') or data.get('data', {}).get('status')
                     return TestResult(
                         "Health Check",
                         True,
-                        f"Backend is {data.get('status')}",
+                        f"Backend is {status}",
                         data
                     )
             
@@ -122,11 +125,15 @@ class BackendChatTester:
             
             if response.status_code == 200:
                 data = response.json()
-                if data.get('success') and data.get('data', {}).get('standalone'):
+                # Success if standalone OR actual response (Local AI)
+                is_standalone = data.get('data', {}).get('standalone')
+                has_response = data.get('data', {}).get('response')
+                
+                if data.get('success') and (is_standalone or has_response):
                     return TestResult(
-                        "No API Key (Standalone Mode)",
+                        "No API Key (Standalone/Local)",
                         True,
-                        "Returned helpful standalone message",
+                        "Returned valid response (Standalone or Local)",
                         data
                     )
                 else:

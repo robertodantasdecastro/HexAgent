@@ -10,7 +10,7 @@ Gerencia endpoints de configuração de perfil e persona de usuário.
 """
 
 from core.base_controller import BaseController
-from services.profile_config_service import ProfileConfigService
+from services.profile_service import ProfileService
 from core.errors import ConfigError
 
 class ProfileController(BaseController):
@@ -20,7 +20,7 @@ class ProfileController(BaseController):
     """
     
     def __init__(self, core_ref=None):
-        self.service = ProfileConfigService()
+        self.service = ProfileService()
         self.core = core_ref
         super().__init__(
             name='profile',
@@ -36,7 +36,7 @@ class ProfileController(BaseController):
             """Get profile config / Obter config de perfil"""
             try:
                 self.log_request('GET /config/profile')
-                config = self.service.load_config()
+                config = self.service.load_profile()
                 return self.success_response(data=config)
             except Exception as e:
                 self.log_error('GET /config/profile', e)
@@ -48,12 +48,12 @@ class ProfileController(BaseController):
             try:
                 self.log_request('POST /config/profile')
                 data = self.validate_request(['config'])
-                self.service.save_config(data['config'])
+                self.service.save_profile(data['config'])
                 
                 # Update Core Context if running
                 # Atualizar Contexto do Core se estiver rodando
                 if self.core:
-                    ctx = self.service.get_system_context()
+                    ctx = self.service.get_system_prompt_context()
                     self.core.set_profile_context(ctx)
                 
                 return self.success_response(message="Profile saved")

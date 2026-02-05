@@ -15,6 +15,10 @@ from typing import Dict, Any
 CONFIG_DIR = Path.home() / '.hexagent-gui'
 MCP_CONFIG_FILE = CONFIG_DIR / 'mcp-config.json'
 
+# Resolve Backend Paths
+BACKEND_DIR = Path(__file__).resolve().parent.parent
+KALI_TOOLS_PATH = BACKEND_DIR / 'mcp_servers' / 'kali_tools.py'
+
 # Default Configuration
 DEFAULT_MCP_CONFIG = {
     "servers": {
@@ -25,10 +29,10 @@ DEFAULT_MCP_CONFIG = {
             "enabled": False
         },
         "kali-tools": {
-            "command": "python",
-            "args": ["-m", "mcp_kali_server"],
+            "command": "python3",
+            "args": [str(KALI_TOOLS_PATH)],
             "env": {},
-            "enabled": False
+            "enabled": True
         }
     }
 }

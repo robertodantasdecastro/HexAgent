@@ -39,9 +39,12 @@ Acting as a bridge between high-level reasoning and low-level execution, it enab
 - 🎨 **Modern Dark UI**: Cyberpunk-inspired interface with color-coded responses
 - 🇧🇷 **Portuguese & English**: Bilingual support with automatic detection
 - ⚡ **Real-time Streaming**: See AI thinking and command execution in real-time
+- 🖥️ **Real-time Hybrid Terminal**: Fully interactive ZSH shell with Deep-Linking from AI responses
+- 👻 **Shadow Mode**: Background monitoring of system metrics and network traffic analysis
 - 🔧 **Visual Differentiation**: 
   - Cyan: AI explanations
   - Yellow: Command execution
+  - **Magenta**: Chain-of-Thought (Thinking Mode)
   - **Terminal**: Realistic shell styling (Green on Black)
 
 ### 🏗️ Architecture
@@ -53,21 +56,28 @@ Acting as a bridge between high-level reasoning and low-level execution, it enab
 │  │      React UI (App.jsx)           │  │
 │  │  - Dark cyberpunk theme           │  │
 │  │  - Real-time streaming display    │  │
+│  │  - Hybrid Terminal (xterm.js)     │  │
+│  │  - Thinking Block Visualization   │  │
+│  │  - State Management (useAIConfig) │  │
 │  └───────────────────────────────────┘  │
 └──────────────┬──────────────────────────┘
-               │ HTTP/JSON (localhost:5000)
+               │ HTTP/JSON + SSE Loop
 ┌──────────────▼──────────────────────────┐
 │         Flask Backend (Python)          │
 │  ┌───────────────────────────────────┐  │
-│  │      AgentCore                    │  │
-│  │  ┌─────────────┐  ┌─────────────┐ │  │
-│  │  │ AI Provider │  │ HexStrike-AI│ │  │
-│  │  │ (LM Studio) │<─>│   (Body)    │ │  │
-│  │  └─────────────┘  └─────────────┘ │  │
-│  │                                    │  │
-│  │  - Autonomous loop                │  │
-│  │  - Command parsing & execution    │  │
-│  │  - Result feedback to AI          │  │
+│  │    ChatController (Facade)        │  │
+│  └──────────────┬────────────────────┘  │
+│                 ▼                       │
+│  ┌───────────────────────────────────┐  │
+│  │       AgentCore (Director)        │  │
+│  │  ┌───────────────┐ ┌───────────┐  │  │
+│  │  │  Orchestrator │ │ HexStrike │  │  │
+│  │  │ (Block Stream)│ │ (Executor)│  │  │
+│  │  └───────┬───────┘ └─────┬─────┘  │  │
+│  │          │               │        │  │
+│  │  ┌───────▼──────┐        │        │  │
+│  │  │  AI Provider │<───────┘        │  │
+│  │  └──────────────┘                 │  │
 │  └───────────────────────────────────┘  │
 └─────────────────────────────────────────┘
 ```
@@ -151,6 +161,8 @@ Atuando como uma ponte entre o raciocínio de alto nível e a execução de baix
 - 🎨 **Interface Moderna Dark**: Interface inspirada em cyberpunk com respostas codificadas por cores
 - 🇧🇷 **Português e Inglês**: Suporte bilíngue com detecção automática
 - ⚡ **Streaming em Tempo Real**: Veja o pensamento da IA e execução de comandos em tempo real
+- 🖥️ **Terminal Híbrido em Tempo Real**: Shell ZSH totalmente interativo com Deep-Link das respostas da IA
+- 👻 **Modo Sombra**: Monitoramento em segundo plano de métricas do sistema e análise de tráfego
 - 🔧 **Diferenciação Visual**:
   - Ciano: Explicações da IA
   - Amarelo: Execução de comandos

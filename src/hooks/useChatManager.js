@@ -15,18 +15,17 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import ChatService from '../services/ChatService';
-import Logger from '../utils/Logger';
-import useBlockManager, { BlockType } from './useBlockManager';
+import { BlockType } from '../constants/BlockTypes';
+import ChatController from '../controllers/ChatController';
+import useBlockManager from './useBlockManager';
 
 const useChatManager = (api, aiConfig) => {
   const [isLoading, setLoading] = useState(false);
   const [inputMode, setInputMode] = useState('prompt'); // 'prompt' | 'command'
   const [showIterationLimitReached, setShowIterationLimitReached] = useState(false);
   
-  // Services
-  const chatService = ChatService.getInstance();
-  const logger = Logger.getInstance();
+  // Controller Facade
+  const controller = ChatController.getInstance();
   
   // New Block Manager State Machine
   const { 
@@ -158,18 +157,18 @@ const useChatManager = (api, aiConfig) => {
       
       const context = [...previousContext, { role: 'user', content: text }];
 
-      await chatService.sendMessage(text, context, {
+      await controller.sendMessage(text, context, {
         autoExecute,
         maxIterations: unlimitedIterations ? 100 : maxIterations,
         stream: true
       });
       
     } catch (error) {
-       logger.error('Failed to send message', error);
+       console.error('Failed to send message', error);
        addBlock(BlockType.ERROR, { initialContent: error.message, error: error.message });
        setLoading(false);
     }
-  }, [blocks, isLoading, chatService, logger, addBlock]);
+  }, [blocks, isLoading, controller, addBlock]);
 
   /**
    * Execute a command manually
@@ -178,7 +177,7 @@ const useChatManager = (api, aiConfig) => {
     addBlock(BlockType.SHELL, { command: cmd });
     
     try {
-      const res = await api.post('/execute', { command: cmd });
+      const res = await controller.executeCommand(cmd);
       
       updateActiveBlock(res.output || "");
       completeActiveBlock({ 
@@ -190,7 +189,7 @@ const useChatManager = (api, aiConfig) => {
       updateActiveBlock(`Execution failed: ${e.message}`);
       completeActiveBlock({ exit_code: 1, success: false });
     }
-  }, [api, addBlock, updateActiveBlock, completeActiveBlock]);
+  }, [controller, addBlock, updateActiveBlock, completeActiveBlock]);
 
   /**
    * Stop generation
@@ -199,16 +198,16 @@ const useChatManager = (api, aiConfig) => {
     try {
         await api.post('/chat/abort', {});
     } catch (e) {
-        logger.error("Failed to send abort signal", e);
+        console.error("Failed to send abort signal", e);
     }
 
-    chatService.abortCurrentRequest();
+    controller.abortGeneration();
     setLoading(false);
     
     // Pass abort event to block manager to finalize UI
     handleEvent({ type: 'abort' });
     
-  }, [chatService, api, logger]); // handleEvent is used below via hoisting or ref? No, defined below. 
+  }, [controller, api]); // handleEvent is used below via hoisting or ref? No, defined below. 
   // Wait, handleEvent needs to be defined BEFORE stopGeneration if used there.
   // Or use a ref. Or move handleEvent up.
   
@@ -236,7 +235,9 @@ const useChatManager = (api, aiConfig) => {
           'thinking': BlockType.THINKING,
           'narrative': BlockType.NARRATIVE, // Maps 'text' block from backend
           'shell': BlockType.SHELL,
-          'command': BlockType.SHELL // Alias
+          'command': BlockType.SHELL, // Alias
+          'code': BlockType.CODE,     // Fixed: Added Code Block support
+          'input': BlockType.INPUT    // Safety
       };
 
       if (chunk.type === 'block_start') {
@@ -282,20 +283,20 @@ const useChatManager = (api, aiConfig) => {
   // Or just call it directly.
   
   useEffect(() => {
-    logger.info('Setting up ChatService event handlers in useChatManager (Block Arch)');
+    // logger.info('Setting up ChatService event handlers in useChatManager (Block Arch)');
 
-    const unsubMessage = chatService.onMessage((chunk) => {
+    const unsubMessage = controller.onMessage((chunk) => {
       if (!isMounted.current) return;
       handleEvent(chunk);
     });
 
-    const unsubError = chatService.onError((error) => {
+    const unsubError = controller.onError((error) => {
       if (!isMounted.current) return;
       handleEvent({ type: 'error', content: error.message });
       setLoading(false);
     });
 
-    const unsubComplete = chatService.onComplete((metadata) => {
+    const unsubComplete = controller.onComplete((metadata) => {
       if (!isMounted.current) return;
       setLoading(false);
       completeActiveBlock(metadata);
@@ -310,7 +311,7 @@ const useChatManager = (api, aiConfig) => {
       unsubError();
       unsubComplete();
     };
-  }, [chatService, logger, handleEvent, completeActiveBlock]);
+  }, [controller, handleEvent, completeActiveBlock]);
 
   // Handle direct setBlocks (e.g. from Session Load)
   const setBlocks = useCallback((newBlocks) => {

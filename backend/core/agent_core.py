@@ -27,6 +27,11 @@ from .mcp_manager import MCPManager
 from .orchestrator import AgentOrchestrator
 from .action_dispatcher import ActionDispatcher
 
+# Services / Serviços
+# Services / Serviços
+from services.monitoring_service import MonitoringService
+from services.memory_service import MemoryService
+
 logger = logging.getLogger(__name__)
 
 class AgentCore:
@@ -76,6 +81,10 @@ class AgentCore:
         
         # 2. Initialize AI Brain / Inicializar Cérebro IA
         self._initialize_provider(api_key, model, system_prompt, engine, provider_kwargs)
+        
+        # 3. Initialize Monitoring / Inicializar Monitoramento
+        self.monitor = MonitoringService()
+        self.memory = MemoryService()
         
         # 3. Check Health / Verificar Saúde
         self._check_subsystems()
@@ -131,6 +140,47 @@ class AgentCore:
             logger.info("HexStrike-AI: ONLINE")
         else:
             logger.warning("HexStrike-AI: OFFLINE (Command Execution Limited)")
+
+    def set_profile_context(self, context: str):
+        """
+        Set the User Profile Context for the AI.
+        Define o Contexto de Perfil do Usuário para a IA.
+        """
+        self.profile_context = context
+        logger.info("Profile Context Updated in AgentCore")
+
+    def reload_mcp(self):
+        """
+        Reload MCP Manager.
+        Recarregar Gerenciador MCP.
+        """
+        if self.mcp_manager:
+            self.mcp_manager.restart_sync()
+            logger.info("MCP Manager reloaded via AgentCore")
+
+    def health_check(self) -> Dict[str, Any]:
+        """
+        Detailed Health Check.
+        Verificação de Saúde Detalhada.
+        """
+        return {
+            "overall": "healthy" if self.provider and self.hexstrike_available else "degraded",
+            "brain": "ready" if self.provider else "error",
+            "execution_engine": "online" if self.hexstrike_available else "offline",
+            "shadow_mode": "active" if self.monitor.active else "inactive",
+            "stats": self.monitor.get_stats()
+        }
+
+    def toggle_shadow_mode(self, enabled: bool) -> bool:
+        """
+        Toggle Shadow Mode Monitoring.
+        Alternar Monitoramento do Modo Sombra.
+        """
+        if enabled:
+            self.monitor.start_monitoring()
+        else:
+            self.monitor.stop_monitoring()
+        return self.monitor.active
 
     def initialize(
         self, 
@@ -190,13 +240,43 @@ class AgentCore:
              }
              return
 
-        yield from self.orchestrator.process(
+        # Retrieve relevant memory / Recuperar memória relevante
+        memory_context = self.memory.retrieve_context(user_input)
+        
+        # Accumulator for full response
+        full_response = []
+        
+        # Stream response and accumulate
+        for chunk in self.orchestrator.process(
             user_input=user_input,
             chat_context=chat_context,
             auto_execute=auto_execute,
             max_iterations=max_iterations,
-            abort_signal=abort_signal
-        )
+            abort_signal=abort_signal,
+            profile_context=self.profile_context or "",
+            memory_context=memory_context
+        ):
+            # Accumulate text content for memory
+            # Acumular conteúdo de texto para memória
+            if isinstance(chunk, dict):
+                 # Handle different block types if needed, for now just grab text usage or content
+                 # Tratar tipos de bloco diferentes se necessário
+                 if chunk.get('type') == 'text':
+                     full_response.append(chunk.get('content', ''))
+                     
+            yield chunk
+        
+        # Save interaction to memory (Auto-Save)
+        # Salvar interação na memória (Auto-Save)
+        try:
+            final_text = "".join(full_response).strip()
+            if final_text and len(final_text) > 50: # Only save substantial interactions
+                # Create a concise memory string
+                memory_entry = f"User asked: {user_input}\nAssistant Answered: {final_text[:500]}..." 
+                self.memory.add_memory(content=memory_entry, source="chat_history", tags=["auto_save"])
+                logger.info("Chat interaction saved to Long-Term Memory")
+        except Exception as e:
+            logger.warning(f"Failed to auto-save memory: {e}")
 
     def complete_code(self, code_context: str, language: str = 'python') -> List[str]:
         """

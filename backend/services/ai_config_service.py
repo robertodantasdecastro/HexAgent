@@ -140,6 +140,10 @@ class AIConfigService:
             status = "Local Mode" if is_local else f"has_key={has_key}"
             self.logger.info(f"[AI-SERVICE] Saving model={model}, engine={engine}, {status}")
         
+        if not self.validate_ai_config(config):
+            self.logger.error("[AI-SERVICE] Validation failed, aborting save")
+            raise ConfigError("Invalid AI configuration: Missing required fields (API Key or Host)")
+
         self._save_config(config)
         self.logger.info("[AI-SERVICE] AI config saved successfully")
     
@@ -176,8 +180,9 @@ class AIConfigService:
             # For online, API Key is critical
             # Para online, Chave API é crítica
             if not ai.get('api_key'):
-                # Allow empty key if user really intends it (e.g. proxy), but warn
-                self.logger.warning(f"[AI-SERVICE] Online engine {engine} has no API key.")
+                # For online, API Key is critical / Para online, Chave API é crítica
+                self.logger.error(f"[AI-SERVICE] Online engine {engine} missing required API key.")
+                return False
 
         self.logger.info("[AI-SERVICE] Config validation passed")
         return True

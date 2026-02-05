@@ -35,6 +35,9 @@ from controllers.profile_controller import ProfileController  # Import Profile C
 from controllers.mcp_controller import MCPController
 from controllers.maltbot_controller import MaltbotController  # Import Maltbot Controller
 from controllers.hexstrike_controller import HexStrikeController # Import HexStrike Controller
+from controllers.hexstrike_controller import HexStrikeController # Import HexStrike Controller
+from controllers.monitoring_controller import MonitoringController # Import Monitoring Controller
+from controllers.terminal_controller import TerminalController # Import Terminal Controller
 
 
 def create_app(core_ref=None, hexstrike_ref=None):
@@ -200,7 +203,9 @@ def create_app(core_ref=None, hexstrike_ref=None):
         ProfileController(),  # Personalization API
         MCPController(agent_core=agent_core),     # MCP Registry API
         MaltbotController(core_ref=agent_core),    # Maltbot Integration
-        HexStrikeController(core_ref=agent_core)   # HexStrike Integration
+        HexStrikeController(core_ref=agent_core),   # HexStrike Integration
+        MonitoringController(core_ref=agent_core),   # Shadow Mode Integration
+        TerminalController(core_ref=agent_core)     # Real-time PTY
     ]
     
     # Register all blueprints / Registrar todos os blueprints

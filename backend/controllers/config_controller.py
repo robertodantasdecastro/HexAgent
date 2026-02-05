@@ -189,6 +189,10 @@ class ConfigController(BaseController):
             try:
                 self.log_request('POST /config/ai')
                 data = self.validate_request(['config'])
+                if not self.ai_service.validate_ai_config(data['config']):
+                    self.logger.error("AI Config Validation Failed")
+                    return self.error_response("Invalid AI Configuration (Missing API Key or Model)", 400)
+
                 self.ai_service.save_ai_config(data['config'])
                 
                 # HOT RELOAD: Update AgentCore if available
@@ -255,19 +259,40 @@ class ConfigController(BaseController):
             try:
                 self.log_request(f'GET /engines/{engine}/models')
                 from core.providers import ProviderFactory
+                from flask import request
                 
                 # Use simplified helper from AI Config Service
                 # Usar helper simplificado do Serviço de Configuração de IA
                 active_engine, provider_config = self.ai_service.get_active_provider_config()
                 
+                # Check for overrides in Query Params (for testing draft configs)
+                # Verificar overrides em Query Params (para testar configs de rascunho)
+                # This allows the UI to fetch models for a config that isn't saved yet
+                draft_host = request.args.get('host')
+                draft_port = request.args.get('port')
+                draft_key = request.args.get('api_key')
+                
+                if draft_host:
+                    provider_config['host'] = draft_host
+                
+                if draft_port:
+                    try:
+                        provider_config['port'] = int(draft_port)
+                    except ValueError:
+                        pass # Ignore invalid port
+                        
+                if draft_key:
+                    provider_config['api_key'] = draft_key
+
                 # Verify if requested engine matches configured
                 # Se o motor solicitado não é o configurado, ainda precisamos criar uma config válida
                 # para ele (tentando usar os mesmos parâmetros de Host/Port)
                 if engine.lower() != active_engine.lower():
                      self.logger.info(f"Requested engine {engine} differs from active {active_engine}, inheriting kwargs")
                 
-                # Create temporary provider instance to get models
-                # Criar instância temporária do provedor para obter modelos
+                # Create provider instance to get models
+                # Criar instância do provedor para obter modelos
+                self.logger.info(f"Fetching models for {engine} with config: {provider_config}")
                 provider = ProviderFactory.create_provider(engine, provider_config)
                 models = provider.get_available_models()
                 
@@ -327,11 +352,15 @@ class ConfigController(BaseController):
                 if 'system' in config:
                     system_valid = self.system_service.validate_system_config(config)
                 
-                # TODO: Add AI config validation
+                # Validate AI config part
+                # Validar parte de configuração de IA
+                ai_valid = True
+                if 'ai' in config:
+                    ai_valid = self.ai_service.validate_ai_config(config)
                 
                 return self.success_response(
-                    data={"valid": system_valid},
-                    message="Configuration valid" if system_valid else "Configuration invalid"
+                    data={"valid": system_valid and ai_valid},
+                    message="Configuration valid" if (system_valid and ai_valid) else "Configuration invalid"
                 )
             except Exception as e:
                 self.log_error('POST /config/validate', e)

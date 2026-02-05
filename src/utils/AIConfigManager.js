@@ -42,7 +42,11 @@ class AIConfigManager {
     try {
       console.log('[AIConfigManager] Loading from backend...');
       
-      const result = await this.api.get('/config/ai');
+      const result = await this.api.retry(
+          () => this.api.get('/config/ai'),
+          5, // attempts
+          1000 // delay
+      );
       
       if (result.success && result.data && result.data.config) {
         this.config = result.data.config;

@@ -42,7 +42,11 @@ class SystemConfigManager {
     try {
       console.log('[SystemConfigManager] Loading from backend...');
       
-      const result = await this.api.get('/config/system');
+      const result = await this.api.retry(
+          () => this.api.get('/config/system'),
+          5, 
+          1000
+      );
       
       if (result.success && result.data && result.data.config) {
         this.config = result.data.config;

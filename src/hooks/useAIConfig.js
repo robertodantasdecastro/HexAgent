@@ -28,6 +28,7 @@ const useAIConfig = () => {
         setLoading(true);
         setError(null);
         
+        // Manager handles retries now
         const config = await manager.load();
         setAIConfig(config);
         
@@ -35,15 +36,7 @@ const useAIConfig = () => {
       } catch (err) {
         console.error('[useAIConfig] Load error:', err);
         setError(err);
-        // Fallback to default to prevent UI lockup
-        setAIConfig({
-             ai: {
-                 engine: 'openai',
-                 model: 'gpt-4o',
-                 max_tokens: 4096,
-                 temperature: 0.7
-             }
-        });
+        setAIConfig(null);
       } finally {
         setLoading(false);
       }

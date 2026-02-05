@@ -22,26 +22,26 @@ class ChatService extends BaseService {
    * @private
    * @static
    */
-  static #instance = null;
+  static _instance = null;
 
   // ... (private fields for Streaming)
-  #abortController = null;
-  #messageHandlers = [];
-  #errorHandlers = [];
-  #completeHandlers = [];
+  _abortController = null;
+  _messageHandlers = [];
+  _errorHandlers = [];
+  _completeHandlers = [];
 
   constructor() {
     super();
-    if (ChatService.#instance) {
+    if (ChatService._instance) {
       throw new Error('ChatService is a singleton. Use ChatService.getInstance().');
     }
   }
 
   static getInstance() {
-    if (!ChatService.#instance) {
-      ChatService.#instance = new ChatService();
+    if (!ChatService._instance) {
+      ChatService._instance = new ChatService();
     }
-    return ChatService.#instance;
+    return ChatService._instance;
   }
 
   /**
@@ -57,7 +57,7 @@ class ChatService extends BaseService {
     this.abortCurrentRequest();
     
     // Create new abort controller for this request
-    this.#abortController = new AbortController();
+    this._abortController = new AbortController();
 
     this._logger.info('ChatService: Sending message', { 
       prompt: prompt.substring(0, 50) + (prompt.length > 50 ? '...' : ''), 
@@ -67,9 +67,9 @@ class ChatService extends BaseService {
 
     try {
       if (stream) {
-        await this.#startStreamingRequest(prompt, context, { autoExecute, maxIterations });
+        await this._startStreamingRequest(prompt, context, { autoExecute, maxIterations });
       } else {
-        await this.#sendNonStreamingMessage(prompt, context, { autoExecute, maxIterations });
+        await this._sendNonStreamingMessage(prompt, context, { autoExecute, maxIterations });
       }
     } catch (error) {
       if (error.name === 'AbortError') {
@@ -77,7 +77,7 @@ class ChatService extends BaseService {
          return;
       }
       this._logger.error('ChatService: Send message error', error);
-      this.#notifyError(error);
+      this._notifyError(error);
       throw error;
     }
   }
@@ -87,7 +87,7 @@ class ChatService extends BaseService {
    * Inicia requisição de streaming usando Fetch API + ReadableStream
    * @private
    */
-  async #startStreamingRequest(prompt, context, options) {
+  async _startStreamingRequest(prompt, context, options) {
     const url = `${this._api.baseURL}/chat`;
     
     // Use Fetch API for POST request
@@ -103,7 +103,7 @@ class ChatService extends BaseService {
         stream: true,
         options
       }),
-      signal: this.#abortController.signal
+      signal: this._abortController.signal
     });
 
     if (!response.ok) {
@@ -135,14 +135,20 @@ class ChatService extends BaseService {
                 if (trimmedLine.startsWith("data: ")) {
                     const jsonStr = trimmedLine.substring(6);
                     try {
+                        // Validate JSON string before parsing to avoid syntax error
+                        if (jsonStr.trim() === "[DONE]") {
+                            continue; // Standard SSE close message
+                        }
+                        
                         const chunk = JSON.parse(jsonStr);
                         // Filter noisy log in production
                         if (chunk.type !== 'text') {
                              this._logger.debug('SSE Chunk:', chunk.type);
                         }
-                        this.#handleSSEChunk(chunk);
+                        this._handleSSEChunk(chunk);
                     } catch (e) {
                          this._logger.warn("Failed to parse SSE JSON:", e);
+                         // Don't throw, just log and continue to next line
                     }
                 }
             }
@@ -161,7 +167,7 @@ class ChatService extends BaseService {
    * Enviar mensagem sem streaming (fallback)
    * @private
    */
-  async #sendNonStreamingMessage(prompt, context, options) {
+  async _sendNonStreamingMessage(prompt, context, options) {
     this._logger.info('ChatService: Sending non-streaming message');
 
     const response = await this._api.post('/chat', {
@@ -173,13 +179,13 @@ class ChatService extends BaseService {
 
     if (response && response.data && response.data.response) {
       // Simulate chunk format
-      this.#handleSSEChunk({
+      this._handleSSEChunk({
         type: 'text',
         content: response.data.response,
         metadata: { iterations: response.data.iterations || 1 }
       });
 
-      this.#handleSSEChunk({
+      this._handleSSEChunk({
         type: 'complete',
         content: '',
         metadata: { iterations: response.data.iterations || 1 }
@@ -192,12 +198,12 @@ class ChatService extends BaseService {
    * Tratar chunk SSE baseado no tipo
    * @private
    */
-  #handleSSEChunk(chunk) {
+  _handleSSEChunk(chunk) {
     const { type, content, metadata } = chunk;
 
     switch (type) {
       case 'text':
-        this.#notifyMessage({
+        this._notifyMessage({
           type: 'text',
           content,
           metadata
@@ -206,7 +212,7 @@ class ChatService extends BaseService {
 
       case 'thinking':
         // Thinking Chain / Cadeia de Pensamento
-        this.#notifyMessage({
+        this._notifyMessage({
           type: 'thinking',
           content,
           metadata
@@ -215,7 +221,7 @@ class ChatService extends BaseService {
 
       case 'block_start':
         // Lifecycle Event: Start Block / Evento Ciclo de Vida: Iniciar Bloco
-        this.#notifyMessage({
+        this._notifyMessage({
           type: 'block_start',
           content: metadata.block_name || 'unknown',
           metadata
@@ -224,7 +230,7 @@ class ChatService extends BaseService {
 
       case 'block_end':
         // Lifecycle Event: End Block / Evento Ciclo de Vida: Terminar Bloco
-        this.#notifyMessage({
+        this._notifyMessage({
           type: 'block_end',
           content: metadata.block_name || 'unknown',
           metadata
@@ -232,7 +238,7 @@ class ChatService extends BaseService {
         break;
 
       case 'command_proposal':
-        this.#notifyMessage({
+        this._notifyMessage({
           type: 'command_proposal',
           content,
           metadata
@@ -240,7 +246,7 @@ class ChatService extends BaseService {
         break;
 
       case 'command_result':
-        this.#notifyMessage({
+        this._notifyMessage({
           type: 'command_result',
           content,
           metadata
@@ -248,19 +254,19 @@ class ChatService extends BaseService {
         break;
 
       case 'error':
-        this.#notifyError(new Error(content));
+        this._notifyError(new Error(content));
         break;
 
       case 'complete':
         this._logger.info('ChatService: Streaming complete', { metadata });
-        this.#notifyComplete(metadata);
+        this._notifyComplete(metadata);
         this.abortCurrentRequest();
         break;
 
       default:
         // Generic handler for custom blocks if needed / Handler genérico
         if (type.startsWith('custom_')) {
-             this.#notifyMessage({ type, content, metadata });
+             this._notifyMessage({ type, content, metadata });
         } else {
              this._logger.warn(`ChatService: Unknown chunk type: ${type}`);
         }
@@ -273,10 +279,10 @@ class ChatService extends BaseService {
    * Abortar requisição atual
    */
   abortCurrentRequest() {
-    if (this.#abortController) {
+    if (this._abortController) {
       this._logger.debug('ChatService: Aborting request');
-      this.#abortController.abort();
-      this.#abortController = null;
+      this._abortController.abort();
+      this._abortController = null;
     }
   }
 
@@ -285,7 +291,7 @@ class ChatService extends BaseService {
    * @returns {boolean}
    */
   isStreaming() {
-    return this.#abortController !== null && !this.#abortController.signal.aborted;
+    return this._abortController !== null && !this._abortController.signal.aborted;
   }
 
   // ========================================================================
@@ -305,13 +311,13 @@ class ChatService extends BaseService {
       throw new Error('Handler must be a function / Handler deve ser uma função');
     }
 
-    this.#messageHandlers.push(handler);
+    this._messageHandlers.push(handler);
 
     // Return unsubscribe function / Retornar função de unsubscribe
     return () => {
-      const index = this.#messageHandlers.indexOf(handler);
+      const index = this._messageHandlers.indexOf(handler);
       if (index > -1) {
-        this.#messageHandlers.splice(index, 1);
+        this._messageHandlers.splice(index, 1);
       }
     };
   }
@@ -328,12 +334,12 @@ class ChatService extends BaseService {
       throw new Error('Handler must be a function / Handler deve ser uma função');
     }
 
-    this.#errorHandlers.push(handler);
+    this._errorHandlers.push(handler);
 
     return () => {
-      const index = this.#errorHandlers.indexOf(handler);
+      const index = this._errorHandlers.indexOf(handler);
       if (index > -1) {
-        this.#errorHandlers.splice(index, 1);
+        this._errorHandlers.splice(index, 1);
       }
     };
   }
@@ -350,12 +356,12 @@ class ChatService extends BaseService {
       throw new Error('Handler must be a function / Handler deve ser uma função');
     }
 
-    this.#completeHandlers.push(handler);
+    this._completeHandlers.push(handler);
 
     return () => {
-      const index = this.#completeHandlers.indexOf(handler);
+      const index = this._completeHandlers.indexOf(handler);
       if (index > -1) {
-        this.#completeHandlers.splice(index, 1);
+        this._completeHandlers.splice(index, 1);
       }
     };
   }
@@ -365,9 +371,9 @@ class ChatService extends BaseService {
    * Limpar todos os handlers de eventos
    */
   clearAllHandlers() {
-    this.#messageHandlers = [];
-    this.#errorHandlers = [];
-    this.#completeHandlers = [];
+    this._messageHandlers = [];
+    this._errorHandlers = [];
+    this._completeHandlers = [];
     this._logger.debug('ChatService: All handlers cleared');
   }
 
@@ -381,15 +387,10 @@ class ChatService extends BaseService {
    * Notificar todos os handlers de mensagem
    * @private
    */
-  /**
-   * Notify all message handlers
-   * Notificar todos os handlers de mensagem
-   * @private
-   */
-  #notifyMessage(chunk) {
+  _notifyMessage(chunk) {
     // Iterate over a copy to prevent issues if handlers unsubscribe during iteration
     // Iterar sobre uma cópia para evitar problemas se handlers desinscreverem durante iteração
-    [...this.#messageHandlers].forEach(handler => {
+    [...this._messageHandlers].forEach(handler => {
       try {
         handler(chunk);
       } catch (error) {
@@ -403,8 +404,8 @@ class ChatService extends BaseService {
    * Notificar todos os handlers de erro
    * @private
    */
-  #notifyError(error) {
-    [...this.#errorHandlers].forEach(handler => {
+  _notifyError(error) {
+    [...this._errorHandlers].forEach(handler => {
       try {
         handler(error);
       } catch (err) {
@@ -418,8 +419,8 @@ class ChatService extends BaseService {
    * Notificar todos os handlers de conclusão
    * @private
    */
-  #notifyComplete(metadata) {
-    [...this.#completeHandlers].forEach(handler => {
+  _notifyComplete(metadata) {
+    [...this._completeHandlers].forEach(handler => {
       try {
         handler(metadata);
       } catch (error) {

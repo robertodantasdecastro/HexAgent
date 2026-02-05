@@ -109,6 +109,10 @@ class APIClient {
         'APIClient é um Singleton. Use APIClient.getInstance().'
       );
     }
+    
+    // Initialize standard headers or interceptors if needed directly here
+    // Inicializar headers padrão ou interceptadores se necessário diretamente aqui
+    console.log('[APIClient] Initializing...');
   }
 
   /**

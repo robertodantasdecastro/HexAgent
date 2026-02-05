@@ -1,16 +1,4 @@
-/**
- * Block Types / Tipos de Blocos
- */
-export const BlockType = {
-  TEXT: 'text',
-  CODE: 'code',
-  SHELL: 'shell',
-  THINKING: 'thinking',
-  README: 'readme',
-  LOG: 'log',
-  ERROR: 'error',
-  SCRIPT: 'script'  // Scripts with save/execute capabilities
-};
+import { BlockType } from '../constants/BlockTypes';
 
 /**
  * Detect block type from content

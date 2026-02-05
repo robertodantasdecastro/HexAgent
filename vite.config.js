@@ -4,6 +4,20 @@ import { defineConfig } from 'vite';
 export default defineConfig({
   plugins: [react()],
   base: './', // CRITICAL: Use relative paths for Electron
+  
+  // Optimize dependencies for faster dev startup
+  optimizeDeps: {
+    include: [
+      'react',
+      'react-dom',
+      'lucide-react',
+      'xterm',
+      'xterm-addon-fit',
+      'xterm-addon-web-links',
+      'prismjs'
+    ]
+  },
+  
   test: {
     globals: true,
     environment: 'jsdom',
@@ -17,15 +31,28 @@ export default defineConfig({
       ]
     }
   },
+  
   build: {
+    sourcemap: false,
+    minify: 'terser',
+    target: 'esnext',
+    
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-          utils: ['prismjs']
-        }
+        // Use default chunking strategy to let Rollup execute the most optimal graph
+        // Removed manualChunks to avoid circular dependencies and initialization errors
+        manualChunks: undefined,
+        
+        exports: 'named',
+        inlineDynamicImports: false
       }
     },
-    chunkSizeWarningLimit: 1000
+    
+    chunkSizeWarningLimit: 1200,
+    
+    commonjsOptions: {
+      include: [/node_modules/],
+      transformMixedEsModules: true
+    }
   }
 });

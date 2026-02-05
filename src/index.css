@@ -4,14 +4,68 @@
 
 :root {
   --hex-primary: #00ff00;
-  --hex-bg: #0a0a0a;
+  --hex-bg: #050505;
+  --neon-green: #39ff14;
+  --neon-cyan: #00ffff;
+  --neon-red: #ff003c;
+  --neon-yellow: #fcee0a;
+  --glass-bg: rgba(13, 17, 23, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-blur: blur(12px);
 }
 
 body {
   background-color: var(--hex-bg);
-  color: white;
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 14px; /* Base font size reduced from 16px */
+  background-image: 
+    radial-gradient(circle at 50% 0%, #1a1a1a 0%, transparent 70%),
+    linear-gradient(0deg, #050505 0%, #0a0a0a 100%);
+  color: #e0e0e0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif; /* Modern UI Font */
+  font-size: 14px;
+  overflow: hidden; /* App-like feel */
+}
+
+/* Scrollbar Customization */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Utilities */
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+}
+
+.neon-border-green {
+  box-shadow: 0 0 5px var(--neon-green), inset 0 0 2px var(--neon-green);
+  border-color: var(--neon-green);
+}
+
+.neon-text-cyan {
+  color: var(--neon-cyan);
+  text-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
+}
+
+.animate-pulse-slow {
+  animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .5; }
 }
 
 .drag-region {

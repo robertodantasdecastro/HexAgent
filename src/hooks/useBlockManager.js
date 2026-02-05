@@ -15,14 +15,7 @@
 
 import { useCallback, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-
-export const BlockType = {
-  INPUT: 'input',
-  THINKING: 'thinking',
-  SHELL: 'shell',
-  NARRATIVE: 'narrative',
-  ERROR: 'error'
-};
+import { BlockType } from '../constants/BlockTypes';
 
 const useBlockManager = () => {
   const [blocks, setBlocks] = useState([]);

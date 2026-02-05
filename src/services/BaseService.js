@@ -30,10 +30,16 @@ class BaseService {
       throw new Error("Abstract class 'BaseService' cannot be instantiated directly.");
     }
     
-    this._api = APIClient.getInstance();
-    this._logger = Logger.getInstance();
-    
-    this._logger.debug(`${this.constructor.name} initialized`);
+    // Lazy load or safe access
+    try {
+      this._api = APIClient.getInstance();
+      this._logger = Logger.getInstance();
+      
+      this._logger.debug(`${this.constructor.name} service initialized`);
+    } catch (error) {
+      console.error(`Failed to initialize dependencies in ${this.constructor.name}:`, error);
+      throw error;
+    }
   }
 
   /**

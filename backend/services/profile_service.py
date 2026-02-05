@@ -83,17 +83,22 @@ class ProfileService:
         """
         profile = self.load_profile()
         user = profile.get('user', {})
-        prefs = profile.get('preferences', {})
+        persona = profile.get('persona', {})
         env = profile.get('environment', {})
         custom = profile.get('custom_instructions', "")
 
         context = []
         
         # User Identity
-        if user.get('name'):
-            context.append(f"User Name: {user['name']}")
-        if user.get('role'):
-            context.append(f"User Role: {user['role']}")
+        name = user.get('name', 'Operator')
+        role = user.get('role', 'Analyst')
+        context.append(f"User Info: You are assisting {name} ({role}).")
+            
+        # Persona / Tone
+        if persona:
+            tone = persona.get('tone', 'professional')
+            verbosity = persona.get('verbosity', 'balanced')
+            context.append(f"Persona: Adopt a {tone} tone. Be {verbosity}.")
             
         # Environment
         if env.get('notes'):
@@ -111,7 +116,15 @@ class ProfileService:
         """Return default structure / Retornar estrutura padrão"""
         return {
             "user": {"name": "User", "role": "Analyst"},
-            "preferences": {},
+            "persona": {
+                "name": "HexAgent",
+                "tone": "professional",   # professional, cyberpunk, friendly, concise
+                "verbosity": "balanced",  # verbose, balanced, concise
+            },
+            "preferences": {
+                "auto_approval": False,
+                "notifications": True
+            },
             "environment": {},
             "custom_instructions": ""
         }

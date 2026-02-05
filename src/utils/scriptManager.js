@@ -24,13 +24,13 @@ class ScriptManager {
    * @private
    * @static
    */
-  static #instance = null;
+  static _instance = null;
 
   /**
    * API Client instance / Instância do APIClient
    * @private
    */
-  #api = null;
+  _api = null;
 
   /**
    * Get Singleton instance / Obter instância Singleton
@@ -39,10 +39,10 @@ class ScriptManager {
    * @static
    */
   static getInstance() {
-    if (!ScriptManager.#instance) {
-      ScriptManager.#instance = new ScriptManager();
+    if (!ScriptManager._instance) {
+      ScriptManager._instance = new ScriptManager();
     }
-    return ScriptManager.#instance;
+    return ScriptManager._instance;
   }
 
   /**
@@ -56,7 +56,7 @@ class ScriptManager {
    * @throws {Error} If attempting direct instantiation / Se tentar instanciação direta
    */
   constructor() {
-    if (ScriptManager.#instance) {
+    if (ScriptManager._instance) {
       throw new Error(
         'ScriptManager is a singleton. Use ScriptManager.getInstance() instead. / ' +
         'ScriptManager é um singleton. Use ScriptManager.getInstance().'
@@ -64,7 +64,7 @@ class ScriptManager {
     }
 
     // Initialize APIClient / Inicializar APIClient
-    this.#api = APIClient.getInstance();
+    this._api = APIClient.getInstance();
   }
 
   /**
@@ -85,7 +85,7 @@ class ScriptManager {
    */
   async saveScript(path, content, makeExecutable = false, overwrite = false) {
     try {
-      const response = await this.#api.post('/file/write', {
+      const response = await this._api.post('/file/write', {
         path,
         content,
         make_executable: makeExecutable,
@@ -115,7 +115,7 @@ class ScriptManager {
    */
   async executeScript(path, args = [], workingDir = null) {
     try {
-      const response = await this.#api.post('/script/execute', {
+      const response = await this._api.post('/script/execute', {
         path,
         args,
         working_dir: workingDir
@@ -140,7 +140,7 @@ class ScriptManager {
    */
   async debugScript(path, args = []) {
     try {
-      const response = await this.#api.post('/script/debug', {
+      const response = await this._api.post('/script/debug', {
         path,
         args
       });

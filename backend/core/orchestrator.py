@@ -15,6 +15,7 @@ Usa Blocos de Resposta POO Estritos.
 import logging
 import json
 import re
+import os
 from typing import Generator, Dict, Any, List, Optional
 from .command_executor import CommandExecutor
 # from .response_strategy import ResponseFactory # Legacy removed / Legado removido
@@ -22,7 +23,7 @@ from .mcp_manager import MCPManager
 
 # Import new Domain Blocks / Importar novos Blocos de Domínio
 from .domain.response_block import (
-    TextBlock, CommandBlock, ResultBlock, ErrorBlock, LifecycleBlock
+    TextBlock, CommandBlock, ResultBlock, ErrorBlock, LifecycleBlock, ThinkingBlock
 )
 
 logger = logging.getLogger(__name__)
@@ -37,6 +38,43 @@ class AgentOrchestrator:
         self.provider = provider
         self.executor = executor
         self.mcp_manager = mcp_manager
+        # buffer for tag detection
+        self.stream_buffer = ""
+        # Context Awareness: Current Working Directory
+        # Consciência de Contexto: Diretório de Trabalho Atual
+        self.cwd = os.getcwd()
+        
+    def _detect_block_type(self, chunk: str, current_type: str) -> tuple[str, str]:
+        """
+        Simple state machine to switch between 'text' and 'thinking' based on tags.
+        Returns (new_type, clean_chunk)
+        
+        Máquina de estado simples para alternar entre 'texto' e 'pensamento' com base em tags.
+        Retorna (novo_tipo, chunk_limpo)
+        """
+        # Note: This is a simplified stream parser. 
+        # For production robustness with split tags (e.g. "<th", "ink>"), 
+        # we would need a persistent buffer. For now we assume decent chunking.
+        
+        content = chunk
+        new_type = current_type
+        
+        # Check for start tag
+        if "<think>" in content or "<thinking>" in content:
+            new_type = "thinking"
+            content = content.replace("<think>", "").replace("<thinking>", "")
+            
+        # Check for end tag
+        if "</think>" in content or "</thinking>" in content:
+            # We switch back to text, but this chunk might still have thinking content
+            # simplified: we treat this chunk as thinking, next as text
+            # ideally we split. For now, let's just strip and switch.
+            content = content.replace("</think>", "").replace("</thinking>", "")
+            # Return thinking for this chunk, but caller should know to switch back?
+            # State machine needs to be in the loop.
+            pass 
+            
+        return new_type, content
         
     def process(
         self, 
@@ -44,7 +82,9 @@ class AgentOrchestrator:
         chat_context: Optional[List[Dict[str, str]]] = None,
         auto_execute: bool = False,
         max_iterations: int = 10,
-        abort_signal: Optional[Any] = None
+        abort_signal: Optional[Any] = None,
+        profile_context: str = "",
+        memory_context: str = ""
     ) -> Generator[Dict[str, Any], None, None]:
         """
         Process the user input through the autonomous loop.
@@ -52,6 +92,39 @@ class AgentOrchestrator:
         """
         iteration = 0
         history = list(chat_context) if chat_context else []
+        
+        # Inject Dynamic Context (CWD)
+        # Injetar Contexto Dinâmico (CWD)
+        system_context = f"Current Working Directory: {self.cwd}\nSystem: Linux (HexStrike-AI)"
+        
+        
+        # Inject MCP Tools Context
+        # Injetar Contexto de Ferramentas MCP
+        try:
+             tools = self.mcp_manager.get_all_tools_sync()
+             if tools:
+                 tools_desc = "\n\nAvailable MCP Tools (Use ```tool_call JSON block):\n"
+                 for tool in tools:
+                     tools_desc += f"- {tool.get('name')}: {tool.get('description', 'No desc')} (Args: {json.dumps(tool.get('inputSchema', {}).get('properties', {}).keys() if tool.get('inputSchema') else 'unknown')})\n"
+                 system_context += tools_desc
+        except Exception as e:
+             logger.warning(f"Failed to load tools for prompt: {e}")
+
+        # Inject Profile Context
+        # Injetar Contexto de Perfil
+        if profile_context:
+            system_context += f"\n\n--- User Profile ---\n{profile_context}"
+
+        # Inject Memory Context (RAG)
+        # Injetar Contexto de Memória
+        if memory_context:
+            system_context += f"\n\n--- Relevant Memory (RAG) ---\n{memory_context}"
+
+        history.append({
+            "role": "system", 
+            "content": system_context
+        })
+        
         history.append({"role": "user", "content": user_input})
         
         if not self.provider:
@@ -73,14 +146,32 @@ class AgentOrchestrator:
 
             # 1. AI Response Streaming
             full_response = ""
+            current_block_type = "text"
             
             try:
                 for chunk in self.provider.chat_step(prompt=None, chat_context=history):
                     if abort_signal and abort_signal.is_set(): break
                     
                     full_response += chunk
-                    # Stream text chunks as TextBlocks (optimization: maybe buffering?)
-                    yield TextBlock(chunk, iteration).to_dict()
+                    
+                    # Stream Logic for Thinking Blocks
+                    # Check for transition entry
+                    if current_block_type == "text":
+                        if "<think>" in chunk or "<thinking>" in chunk:
+                            current_block_type = "thinking"
+                            # We don't strip tags for raw full_response, but maybe for display?
+                            # For simplicity, we just yield the chunk as ThinkingBlock now
+                    
+                    # Yield based on current type
+                    if current_block_type == "thinking":
+                         # Check for exit
+                         if "</think>" in chunk or "</thinking>" in chunk:
+                             yield ThinkingBlock(chunk, iteration).to_dict()
+                             current_block_type = "text"
+                         else:
+                             yield ThinkingBlock(chunk, iteration).to_dict()
+                    else:
+                        yield TextBlock(chunk, iteration).to_dict()
                 
             except Exception as e:
                 logger.error(f"AI Error: {e}")
@@ -123,7 +214,29 @@ class AgentOrchestrator:
                     yield LifecycleBlock("block_start", "shell", {"command": cmd}).to_dict()
                     
                     try:
-                        result = self.executor.execute_command(cmd)
+                        # Context Awareness: Prepend CWD
+                        # Consciência de Contexto: Preceder CWD
+                        
+                        # Check for CD command (naive implementation)
+                        if cmd.strip().startswith("cd "):
+                            target_dir = cmd.strip().split(" ", 1)[1]
+                            # Resolve path
+                            new_path = os.path.abspath(os.path.join(self.cwd, target_dir))
+                            if os.path.exists(new_path) and os.path.isdir(new_path):
+                                self.cwd = new_path
+                                logger.info(f"Context switched to: {self.cwd}")
+                                yield ResultBlock(f"Changed directory to {self.cwd}", True, 0, cmd).to_dict()
+                                continue
+                            else:
+                                yield ResultBlock(f"cd: {target_dir}: No such file or directory", False, 1, cmd).to_dict()
+                                continue
+                        
+                        # Execute in CWD
+                        full_cmd = f"cd {self.cwd} && {cmd}"
+                        # We execute full_cmd but report cmd for clean UI? 
+                        # Ideally UI shows context. For now, backend handles it transparently.
+                        
+                        result = self.executor.execute_command(full_cmd)
                         success = result["success"]
                         
                         yield ResultBlock(
@@ -158,7 +271,10 @@ class AgentOrchestrator:
         yield LifecycleBlock("complete", "process", {"iterations": iteration}).to_dict()
 
     def _extract_commands(self, text: str) -> List[str]:
-        """Extract bash commands and Tool Calls."""
+        """
+        Extract bash commands and Tool Calls.
+        Extrair comandos bash e chamadas de ferramenta.
+        """
         commands = []
         
         # 1. Code blocks (bash/sh/zsh)
@@ -185,6 +301,10 @@ class AgentOrchestrator:
         return sorted(list(set(commands)), key=commands.index) # Dedupe preserving order
 
     def _handle_tool_call(self, cmd_str: str, auto_execute: bool) -> Generator[Dict[str, Any], None, None]:
+        """
+        Handle execution of MCP Tool Calls.
+        Lidar com execução de Chamadas de Ferramenta MCP.
+        """
         try:
             tool_json = cmd_str.split("|", 1)[1]
             tool_data = json.loads(tool_json)

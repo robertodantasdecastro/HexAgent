@@ -1,8 +1,41 @@
 import { Box, Cpu, Key, RefreshCw, Settings, Shield, User, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { DEFAULT_AI_CONFIG } from '../constants/aiConfig';
 import { useTranslation } from '../hooks/useTranslation';
 import APIClient from '../utils/APIClient';
-// New Config Tabs
+// Import Tab Components
+import HexStrikeConfigTab from './chat/HexStrikeConfigTab';
+import MoltbotConfigTab from './chat/MoltbotConfigTab';
+import ProfileConfigTab from './chat/ProfileConfigTab';
+
+// Engine descriptions constant (since it was referenced but not defined in previous file view, assuming it's imported or globally available, but based on context it seems unused or missing. 
+// Wait, previous file had "Engine Metadata definition removed - using imported ENGINE_DESCRIPTIONS". 
+// Checking imports... it was NOT imported in previous view. 
+// I must assume it's imported from constants or defined locally. 
+// Let's check where ENGINE_DESCRIPTIONS comes from. It's likely in '../constants/aiConfig'. 
+// I will blindly add it to the import from '../constants/aiConfig' to be safe, or check aiConfig first?
+// To avoid breaking it, I'll assume it needs to be imported.
+import { ENGINE_DESCRIPTIONS } from '../constants/aiConfig';
+
+/**
+ * Helper to ensure robust state initialization
+ * Moved outside component to avoid re-creation and hoisting issues
+ */
+const getInitialConfig = (cfg) => {
+    const base = cfg?.ai || cfg || {};
+    
+    // Merge defaults with provided config / Mesclar padrão com config fornecida
+    return {
+        ...DEFAULT_AI_CONFIG,
+        ...base,
+        // Ensure critical fields are strings/numbers, not undefined/null if missing in base
+        // Garantir que campos críticos sejam strings/números
+        api_key: base.api_key || DEFAULT_AI_CONFIG.api_key || '',
+        host: base.host || DEFAULT_AI_CONFIG.host || 'http://localhost',
+        port: base.port || DEFAULT_AI_CONFIG.port || 1234,
+        timeout: base.timeout || DEFAULT_AI_CONFIG.timeout || 60
+    };
+};
 
 /**
  * AIConfigModal - Dynamic AI/LLM Configuration with ProviderFactory Integration
@@ -10,40 +43,26 @@ import APIClient from '../utils/APIClient';
  */
 const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
   const { t } = useTranslation();
+  
+  // FIX: Initialize state FIRST to avoid Temporal Dead Zone (TDZ) errors
+  // State declaration must happen before any effect that uses it
+  const [localConfig, setLocalConfig] = useState(getInitialConfig(config));
+  
   const [activeTab, setActiveTab] = useState('engine');
-  const [availableEngines, setAvailableEngines] = useState(['openai', 'deepseek', 'claude', 'lmstudio', '5ire', 'openrouter']);
   const [loading, setLoading] = useState(false);
   const [connectionTestResult, setConnectionTestResult] = useState(null);
   const [availableModels, setAvailableModels] = useState([]);
   
-  // Local state for config editing
-  const [localConfig, setLocalConfig] = useState(config?.ai || config || {
-      engine: 'openai',
-      model: 'gpt-4o',
-      max_iterations: 10,
-      temperature: 0.7,
-      max_tokens: 4000,
-      auto_execute: false
-  });
-
   // Additional Config States
   const [profileConfig, setProfileConfig] = useState({});
   const [hexConfig, setHexConfig] = useState({});
   const [moltConfig, setMoltConfig] = useState({});
   const [configLoaded, setConfigLoaded] = useState({ profile: false, hex: false, molt: false });
 
-  // Effect to update local state when prop changes
+  // Update local state when prop changes / Atualizar estado local quando prop muda
   useEffect(() => {
     if (config) {
-        // Safeguard: Check if config is nested under 'ai' key (Backend convention)
-        const source = config.ai || config;
-        
-        setLocalConfig({
-            ...source,
-            temperature: typeof source.temperature === 'number' ? source.temperature : 0.7,
-            max_iterations: source.max_iterations || 10,
-            max_tokens: source.max_tokens || 4000
-        });
+        setLocalConfig(getInitialConfig(config));
     }
   }, [config]);
 
@@ -125,20 +144,70 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
     }
   };
 
-  const fetchAvailableModels = async (engine) => {
+  /*
+   * Fetch models for specific engine
+   * Busca modelos para motor específico
+   */
+  const fetchAvailableModels = useCallback(async (engine, currentConfig) => {
     setLoading(true);
     try {
-      const api = new APIClient();
-      const response = await api.get(`/service/ai/models?engine=${engine}`);
+      const api = APIClient.getInstance();
+      
+      // Pass current draft config params to allow testing unsaved connections (especially for Local/LM Studio)
+      // Passar parâmetros de rascunho para testar conexões não salvas
+      const queryParams = new URLSearchParams();
+      
+      // Use values from provided config (current state) or fall back to localConfig
+      const cfg = currentConfig || localConfig;
+      if (cfg.host) queryParams.append('host', cfg.host);
+      if (cfg.port) queryParams.append('port', cfg.port.toString());
+      if (cfg.api_key) queryParams.append('api_key', cfg.api_key);
+
+      const response = await api.get(`/config/engines/${engine}/models?${queryParams.toString()}`);
       if (response && response.models) {
         setAvailableModels(response.models);
+        
+        // Auto-select first model if current is invalid or empty
+        // Selecionar automaticamente o primeiro modelo se o atual for inválido ou vazio
+        if (response.models.length > 0) {
+            const currentModel = cfg.model;
+            // Check if current model exists in the new list
+            // Verificar se o modelo atual existe na nova lista
+            const modelExists = response.models.includes(currentModel);
+            
+            if (!modelExists) {
+                // Update local config with the first available model
+                // Atualizar config local com o primeiro modelo disponível
+                setLocalConfig(prev => ({ 
+                    ...prev, 
+                    model: response.models[0] 
+                }));
+            }
+        }
+      } else {
+        setAvailableModels([]); // Clear if no models returned / Limpar se nenhum modelo retornado
       }
     } catch (error) {
       console.error('Failed to fetch models:', error);
+      setAvailableModels([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, []); // localConfig is intentionaly excluded from deps to avoid loops, passed as arg
+
+  // Effect: Auto-fetch models when engine changes
+  // Efeito: Buscar modelos automaticamente quando o motor mudar
+  useEffect(() => {
+      // Logic: If engine changes, we want to try fetching models for the new engine
+      // But we must be careful not to trigger on initial load if we already have models, 
+      // or we can just fetch to be safe.
+      
+      // FIX: localConfig is now guaranteed to be initialized
+      if (isOpen && localConfig.engine) {
+          // Pass the current localConfig to ensure we use up-to-date host/port for that engine
+          fetchAvailableModels(localConfig.engine, localConfig);
+      }
+  }, [localConfig.engine, isOpen, fetchAvailableModels]); // Dependency on engine string
 
   const handleSave = async () => {
     setLoading(true);
@@ -166,14 +235,7 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
     }
   };
   
-  const engineDescriptions = {
-    'openai': { name: 'OpenAI (GPT)', description: 'Industry standard for reasoning and coding (GPT-4/3.5). Requires API Key.' },
-    'deepseek': { name: 'DeepSeek', description: 'Strong reasoning capabilities, cost-effective. Requires API Key.' },
-    'claude': { name: 'Anthropic Claude', description: 'Excellent for large context and coding. Requires API Key.' },
-    'lmstudio': { name: 'LM Studio (Local)', description: 'Run models locally (Llama 3, Mistral, etc). No API cost. Privacy focused.' },
-    '5ire': { name: '5ire (Local/Cloud)', description: 'Specialized for blockchain/web3 tasks.' },
-    'openrouter': { name: 'OpenRouter', description: 'Aggregator for multiple models (Llama, Mistral, Goliath, etc).' }
-  };
+  // Engine Metadata definition removed - using imported ENGINE_DESCRIPTIONS
 
   const tabs = [
     { id: 'engine', label: 'Motor / Engine', icon: Cpu },
@@ -237,18 +299,18 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
                   onChange={(e) => setLocalConfig({...localConfig, engine: e.target.value})}
                   className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-cyan-400"
                 >
-                  {Object.keys(engineDescriptions).map(engine => (
+                  {ENGINE_DESCRIPTIONS && Object.keys(ENGINE_DESCRIPTIONS).map(engine => (
                     <option key={engine} value={engine}>
-                      {engineDescriptions[engine].name}
+                      {ENGINE_DESCRIPTIONS[engine].name}
                     </option>
                   ))}
                 </select>
                 
                 {/* Engine Description */}
-                {engineDescriptions[localConfig.engine] && (
+                {ENGINE_DESCRIPTIONS && ENGINE_DESCRIPTIONS[localConfig.engine] && (
                   <div className="mt-2 p-3 bg-blue-500/10 border border-blue-500/30 rounded">
                     <p className="text-xs text-blue-400 font-mono">
-                      💡 {engineDescriptions[localConfig.engine].description}
+                      💡 {ENGINE_DESCRIPTIONS[localConfig.engine].description}
                     </p>
                   </div>
                 )}
@@ -292,10 +354,10 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
           )}
 
           {/* API Configuration Tab */}
-          {activeTab === 'api' && (
+          {activeTab === 'api' && ENGINE_DESCRIPTIONS && (
             <div className="space-y-4">
               {/* API Key Configuration - For Engines that require it */}
-              {(engineDescriptions[localConfig.engine]?.requires_api_key) && (
+              {(ENGINE_DESCRIPTIONS[localConfig.engine]?.requires_api_key) && (
                 <div>
                   <label className="block text-sm font-mono text-gray-300 mb-2">
                     <Key className="inline mr-1" size={14} />
@@ -305,14 +367,14 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
                     type="password"
                     value={localConfig.api_key}
                     onChange={(e) => setLocalConfig({...localConfig, api_key: e.target.value})}
-                    placeholder={`Auth Key for ${engineDescriptions[localConfig.engine].name}`}
+                    placeholder={`Auth Key for ${ENGINE_DESCRIPTIONS[localConfig.engine].name}`}
                     className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-cyan-400"
                   />
                 </div>
               )}
 
               {/* Local Server Configuration (LM Studio / 5ire) */}
-              {(engineDescriptions[localConfig.engine]?.is_local) && (
+              {(ENGINE_DESCRIPTIONS[localConfig.engine]?.is_local) && (
                 <>
                   <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded mb-4">
                     <p className="text-xs text-blue-400 font-mono">
@@ -327,7 +389,7 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
                     <input
                       type="text"
                       value={localConfig.host}
-                      onChange={(e) => setLocalConfig({...localConfig, host: e.target.value})}
+                       onChange={(e) => setLocalConfig({...localConfig, host: e.target.value})}
                       placeholder="http://localhost"
                       className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-cyan-400"
                     />

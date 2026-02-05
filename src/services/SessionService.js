@@ -19,19 +19,19 @@ class SessionService extends BaseService {
    * @private
    * @static
    */
-  static #instance = null;
+  static _instance = null;
 
   /**
    * Current session name / Nome da sessão atual
    * @private
    */
-  #currentSessionName = '';
+  _currentSessionName = '';
 
   /**
    * Auto-save timer ID / ID do temporizador de auto-salvamento
    * @private
    */
-  #autoSaveTimer = null;
+  _autoSaveTimer = null;
 
   /**
    * Private constructor (Singleton pattern)
@@ -40,7 +40,7 @@ class SessionService extends BaseService {
    */
   constructor() {
     super();
-    if (SessionService.#instance) {
+    if (SessionService._instance) {
       throw new Error(
         'SessionService is a singleton. Use SessionService.getInstance() instead. / ' +
         'SessionService é um singleton. Use SessionService.getInstance() ao invés disso.'
@@ -54,10 +54,10 @@ class SessionService extends BaseService {
    * @returns {SessionService} SessionService instance / Instância do SessionService
    */
   static getInstance() {
-    if (!SessionService.#instance) {
-      SessionService.#instance = new SessionService();
+    if (!SessionService._instance) {
+      SessionService._instance = new SessionService();
     }
-    return SessionService.#instance;
+    return SessionService._instance;
   }
 
   /**
@@ -77,7 +77,7 @@ class SessionService extends BaseService {
       const data = await this._api.get(`/load_session?name=${encodeURIComponent(name)}`);
       
       if (data && data.blocks) {
-        this.#currentSessionName = name;
+        this._currentSessionName = name;
         this._logger.info(`SessionService: Session "${name}" loaded successfully`);
         return {
           success: true,
@@ -117,7 +117,7 @@ class SessionService extends BaseService {
         blocks
       });
 
-      this.#currentSessionName = name;
+      this._currentSessionName = name;
       this._logger.info(`SessionService: Session "${name}" saved successfully`);
       
       return {
@@ -176,8 +176,8 @@ class SessionService extends BaseService {
         name
       });
 
-      if (this.#currentSessionName === name) {
-        this.#currentSessionName = '';
+      if (this._currentSessionName === name) {
+        this._currentSessionName = '';
       }
 
       this._logger.info(`SessionService: Session "${name}" deleted successfully`);
@@ -204,12 +204,12 @@ class SessionService extends BaseService {
     }
 
     // Clear existing timer / Limpar temporizador existente
-    if (this.#autoSaveTimer) {
-      clearTimeout(this.#autoSaveTimer);
+    if (this._autoSaveTimer) {
+      clearTimeout(this._autoSaveTimer);
     }
 
     // Set new timer / Definir novo temporizador
-    this.#autoSaveTimer = setTimeout(async () => {
+    this._autoSaveTimer = setTimeout(async () => {
       try {
         const autoSaveName = 'autosave';
         this._logger.debug('SessionService: Auto-saving session...');
@@ -256,7 +256,7 @@ class SessionService extends BaseService {
    * @returns {string} Current session name / Nome da sessão atual
    */
   getCurrentSessionName() {
-    return this.#currentSessionName;
+    return this._currentSessionName;
   }
 
   /**
@@ -266,7 +266,7 @@ class SessionService extends BaseService {
    */
   setCurrentSessionName(name) {
     if (typeof name === 'string') {
-      this.#currentSessionName = name;
+      this._currentSessionName = name;
       this._logger.debug(`SessionService: Current session set to: ${name}`);
     }
   }
@@ -276,9 +276,9 @@ class SessionService extends BaseService {
    * @returns {void}
    */
   clearAutoSaveTimer() {
-    if (this.#autoSaveTimer) {
-      clearTimeout(this.#autoSaveTimer);
-      this.#autoSaveTimer = null;
+    if (this._autoSaveTimer) {
+      clearTimeout(this._autoSaveTimer);
+      this._autoSaveTimer = null;
     }
   }
 }

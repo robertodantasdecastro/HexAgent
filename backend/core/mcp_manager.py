@@ -216,3 +216,19 @@ class MCPManager:
         logger.info("Shutting down MCP Manager...")
         await self.exit_stack.aclose()
         self.sessions.clear()
+        self.tools_cache.clear()
+
+    async def restart(self):
+        """
+        Restart all MCP connections (Reload config).
+        Reiniciar todas conexões MCP (Recarregar config).
+        """
+        logger.info("Restarting MCP Manager...")
+        await self.shutdown()
+        # Re-create stack for new context
+        self.exit_stack = AsyncExitStack()
+        await self.initialize()
+
+    def restart_sync(self):
+        """Synchronous wrapper for restart"""
+        return self.run_sync(self.restart())

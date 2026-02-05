@@ -30,10 +30,8 @@ const useSystemConfig = () => {
     
     const loadConfig = async () => {
       try {
-        if (retryCount === 0) {
-            logger.debug('[useSystemConfig] Initial load...');
-            setLoading(true);
-        }
+        logger.debug('[useSystemConfig] Initial load...');
+        setLoading(true);
         setError(null);
         
         const config = await manager.load();
@@ -44,16 +42,11 @@ const useSystemConfig = () => {
             logger.debug('[useSystemConfig] Loaded successfully');
         }
       } catch (err) {
-        logger.error(`[useSystemConfig] Load error (Attempt ${retryCount + 1}/${maxRetries}):`, err);
+        logger.error('[useSystemConfig] Load error:', err);
         
         if (mounted) {
-            if (retryCount < maxRetries) {
-                retryCount++;
-                setTimeout(loadConfig, 1000); // Retry after 1s
-            } else {
-                setError(err);
-                setLoading(false);
-            }
+            setError(err);
+            setLoading(false);
         }
       }
     };
