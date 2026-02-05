@@ -1,7 +1,0 @@
-{
-  "max_iterations": 6,
-  "unlimited_iterations": false,
-  "show_iteration_markers": true,
-  "ask_to_continue": true,
-  "continue_increment": 3
-}

@@ -1,6 +1,0 @@
-{
-  "enabled": true,
-  "auto_load_persona": true,
-  "default_persona": "HexAgent",
-  "personas_directory": "~/.hexagent-gui/personas"
-}

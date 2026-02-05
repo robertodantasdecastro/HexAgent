@@ -314,39 +314,14 @@ if __name__ == '__main__':
     # Start Parent PID Watchdog / Iniciar monitoramento do processo pai
     # This prevents orphaned python processes if Electron crashes
     try:
-        import threading
-        import time
-        import psutil
-        
-        def parent_watchdog():
-            ppid = os.getppid()
-            print(f"[Watchdog] Monitoring parent process {ppid}")
-            while True:
-                try:
-                    # Check if parent is alive / Verificar se pai está vivo
-                    if not psutil.pid_exists(ppid):
-                        print("[Watchdog] Parent process died. Exiting...")
-                        os._exit(0)
-                    
-                    # Check for adoption by init (PID 1) - Linux specific
-                    # Verificar adoção pelo init (PID 1) - Específico Linux
-                    current_ppid = os.getppid()
-                    if current_ppid != ppid and current_ppid == 1:
-                        print("[Watchdog] Process orphaned (adopted by init). Exiting...")
-                        os._exit(0)
-                        
-                    time.sleep(2)
-                except Exception as e:
-                    print(f"[Watchdog] Error: {e}")
-                    time.sleep(5)
-
-        # Start daemon thread / Iniciar thread daemon
-        if not os.environ.get('HEXAGENT_SETUP_ONLY'):
-            t = threading.Thread(target=parent_watchdog, daemon=True)
-            t.start()
+        from services.process_monitor_service import ProcessMonitorService
+        monitor = ProcessMonitorService()
+        monitor.start_watchdog()
             
-    except ImportError:
-        print("[Watchdog] psutil not found. Process monitoring disabled.")
+    except ImportError as e:
+        print(f"[Watchdog] Failed to load service: {e}")
+    except Exception as e:
+        print(f"[Watchdog] Unexpected error: {e}")
 
     app = create_app()
     app.run(

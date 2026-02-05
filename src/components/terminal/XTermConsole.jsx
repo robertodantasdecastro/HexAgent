@@ -1,3 +1,4 @@
+import { EventSourcePolyfill } from 'event-source-polyfill';
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
@@ -89,7 +90,8 @@ const XTermConsole = forwardRef(({ onData, onResize, onCommand }, ref) => {
     // 3. Conectar Fluxo de Saída
     const connectStream = () => {
         const streamUrl = `${api.getBaseURL()}/terminal/stream`;
-        const es = new EventSource(streamUrl);
+        // Use Polyfill for Electron compatibility
+        const es = new EventSourcePolyfill(streamUrl);
         
         es.onopen = () => {
             term.writeln('\r\n\x1b[1;34m[Connected]\x1b[0m\r\n');

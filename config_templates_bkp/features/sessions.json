@@ -1,6 +1,0 @@
-{
-  "auto_save": true,
-  "save_interval": 300,
-  "sessions_directory": "~/.hexagent-gui/sessions",
-  "max_sessions": 50
-}

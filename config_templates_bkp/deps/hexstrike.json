@@ -1,7 +1,0 @@
-{
-  "port": 8888,
-  "auto_start": true,
-  "timeout": 30,
-  "log_level": "INFO",
-  "working_directory": "~/.hexagent-gui"
-}

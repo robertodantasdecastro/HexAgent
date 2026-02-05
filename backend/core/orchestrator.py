@@ -38,44 +38,111 @@ class AgentOrchestrator:
         self.provider = provider
         self.executor = executor
         self.mcp_manager = mcp_manager
-        # buffer for tag detection
+        # buffer for tag detection / buffer para detecção de tags
         self.stream_buffer = ""
         # Context Awareness: Current Working Directory
         # Consciência de Contexto: Diretório de Trabalho Atual
         self.cwd = os.getcwd()
-        
-    def _detect_block_type(self, chunk: str, current_type: str) -> tuple[str, str]:
+
+    def _process_stream_buffer(self, chunk: str, current_type: str) -> tuple[str, str, str]:
         """
-        Simple state machine to switch between 'text' and 'thinking' based on tags.
-        Returns (new_type, clean_chunk)
+         robust stream buffer processing to handle split tags.
+        Processamento robusto de buffer de stream para lidar com tags divididas.
         
-        Máquina de estado simples para alternar entre 'texto' e 'pensamento' com base em tags.
-        Retorna (novo_tipo, chunk_limpo)
+        Returns:
+            (new_type, content_to_yield, buffer_remainder)
+            (novo_tipo, conteúdo_a_emitir, resto_do_buffer)
         """
-        # Note: This is a simplified stream parser. 
-        # For production robustness with split tags (e.g. "<th", "ink>"), 
-        # we would need a persistent buffer. For now we assume decent chunking.
+        # Append new chunk to buffer / Adicionar novo chunk ao buffer
+        self.stream_buffer += chunk
         
-        content = chunk
+        content_to_yield = ""
         new_type = current_type
         
-        # Check for start tag
-        if "<think>" in content or "<thinking>" in content:
-            new_type = "thinking"
-            content = content.replace("<think>", "").replace("<thinking>", "")
-            
-        # Check for end tag
-        if "</think>" in content or "</thinking>" in content:
-            # We switch back to text, but this chunk might still have thinking content
-            # simplified: we treat this chunk as thinking, next as text
-            # ideally we split. For now, let's just strip and switch.
-            content = content.replace("</think>", "").replace("</thinking>", "")
-            # Return thinking for this chunk, but caller should know to switch back?
-            # State machine needs to be in the loop.
-            pass 
-            
-        return new_type, content
+        # Define tags to look for / Definir tags para procurar
+        TAGS = ["<think>", "<thinking>", "</think>", "</thinking>"]
         
+        # Helper to find earliest tag / Auxiliar para encontrar tag mais cedo
+        def find_first_tag(text):
+            earliest_pos = -1
+            found_tag = None
+            for tag in TAGS:
+                pos = text.find(tag)
+                if pos != -1:
+                    if earliest_pos == -1 or pos < earliest_pos:
+                        earliest_pos = pos
+                        found_tag = tag
+            return earliest_pos, found_tag
+
+        # Process buffer until no complete tags are found
+        # Processar buffer até que nenhuma tag completa seja encontrada
+        while True:
+            pos, tag = find_first_tag(self.stream_buffer)
+            
+            if pos == -1:
+                # No complete tags. Check for partial tags at the end.
+                # Nenhuma tag completa. Verificar tags parciais no final.
+                # Threshold: Max tag length is ~11 chars ("</thinking>")
+                # Limiar: Comprimento máx da tag é ~11 chars
+                
+                partial_found = False
+                # Check if buffer ends with a partial prefix of any tag
+                # Verifica se buffer termina com um prefixo parcial de qualquer tag
+                cutoff_index = len(self.stream_buffer)
+                
+                # Check from end. If buffer is "abc<th", we keep "<th".
+                # Optimize: only check last 12 chars
+                check_segment = self.stream_buffer[-12:]
+                
+                for potential_tag in TAGS:
+                    # Check prefixes 1..len-1
+                    for i in range(1, len(potential_tag)):
+                        prefix = potential_tag[:i]
+                        if check_segment.endswith(prefix):
+                            # We found a partial tag at the very end
+                            # Encontramos uma tag parcial no final
+                            partial_found = True
+                            # Calculate where it starts in the full buffer
+                            cutoff_index = len(self.stream_buffer) - i
+                            break
+                    if partial_found: break
+
+                if partial_found:
+                    # Yield everything up to the partial tag start
+                    # Emitir tudo até o início da tag parcial
+                    content_to_yield += self.stream_buffer[:cutoff_index]
+                    self.stream_buffer = self.stream_buffer[cutoff_index:]
+                    break
+                else:
+                    # Safe to yield everything
+                    # Seguro para emitir tudo
+                    content_to_yield += self.stream_buffer
+                    self.stream_buffer = ""
+                    break
+            else:
+                # Found a tag!
+                # Encontrou uma tag!
+                
+                # 1. Content before tag
+                content_to_yield += self.stream_buffer[:pos]
+                
+                # 2. Handle State Change
+                if tag in ["<think>", "<thinking>"]:
+                    new_type = "thinking"
+                elif tag in ["</think>", "</thinking>"]:
+                    new_type = "text"
+                
+                # 3. Remove tag from buffer
+                self.stream_buffer = self.stream_buffer[pos + len(tag):]
+                
+                # Loop to find next tag
+        
+        return new_type, content_to_yield, self.stream_buffer
+        
+    # Legacy method kept for interface compatibility if needed, but unused internally now
+    def _detect_block_type(self, chunk: str, current_type: str) -> tuple[str, str]:
+         return current_type, chunk
+         
     def process(
         self, 
         user_input: str,
@@ -146,7 +213,9 @@ class AgentOrchestrator:
 
             # 1. AI Response Streaming
             full_response = ""
-            current_block_type = "text"
+            current_stream_type = "text" # Internal state from buffer
+            active_block_type = "narrative" # What the frontend thinks is open
+            self.stream_buffer = "" 
             
             try:
                 for chunk in self.provider.chat_step(prompt=None, chat_context=history):
@@ -154,35 +223,57 @@ class AgentOrchestrator:
                     
                     full_response += chunk
                     
-                    # Stream Logic for Thinking Blocks
-                    # Check for transition entry
-                    if current_block_type == "text":
-                        if "<think>" in chunk or "<thinking>" in chunk:
-                            current_block_type = "thinking"
-                            # We don't strip tags for raw full_response, but maybe for display?
-                            # For simplicity, we just yield the chunk as ThinkingBlock now
+                    # Process Buffer
+                    new_stream_type, content_to_yield, self.stream_buffer = self._process_stream_buffer(chunk, current_stream_type)
+                    current_stream_type = new_stream_type # update internal state
                     
-                    # Yield based on current type
-                    if current_block_type == "thinking":
-                         # Check for exit
-                         if "</think>" in chunk or "</thinking>" in chunk:
-                             yield ThinkingBlock(chunk, iteration).to_dict()
-                             current_block_type = "text"
-                         else:
-                             yield ThinkingBlock(chunk, iteration).to_dict()
+                    if not content_to_yield:
+                        continue
+
+                    # Determine target block type
+                    # "text" -> "narrative" for frontend consistency
+                    target_block_type = "thinking" if new_stream_type == "thinking" else "narrative"
+
+                    # Check for State Transition
+                    if target_block_type != active_block_type:
+                        # Close current block
+                        yield LifecycleBlock("block_end", active_block_type).to_dict()
+                        
+                        # Open new block
+                        yield LifecycleBlock("block_start", target_block_type, {"iteration": iteration}).to_dict()
+                        
+                        active_block_type = target_block_type
+
+                    # Yield Content
+                    if target_block_type == "thinking":
+                         yield ThinkingBlock(content_to_yield, iteration).to_dict()
                     else:
-                        yield TextBlock(chunk, iteration).to_dict()
+                        yield TextBlock(content_to_yield, iteration).to_dict()
                 
+                # Handling remaining buffer
+                if self.stream_buffer:
+                    # Logic to flush buffer (usually text if it was incomplete tag, or thinking if inside tag?)
+                    # If we were in thinking, buffer is thinking.
+                    # _process_stream_buffer handles this mostly, returning buffer only if incomplete tag
+                    
+                    # If there is remainder, likely text or partial tag.
+                    # We default to current active block type.
+                    
+                    if active_block_type == "thinking":
+                         yield ThinkingBlock(self.stream_buffer, iteration).to_dict()
+                    else:
+                         yield TextBlock(self.stream_buffer, iteration).to_dict()
+
             except Exception as e:
                 logger.error(f"AI Error: {e}")
                 yield ErrorBlock(f"AI Provider Error: {str(e)}").to_dict()
-                yield LifecycleBlock("block_end", "narrative", {"status": "error"}).to_dict()
+                yield LifecycleBlock("block_end", "narrative", {"status": "error"}).to_dict() # Fallback close
                 break
             
             history.append({"role": "assistant", "content": full_response})
             
-            # Notify: Narrative Block End
-            yield LifecycleBlock("block_end", "narrative").to_dict()
+            # Notify: Block End (whatever is active)
+            yield LifecycleBlock("block_end", active_block_type).to_dict()
 
             if abort_signal and abort_signal.is_set(): break
 

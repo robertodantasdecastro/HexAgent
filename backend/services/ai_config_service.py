@@ -209,7 +209,6 @@ class AIConfigService:
             'host': ai_config.get('host'),
             'port': ai_config.get('port'),
             'timeout': ai_config.get('timeout'),
-            'timeout': ai_config.get('timeout'),
         }
         
         # Only set base_url from host/port for known local engines

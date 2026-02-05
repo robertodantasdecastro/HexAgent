@@ -1,7 +1,0 @@
-{
-  "max_history": 1000,
-  "save_history": true,
-  "history_file": "~/.hexagent-gui/history",
-  "search_history": true,
-  "deduplicate": true
-}

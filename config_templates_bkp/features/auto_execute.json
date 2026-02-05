@@ -1,8 +1,0 @@
-{
-  "enabled": false,
-  "safe_commands_only": true,
-  "require_confirmation": true,
-  "whitelist": [
-    "ls", "pwd", "echo", "cat", "head", "tail", "grep", "find"
-  ]
-}

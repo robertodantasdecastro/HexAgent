@@ -1,4 +1,5 @@
 import InputBlock from '../../blocks/InputBlock';
+import ThinkingBlock from '../../blocks/ThinkingBlock';
 import { BlockType } from '../../constants/BlockTypes';
 import { SlideTransition } from '../SimpleTransition';
 import BlockRenderer from './BlockRenderer'; // Use the renderer
@@ -27,6 +28,17 @@ const Block = (props) => {
                 blockId={props.id}
             />
         </SlideTransition>
+      );
+  }
+
+  // Handling for THINKING (AI Thought Process)
+  if (type === BlockType.THINKING || type === 'thinking') {
+      return (
+          <ThinkingBlock 
+              content={props.content} 
+              iteration={props.iteration}
+              isExpanded={true}
+          />
       );
   }
   
