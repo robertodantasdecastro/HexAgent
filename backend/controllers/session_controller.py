@@ -188,9 +188,34 @@ class SessionController(BaseController):
                 
                 # Get request data
                 # Obtém dados da requisição
-                data =self.validate_request(['action', 'session_name'])
+                # Get request data
+                # Obtém dados da requisição
+                data = self.get_request_data()
                 action = data.get('action')
+                
+                if not action:
+                    return self.error_response("Missing action", 400)
+
+                if action == 'list':
+                    # List sessions (No session_name required)
+                    # Listar sessões (Não requer session_name)
+                    sessions = []
+                    for f in self.sessions_dir.glob('*.json'):
+                        sessions.append({
+                            "name": f.stem,
+                            "path": str(f),
+                            "modified": f.stat().st_mtime
+                        })
+                    
+                    return self.success_response(
+                        data={"sessions": sessions},
+                        message=f"Found {len(sessions)} sessions"
+                    )
+
+                # For other actions, session_name is required
                 session_name = data.get('session_name')
+                if not session_name:
+                     return self.error_response("Missing session_name", 400)
                 
                 session_file = self.sessions_dir / f"{session_name}.json"
                 

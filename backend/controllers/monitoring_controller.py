@@ -20,7 +20,7 @@ class MonitoringController(BaseController):
         super().__init__(
             name='monitoring',
             import_name=__name__,
-            url_prefix='/api/monitoring'
+            url_prefix='/monitoring'
         )
     
     def _register_routes(self):

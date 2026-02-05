@@ -24,7 +24,7 @@ class MCPController(BaseController):
         Inicializar Controlador MCP.
         """
         self.core = agent_core
-        super().__init__(name='mcp', import_name=__name__, url_prefix='/api/mcp')
+        super().__init__(name='mcp', import_name=__name__, url_prefix='/mcp')
 
 
     def _register_routes(self):

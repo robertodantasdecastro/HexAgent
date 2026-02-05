@@ -173,7 +173,7 @@ class SessionService extends BaseService {
       
       await this._api.post('/sessions', {
         action: 'delete',
-        name
+        session_name: name
       });
 
       if (this._currentSessionName === name) {
