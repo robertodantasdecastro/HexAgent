@@ -235,6 +235,15 @@ Located in the top-right corner / Localizado no canto superior direito:
 └──────────── Unlimited mode toggle / Alternar modo ilimitado
 ```
 
+### AI Provider Support
+- **OpenRouter** – Access to 100+ models
+- **Claude** (Anthropic)
+- **OpenAI** (GPT-4, o1)
+- **DeepSeek**
+- **LM Studio** – Local models
+- **Ollama** – Local open-source models ⭐ NEW
+- **5ire** (via local servers)
+
 ### Features / Recursos
 
 - **Default:** 10 iterations maximum
@@ -500,3 +509,35 @@ See README.md Troubleshooting section / Veja seção de Solução de Problemas n
 - [Manual do Usuário](USER_MANUAL.md)
 - [Guia de Instalação](INSTALL.md)
 - [Contribuindo](CONTRIBUTING.md)
+
+
+---
+
+## 🧠 Cognitive Pipeline & TagDetector
+
+### Stream Tag Detector (Phase 3.1)
+
+**TagDetector** handles split XML-like tags during AI response streaming.
+
+**Features:**
+- Buffer management for split tags
+- Multiple tag support (`<thinking>`, `</thinking>`)
+- Zero data loss during streaming
+
+**Status:** ✅ INTEGRATED (orchestrator.py)
+
+---
+
+### Cognitive Agents (Phase 2-3)
+
+**7-Stage Pipeline:**
+1. Build Context → 2. Stream AI → 3. Extract Commands → 4. Decide Plan → 5. Execute → 6. Build Feedback → 7. Check Continue
+
+**Interfaces (Q2 2026):**
+- PersonaProcessor (NULL) - Profile adaptation
+- StrategyAnalyzer (NULL) - Response analysis
+- RiskEvaluator (NULL) - Security assessment
+- ExecutionRouter (✅) - Command routing
+
+---
+

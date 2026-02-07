@@ -1,18 +1,28 @@
 """
-AgentCore - Central Intelligence System
-AgentCore - Sistema Central de Inteligência
+TransitionalCoordinator - Transitional Cognitive Coordination Layer
+TransitionalCoordinator - Camada de Coordenação Cognitiva Transicional
+
+PHASE 1 of Transitional Cognitive Bridge Architecture.
+FASE 1 da Arquitetura de Ponte Cognitiva Transicional.
 
 Coordinating Brain of the HexAgent Platform.
 Cérebro Coordenador da Plataforma HexAgent.
 
-Responsibilities / Responsabilidades:
+Current Responsibilities / Responsabilidades Atuais:
 - AI Provider Management / Gerenciamento de Provedores IA
-- Loop Orchestration / Orquestração de Loop
+- Loop Orchestration Delegation / Delegação de Orquestração de Loop
 - Command Execution Binding / Vínculo de Execução de Comandos
 - State Persistence / Persistência de Estado
+- Subsystem Initialization / Inicialização de Subsistemas
+
+Future Evolution Path / Caminho de Evolução Futura:
+- Will orchestrate specialized cognitive agents via message passing
+- Will implement ExecutionMesh for routing-only execution
+- Will integrate Reflection, Evolution, and Governance loops
+- Will enable genome-driven architecture adaptations
 
 @author: Roberto Dantas de Castro <robertodantasdecastro@gmail.com>
-@version: 3.0.0 (Strict OOP & Bilingual)
+@version: 3.1.0 (Transitional Architecture - Phase 1)
 """
 
 from typing import Generator, Dict, Any, Optional, List
@@ -34,13 +44,39 @@ from services.memory_service import MemoryService
 
 logger = logging.getLogger(__name__)
 
-class AgentCore:
+class TransitionalCoordinator:
     """
-    Main Logic Core.
-    Núcleo Lógico Principal.
+    Transitional CognitiveCoordinator.
+    CognitiveCoordinator Transicional.
+    
+    CURRENT STATE / ESTADO ATUAL:
+    - Delegates to monolithic AgentOrchestrator
+    - Manages AI provider and execution engine bindings
+    - Provides state management (profile, memory)
+    - Centralized subsystem initialization
+    
+    FUTURE STATE / ESTADO FUTURO:
+    - Will coordinate specialized cognitive agents via message passing:
+      * PersonaAgent (context processing)
+      * PlanningAgent (task planning)
+      * ToolSelectorAgent (tool selection)
+      * RiskAssessmentAgent (risk evaluation)
+      * StrategyAgent (execution strategy)
+    - Will integrate ExecutionMesh for routing-only execution
+    - Will implement cognitive loops:
+      * Reflection Loop (MetaCognitiveAgent)
+      * Evolution Loop (EvolutionController)
+      * Meta-Strategy Loop (MetaStrategyAgent)
+      * Auto-Design Loop (ArchitectureMutationEngine)
+      * RSI Loop (MetaEvolutionAgent)
     
     Acts as the Director in the Builder/Director pattern for AI tasks.
     Atua como o Diretor no padrão Builder/Director para tarefas de IA.
+    
+    NOTE: This is a transitional architecture preserving 100% backward compatibility
+          while preparing for evolution to full CognitiveCoordinator pattern.
+    NOTA: Esta é uma arquitetura transicional preservando 100% de compatibilidade
+          enquanto prepara evolução para padrão CognitiveCoordinator completo.
     """
     
     # Class-level lock for thread safety if needed
@@ -321,3 +357,34 @@ class AgentCore:
             "hexstrike_online": self.hexstrike_available,
             "orchestrator_ready": self.orchestrator is not None
         }
+
+
+# ============================================================================
+# BACKWARD COMPATIBILITY WRAPPER
+# WRAPPER DE COMPATIBILIDADE RETROATIVA
+# ============================================================================
+
+class AgentCore(TransitionalCoordinator):
+    """
+    Backward compatibility wrapper for TransitionalCoordinator.
+    Wrapper de compatibilidade retroativa para TransitionalCoordinator.
+    
+    This class ensures that all existing code using 'AgentCore' continues
+    to work without any changes. It simply inherits all functionality from
+    TransitionalCoordinator.
+    
+    Esta classe garante que todo código existente usando 'AgentCore' continue
+    funcionando sem alterações. Simplesmente herda toda funcionalidade de
+    TransitionalCoordinator.
+    
+    Usage / Uso:
+        # Both work identically / Ambos funcionam identicamente:
+        core = AgentCore(...)
+        coordinator = TransitionalCoordinator(...)
+    
+    NOTE: This wrapper will be maintained throughout the transitional period
+          and removed only when all codebase references are migrated.
+    NOTA: Este wrapper será mantido durante todo período de transição e
+          removido apenas quando todas referências do código forem migradas.
+    """
+    pass

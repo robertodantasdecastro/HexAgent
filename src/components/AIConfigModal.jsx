@@ -115,25 +115,52 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
     setConnectionTestResult({ loading: true });
     
     try {
+      console.log('[AIConfigModal] Testing connection...', {
+        engine: localConfig.engine,
+        host: localConfig.host,
+        port: localConfig.port
+      });
+      
       const response = await api.post('/config/engines/test', {
         engine: localConfig.engine,
         config: localConfig
       });
 
-      if (response.success) {
+      console.log('[AIConfigModal] Test response:', response);
+
+      // CRITICAL FIX: Check response.data.success FIRST (backend payload)
+      // Not response.success (APIClient wrapper which just means "HTTP request succeeded")
+      // CORREÇÃO CRÍTICA: Verificar response.data.success PRIMEIRO (payload do backend)
+      // Não response.success (wrapper APIClient que apenas significa "requisição HTTP sucedeu")
+      
+      if (response.data && typeof response.data.success !== 'undefined') {
+        // Backend explicitly provided success field (preferred)
+        // Backend forneceu explicitamente campo success (preferido)
         setConnectionTestResult({
           success: response.data.success,
-          message: response.data.message,
+          message: response.data.message || response.data.message_pt || (response.data.success ? 'Connected' : 'Connection failed'),
+          error: response.data.error,
+          loading: false
+        });
+      } else if (response.success) {
+        // Fallback: APIClient says request was successful (200 OK)
+        // Fallback: APIClient diz que requisição foi bem-sucedida (200 OK)
+        setConnectionTestResult({
+          success: true,
+          message: response.message || response.data?.message || 'Connected successfully',
           loading: false
         });
       } else {
+        // Fallback: APIClient says request failed
+        // Fallback: APIClient diz que requisição falhou
         setConnectionTestResult({
           success: false,
-          error: response.message || 'Unknown error',
+          error: response.message || response.error || 'Unknown error',
           loading: false
         });
       }
     } catch (error) {
+      console.error('[AIConfigModal] Test connection error:', error);
       setConnectionTestResult({
         success: false,
         error: error.message || 'Connection failed',
@@ -143,6 +170,7 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
       setLoading(false);
     }
   };
+
 
   /*
    * Fetch models for specific engine
@@ -164,8 +192,29 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
       if (cfg.api_key) queryParams.append('api_key', cfg.api_key);
 
       const response = await api.get(`/config/engines/${engine}/models?${queryParams.toString()}`);
-      if (response && response.models) {
-        setAvailableModels(response.models);
+      
+      // DEBUG: Log full response structure / Logar estrutura completa da resposta
+      console.log('[DEBUG fetchAvailableModels] Full response:', response);
+      console.log('[DEBUG fetchAvailableModels] response.models:', response.models);
+      console.log('[DEBUG fetchAvailableModels] response.data:', response.data);
+      console.log('[DEBUG fetchAvailableModels] response.data?.models:', response.data?.models);
+      
+      // Try both response structures / Tentar ambas estruturas de resposta
+      let models = null;
+      
+      if (response && response.data && response.data.models) {
+        // APIClient wrapper structure: {success: true, data: {models: [...]}}
+        models = response.data.models;
+        console.log('[DEBUG fetchAvailableModels] Using response.data.models (APIClient wrapper)');
+      } else if (response && response.models) {
+        // Direct structure: {models: [...]}
+        models = response.models;
+        console.log('[DEBUG fetchAvailableModels] Using response.models (direct)');
+      }
+      
+      if (models && Array.isArray(models)) {
+        console.log('[DEBUG fetchAvailableModels] Setting models:', models);
+        setAvailableModels(models);
         
         // Auto-select first model if current is invalid or empty
         // Selecionar automaticamente o primeiro modelo se o atual for inválido ou vazio

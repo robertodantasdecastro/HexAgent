@@ -188,6 +188,65 @@ class InferenceStrategy(ABC):
             }
         }
     
+    @staticmethod
+    def _build_base_url(
+        config: Dict[str, Any],
+        default_url: str,
+        needs_v1_suffix: bool = False
+    ) -> str:
+        """
+        Build base_url from config dynamically / Constrói base_url dinamicamente do config
+        
+        Supports multiple config formats for flexibility:
+        Suporta múltiplos formatos de config para flexibilidade:
+        
+        1. Direct base_url: {'base_url': 'https://api.example.com/v1'}
+        2. Host + Port: {'host': 'http://192.168.1.100', 'port': 1234}  
+        3. Fallback: Uses default_url
+        
+        Args / Argumentos:
+            config (Dict[str, Any]): Configuration dictionary / Dicionário de configuração  
+            default_url (str): Default URL if not in config / URL padrão se não no config
+            needs_v1_suffix (bool): Whether to append '/v1' to host:port URLs
+                                   Se deve adicionar '/v1' a URLs host:port
+        
+        Returns / Retorna:
+            str: Constructed base_url / Base_url construída
+        
+        Examples / Exemplos:
+            >>> _build_base_url({'base_url': 'https://api.openai.com/v1'}, '...', True)
+            'https://api.openai.com/v1'
+            
+            >>> _build_base_url({'host': 'http://192.168.0.111', 'port': 1234}, '...', True)
+            'http://192.168.0.111:1234/v1'
+            
+            >>> _build_base_url({}, 'http://localhost:11434', False)
+            'http://localhost:11434'
+        """
+        # Priority 1: Direct base_url / Prioridade 1: base_url direto
+        if 'base_url' in config and config['base_url']:
+            return str(config['base_url']).rstrip('/')
+        
+        # Priority 2: Build from host + port / Prioridade 2: Construir de host + port 
+        if 'host' in config and config['host']:
+            host = str(config['host']).rstrip('/')
+            port = config.get('port')
+            
+            if port:
+                base_url = f"{host}:{port}"
+            else:
+                base_url = host
+            
+            # Add /v1 suffix if required (OpenAI-compatible APIs)
+            # Adicionar sufixo /v1 se necessário (APIs compatíveis com OpenAI)
+            if needs_v1_suffix:
+                base_url = f"{base_url}/v1"
+            
+            return base_url
+        
+        # Priority 3: Fallback to default / Prioridade 3: Fallback para padrão
+        return default_url.rstrip('/')
+    
     def __repr__(self) -> str:
         """String representation / Representação em string"""
         return f"{self.__class__.__name__}(provider={self.get_provider_name()})"

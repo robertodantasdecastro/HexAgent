@@ -46,7 +46,13 @@ class OpenAIStrategy(InferenceStrategy):
         Inicializa estratégia OpenAI
         """
         self.api_key = config.get('api_key')
-        self.base_url = config.get('base_url', self.DEFAULT_BASE_URL)
+        
+        # Use shared helper for base_url construction / Usar helper compartilhado para construção de base_url
+        self.base_url = InferenceStrategy._build_base_url(
+            config=config,
+            default_url=self.DEFAULT_BASE_URL,
+            needs_v1_suffix=True  # OpenAI-compatible APIs need /v1
+        )
         
         if not self.api_key:
             raise ValueError(f"API key required for {self.get_provider_name()}")
@@ -60,6 +66,7 @@ class OpenAIStrategy(InferenceStrategy):
             organization=self.organization,
             base_url=self.base_url
         )
+
         
         self.system_prompt = ""  # Store system prompt
         self.tools = [] # Store registered tools
@@ -80,7 +87,35 @@ class OpenAIStrategy(InferenceStrategy):
         return "openai"
     
     def get_available_models(self) -> List[str]:
-        return self.AVAILABLE_MODELS.copy()
+        """
+        Fetch available models from OpenAI-compatible API (supports LM Studio, OpenAI, etc.)
+        Busca modelos disponíveis de API compatível com OpenAI (suporta LM Studio, OpenAI, etc.)
+        
+        Returns:
+            List of model IDs / Lista de IDs de modelos
+        """
+        try:
+            # Attempt to fetch models from API / Tentar buscar modelos da API
+            logger.info(f"Fetching models from {self.base_url}")
+            response = self.client.models.list()
+            
+            # Extract model IDs from response / Extrair IDs de models da resposta
+            fetched_models = [model.id for model in response.data]
+            
+            if fetched_models:
+                logger.info(f"Successfully fetched {len(fetched_models)} models from API")
+                # Combine with default models (deduped) / Combinar com modelos padrão (sem duplicatas)
+                all_models = sorted(list(set(self.AVAILABLE_MODELS + fetched_models)))
+                return all_models
+            else:
+                logger.warning("API returned empty model list, using defaults")
+                return self.AVAILABLE_MODELS.copy()
+                
+        except Exception as e:
+            # Fallback to default models if API call fails / Fallback para modelos padrão se chamada API falhar
+            logger.warning(f"Failed to fetch models from API: {e}, using default list")
+            # Include current model if not in defaults / Incluir modelo atual se não estiver nos padrões
+            return list(set(self.AVAILABLE_MODELS + [self.model]))
     
     def chat_step(self, prompt: str, chat_context: Optional[List[Dict[str, str]]] = None, model: Optional[str] = None) -> Generator[str, None, None]:
         """
