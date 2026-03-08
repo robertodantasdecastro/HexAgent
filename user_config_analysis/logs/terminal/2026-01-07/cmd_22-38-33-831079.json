@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-01-07T22:38:33.831079",
+  "category": "terminal",
+  "event": "command_execution",
+  "data": {
+    "command": "echo \"Uso: $0 <ssh|dns> <start|stop|restart|status>\"",
+    "output": "Command Executed (in /home/d4r13n/.hexagent-gui):\nUso: /bin/sh <ssh|dns> <start|stop|restart|status>\n",
+    "exit_code": 0,
+    "cwd": "/home/d4r13n/.hexagent-gui"
+  }
+}

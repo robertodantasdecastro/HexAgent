@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-01-05T22:56:26.255853",
+  "category": "terminal",
+  "event": "command_execution",
+  "data": {
+    "command": "SERVICE_NAME=\"named\"",
+    "output": "Command Executed (in /home/d4r13n/.hexagent-gui):\n",
+    "exit_code": 0,
+    "cwd": "/home/d4r13n/.hexagent-gui"
+  }
+}

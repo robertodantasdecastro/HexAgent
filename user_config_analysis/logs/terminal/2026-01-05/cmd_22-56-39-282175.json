@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-01-05T22:56:39.282175",
+  "category": "terminal",
+  "event": "command_execution",
+  "data": {
+    "command": "cp /tmp/worknow_temp.sh ~/script/worknow.sh",
+    "output": "Execution Failed:\ncp: n\u00e3o foi poss\u00edvel obter estado de '/tmp/worknow_temp.sh': Arquivo ou diret\u00f3rio inexistente\n",
+    "exit_code": 0,
+    "cwd": "/home/d4r13n/.hexagent-gui"
+  }
+}

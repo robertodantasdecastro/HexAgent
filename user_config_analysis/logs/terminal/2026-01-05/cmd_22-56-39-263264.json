@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-01-05T22:56:39.263264",
+  "category": "terminal",
+  "event": "command_execution",
+  "data": {
+    "command": "main \"$@\"' > /tmp/worknow_temp.sh",
+    "output": "Execution Failed:\n/bin/sh: 1: Syntax error: Unterminated quoted string\n",
+    "exit_code": 1,
+    "cwd": "/home/d4r13n/.hexagent-gui"
+  }
+}

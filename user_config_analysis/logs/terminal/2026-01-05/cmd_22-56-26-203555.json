@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-01-05T22:56:26.203555",
+  "category": "terminal",
+  "event": "command_execution",
+  "data": {
+    "command": "echo \"Erro: Comando inv\u00e1lido '\\''$COMMAND'\\''\"",
+    "output": "Command Executed (in /home/d4r13n/.hexagent-gui):\nErro: Comando inv\u00e1lido '\\'''\\''\n",
+    "exit_code": 0,
+    "cwd": "/home/d4r13n/.hexagent-gui"
+  }
+}

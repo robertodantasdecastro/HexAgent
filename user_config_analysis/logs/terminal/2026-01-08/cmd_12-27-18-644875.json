@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-01-08T12:27:18.644875",
+  "category": "terminal",
+  "event": "command_execution",
+  "data": {
+    "command": "ls ~/",
+    "output": "Command Executed (in /home/d4r13n/.hexagent-gui):\n\u001b[0m\u001b[01;34m\u00c1rea de trabalho\u001b[0m\n\u001b[01;34mDocumentos\u001b[0m\n\u001b[01;34mDownloads\u001b[0m\n\u001b[01;34meng_software\u001b[0m\n\u001b[01;34mgo\u001b[0m\n\u001b[01;31mHexAgentGUI.tgz\u001b[0m\n\u001b[01;31mHexAgentGUI-v1.0.0-agentic-20260102_022607.tar.gz\u001b[0m\nhexstrike.log\n\u001b[01;34miatools\u001b[0m\n\u001b[01;34miatools2\u001b[0m\n\u001b[01;31miatools2.tgz\u001b[0m\n\u001b[01;31miatools.tgz\u001b[0m\n\u001b[01;34mImagens\u001b[0m\nkeybindings.json\n\u001b[01;34mModels\u001b[0m\n\u001b[01;34mM\u00fasicas\u001b[0m\nprompts_otm_hexagent.md\n\u001b[01;34mP\u00fablico\u001b[0m\n\u001b[01;34mscript\u001b[0m\n\u001b[01;31mssh_bkp.tgz\u001b[0m\n\u001b[01;32mstartwork.sh\u001b[0m\n\u001b[01;34mV\u00eddeos\u001b[0m\n\u001b[01;34mWaveSec\u001b[0m\n\u001b[01;34mWaveTermFORK\u001b[0m\n\u001b[01;32mworcknow.sh\u001b[0m\n",
+    "exit_code": 0,
+    "cwd": "/home/d4r13n/.hexagent-gui"
+  }
+}

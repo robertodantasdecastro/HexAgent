@@ -1,0 +1,10 @@
+{
+  "timestamp": "2026-01-06T14:34:44.741243",
+  "category": "system",
+  "event": "chat_export",
+  "data": {
+    "session_id": "1767720884692",
+    "blocks_count": 3,
+    "export_size": 412
+  }
+}

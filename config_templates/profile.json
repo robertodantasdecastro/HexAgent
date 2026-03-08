@@ -1,0 +1,19 @@
+{
+  "user": {
+    "name": "Operator",
+    "role": "Admin",
+    "avatar": "default",
+    "language": "auto"
+  },
+  "persona": {
+    "name": "HexAgent",
+    "tone": "professional",
+    "verbosity": "balanced",
+    "emoji_usage": "moderate"
+  },
+  "preferences": {
+    "auto_approval_threshold": "low",
+    "notifications": true,
+    "sound_effects": true
+  }
+}

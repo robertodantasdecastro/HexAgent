@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-01-07T22:38:16.919580",
+  "category": "terminal",
+  "event": "command_execution",
+  "data": {
+    "command": "echo '# Exemplo: ./worcknow.sh ssh start' >> ~/script/worcknow.sh",
+    "output": "Command Executed (in /home/d4r13n/.hexagent-gui):\n",
+    "exit_code": 0,
+    "cwd": "/home/d4r13n/.hexagent-gui"
+  }
+}

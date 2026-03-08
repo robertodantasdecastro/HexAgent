@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-01-08T12:29:13.076118",
+  "category": "terminal",
+  "event": "command_execution",
+  "data": {
+    "command": "validate_service",
+    "output": "Execution Failed:\n/bin/sh: 1: validate_service: not found\n",
+    "exit_code": 0,
+    "cwd": "/home/d4r13n/.hexagent-gui"
+  }
+}

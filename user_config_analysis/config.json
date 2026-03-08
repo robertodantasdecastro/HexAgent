@@ -1,0 +1,25 @@
+{
+  "ai": {
+    "engine": "openai",
+    "api_key": "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",
+    "model": "google/gemini-2.0-flash-exp:free",
+    "max_iterations": 10,
+    "auto_execute": false,
+    "temperature": 0.7,
+    "//_COMMENT": "Active Engine Selection (openai, deepseek, claude, lmstudio, 5ire)",
+    "//_COMMENT_MODEL": "Model ID to use (e.g., gpt-4o, deepseek-coder, local-model)",
+    "//_COMMENT_ONLINE": "--- ONLINE PROVIDERS Configuration (OpenAI, DeepSeek, Claude) ---",
+    "//_COMMENT_OFFLINE": "--- OFFLINE / LOCAL PROVIDERS Configuration (LM Studio, 5ire, Ollama) ---",
+    "host": "http://localhost",
+    "port": 1234,
+    "timeout": 60,
+    "//_COMMENT_PARAMS": "--- Inference Parameters ---",
+    "max_tokens": 4096,
+    "unlimited_iterations": false,
+    "system_prompt": ""
+  },
+  "system": {
+    "theme": "dark",
+    "language": "pt-BR"
+  }
+}

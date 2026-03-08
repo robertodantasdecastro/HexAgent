@@ -1,0 +1,154 @@
+{
+  "name": "hexagent-gui",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Autonomous AI-Powered Cybersecurity Agent",
+  "author": "Roberto Dantas de Castro <robertodantasdecastro@gmail.com>",
+  "type": "module",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "electron:dev": "concurrently \"npm run dev\" \"wait-on tcp:5173 && electron .\"",
+    "electron:build": "vite build && electron-builder",
+    "build:linux": "vite build && electron-builder --linux",
+    "build:linux-x64": "vite build && electron-builder --linux --x64",
+    "build:linux-arm64": "vite build && USE_SYSTEM_FPM=true electron-builder --linux --arm64",
+    "build:mac": "vite build && electron-builder --mac",
+    "build:mac-x64": "vite build && electron-builder --mac --x64",
+    "build:mac-arm64": "vite build && electron-builder --mac --arm64",
+    "build:win": "vite build && electron-builder --win",
+    "build:all": "vite build && electron-builder --linux --mac --win"
+  },
+  "dependencies": {
+    "@monaco-editor/react": "^4.7.0",
+    "clsx": "^2.1.1",
+    "event-source-polyfill": "^1.0.31",
+    "lucide-react": "^0.436.0",
+    "prismjs": "^1.30.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-draggable": "^4.5.0",
+    "react-markdown": "^10.1.0",
+    "react-syntax-highlighter": "^16.1.0",
+    "tailwind-merge": "^2.5.2",
+    "uuid": "^13.0.0",
+    "xterm": "^5.3.0",
+    "xterm-addon-fit": "^0.8.0",
+    "xterm-addon-web-links": "^0.9.0"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.1",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "autoprefixer": "^10.4.19",
+    "concurrently": "^8.2.2",
+    "electron": "^31.0.2",
+    "electron-builder": "^24.13.3",
+    "eslint": "^8.57.0",
+    "eslint-plugin-react": "^7.34.2",
+    "eslint-plugin-react-hooks": "^4.6.2",
+    "eslint-plugin-react-refresh": "^0.4.7",
+    "jsdom": "^27.4.0",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.4",
+    "terser": "^5.46.0",
+    "vite": "^5.3.1",
+    "vitest": "^4.0.16",
+    "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "com.hexagent.gui",
+    "productName": "HexAgentGUI",
+    "copyright": "Copyright © 2026 Roberto Dantas de Castro",
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "extraResources": [
+      {
+        "from": "backend",
+        "to": "backend",
+        "filter": [
+          "!__pycache__",
+          "!*.pyc",
+          "!.pytest_cache"
+        ]
+      },
+      {
+        "from": "venv",
+        "to": "venv",
+        "filter": [
+          "!__pycache__",
+          "!*.pyc"
+        ]
+      }
+    ],
+    "asarUnpack": [
+      "dist/**/*"
+    ],
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "category": "Security",
+      "maintainer": "robertodantasdecastro@gmail.com"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "category": "public.app-category.developer-tools"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "ia32"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    }
+  }
+}

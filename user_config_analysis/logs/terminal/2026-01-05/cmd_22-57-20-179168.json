@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-01-05T22:57:20.179168",
+  "category": "terminal",
+  "event": "command_execution",
+  "data": {
+    "command": "execute_command \"$1\" \"$2\"",
+    "output": "Execution Failed:\n/bin/sh: 1: execute_command: not found\n",
+    "exit_code": 0,
+    "cwd": "/home/d4r13n/.hexagent-gui"
+  }
+}

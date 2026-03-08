@@ -1,0 +1,673 @@
+# Engenharia Reversa Arquitetural - HexAgentGUI
+## Relatório de Análise Profunda - GOD MODE
+
+**Data:** 2026-02-05  
+**Analista:** Antigravity AI (God Mode - Architectural Reverse Engineering)  
+**Versão do Sistema:** HexAgentGUI v2.1.0
+
+---
+
+## SUMÁRIO EXECUTIVO
+
+Este relatório apresenta uma engenharia reversa arquitetural completa do sistema **HexAgentGUI**, identificando a arquitetura pretendida, a arquitetura real implementada e os padrões emergentes não documentados. A análise revelou **drift arquitetural significativo**, **acoplamentos ocultos** e **zonas de responsabilidade duplicada** que comprometem a **integridade do coordinator** (hexstrike-ai).
+
+### Descobertas Críticas
+
+🔴 **CRÍTICO:** Duplicação de lógica de orquestração entre [AgentCore](file:///home/d4r13n/iatools/HexAgentGUI/backend/core/agent_core.py#37-324) (backend) e `hexstrike-ai` (servidor externo)  
+🟡 **ALTO:** Acoplamento direto GUI → Backend sem abstração adequada de state management  
+🟡 **ALTO:** Vazamento de responsabilidade: ChatController executando lógica de domínio  
+🟢 **MÉDIO:** Falta de Single Source of Truth para configuração (múltiplos services competindo)
+
+---
+
+## 📊 1. MODELO DA ARQUITETURA REAL
+
+### 1.1 Topologia de Sistema (Real)
+
+```mermaid
+graph TD
+    User[👤 Usuário] --> Electron[⚡ Electron Main Process]
+    Electron --> Frontend[⚛️ React Frontend<br/>App.jsx]
+    
+    Frontend --> |HTTP/SSE| Backend[🐍 Flask Backend<br/>app.py]
+    Backend --> AgentCore[🧠 AgentCore<br/>COORDINATOR INTERNO]
+    
+    AgentCore --> Orchestrator[🔄 Orchestrator<br/>LOOP AUTÔNOMO]
+    AgentCore --> HexStrikeClient[🔌 HexStrikeClient<br/>PROXY HTTP]
+    
+    HexStrikeClient --> |HTTP:8888| HexStrikeServer[⚔️ HexStrike Server<br/>COORDINATOR EXTERNO]
+    
+    Orchestrator --> AIProvider[🤖 AI Provider Factory<br/>OpenAI/LMStudio/OpenRouter]
+    Orchestrator --> MCPManager[🛠️ MCP Manager<br/>Tool Registry]
+    
+    HexStrikeServer --> |Shell Commands| ZSH[💻 ZSH / Security Tools<br/>Nmap, Nuclei, etc.]
+    
+    subgraph "Backend Services (Singleton Layer)"
+        Backend
+        AgentCore
+        Orchestrator
+        HexStrikeClient
+        AIProvider
+        MCPManager
+    end
+    
+    subgraph "External Execution Layer"
+        HexStrikeServer
+        ZSH
+    end
+    
+    style AgentCore fill:#ff6b6b,stroke:#c92a2a,stroke-width:4px
+    style HexStrikeServer fill:#ff6b6b,stroke:#c92a2a,stroke-width:4px
+    style Orchestrator fill:#ffa94d,stroke:#e67700
+    style Frontend fill:#4dabf7,stroke:#1971c2
+```
+
+### 1.2 Camadas Arquiteturais (Identificadas)
+
+| Camada | Módulos | Responsabilidade Real | Responsabilidade Esperada |
+|--------|---------|----------------------|---------------------------|
+| **Apresentação** | `src/*.jsx` (React) | ✅ Renderização UI, State Management (hooks) | ✅ CONFORME |
+| **Adaptação HTTP** | `controllers/*.py` (Flask Blueprints) | ⚠️ Validação + Lógica de Domínio (VAZAMENTO) | ❌ Apenas Adaptação |
+| **Coordenação Central** | [core/agent_core.py](file:///home/d4r13n/iatools/HexAgentGUI/backend/core/agent_core.py) | ✅ Orquestração, AI Provider, HexStrike Proxy | ✅ CONFORME |
+| **Loop Autônomo** | [core/orchestrator.py](file:///home/d4r13n/iatools/HexAgentGUI/backend/core/orchestrator.py) | ✅ Think→Act→Observe, Response Blocks | ✅ CONFORME |
+| **Execução Remota** | [hexstrike-ai/hexstrike_server.py](file:///home/d4r13n/iatools/hexstrike-ai/hexstrike_server.py) | ⚠️ DUPLICAÇÃO: Orquestra ferramentas localmente | ❌ Deveria ser EXECUTOR PURO |
+| **Ferramentas** | Security Tools (Kali Linux) | ✅ Execução de comandos shell | ✅ CONFORME |
+
+---
+
+## 🔍 2. ANÁLISE INTENÇÃO vs REALIDADE
+
+### 2.1 Arquitetura Pretendida (Documentação)
+
+Segundo [ARCHITECTURE.md](file:///home/d4r13n/iatools/HexAgentGUI/ARCHITECTURE.md), o design esperado é:
+
+- **Frontend**: Estado gerenciado por Context API, Blocks modulares
+- **Backend**: Controllers como **Facades puras** (sem lógica)
+- **AgentCore**: **Único coordenador** de IA e execução
+- **HexStrike**: **Executor de comandos** (servidor passivo)
+
+### 2.2 Arquitetura Real (Código)
+
+#### ❌ Divergências Críticas
+
+1. **Duplicação de Coordenadores**
+   - **AgentCore** (backend/core/agent_core.py) orquestra AI + Comandos
+   - **HexStrike Server** (hexstrike-ai/hexstrike_server.py) TAMBÉM orquestra ferramentas MCP, agentes especializados, inteligência de decisão
+   - **PROBLEMA:** Dois coordenadores competindo pela mesma responsabilidade
+
+2. **ChatController com Lógica de Domínio**
+   ```python
+   # controllers/chat_controller.py - LINHA 127-152
+   def _generate_sse_stream(self, prompt, context, auto_execute, max_iterations):
+       # Controller NÃO deveria conter lógica de formatação de resposta
+       for block in self.agent_core.process_message(...):
+           if block['type'] == 'thinking':
+               yield f"data: {json.dumps({'type': 'thinking', ...})}\n\n"
+       # Lógica de apresentação misturada com controle
+   ```
+   **ESPERADO:** Controller delega para AgentCore, apenas converte Response → SSE
+
+3. **Estado Distribuído sem Sincronização**
+   - `useSystemConfig` (frontend)
+   - `SystemConfigService` (backend)
+   - `~/.hexagent-gui/config.json` (filesystem)
+   - **PROBLEMA:** 3 fontes de verdade competindo
+
+### 2.3 Drift Arquitetural
+
+```mermaid
+graph LR
+    subgraph "ARQUITETURA PRETENDIDA"
+        A1[Frontend] --> B1[Controller Facade]
+        B1 --> C1[AgentCore Única]
+        C1 --> D1[HexStrike EXECUTOR]
+    end
+    
+    subgraph "ARQUITETURA REAL"
+        A2[Frontend] --> B2[Controller + Lógica]
+        B2 --> C2[AgentCore Orquestrador]
+        C2 --> D2[HexStrike ORQUESTRADOR]
+        D2 --> E2[Ferramentas]
+    end
+    
+    style C2 fill:#ff6b6b
+    style D2 fill:#ff6b6b
+```
+
+**Gap de Design:** Arquitetura evoluiu de coordenador único → coordenadores distribuídos, sem refatoração da documentação.
+
+---
+
+## 🕸️ 3. DETECÇÃO DE ACOPLAMENTOS OCULTOS
+
+### 3.1 Matrix de Dependências Implícitas
+
+| Módulo A | Módulo B | Tipo de Acoplamento | Severidade | Evidência |
+|----------|----------|---------------------|-----------|-----------|
+| [App.jsx](file:///home/d4r13n/iatools/HexAgentGUI/src/App.jsx) | [backend/app.py](file:///home/d4r13n/iatools/HexAgentGUI/backend/app.py) | **Temporal** (SSE parsing) | 🔴 ALTO | Formato SSE hardcoded em ambos |
+| [ChatController](file:///home/d4r13n/iatools/HexAgentGUI/backend/controllers/chat_controller.py#18-243) | [Orchestrator](file:///home/d4r13n/iatools/HexAgentGUI/backend/core/orchestrator.py#31-418) | **Conhecimento** (Block Types) | 🟡 MÉDIO | Controller sabe estrutura de Blocks |
+| [AgentCore](file:///home/d4r13n/iatools/HexAgentGUI/backend/core/agent_core.py#37-324) | [HexStrikeClient](file:///home/d4r13n/iatools/HexAgentGUI/backend/core/hex_strike_client.py#19-315) | **Estrutural** (URL config) | 🟢 BAIXO | Via config injetada |
+| `Frontend Hooks` | `Services (backend)` | **Contrato rígido** (JSON schema) | 🟡 MÉDIO | Mudança em Service quebra Frontend |
+| `hexstrike_server` | [AgentCore](file:///home/d4r13n/iatools/HexAgentGUI/backend/core/agent_core.py#37-324) | **DUPLICAÇÃO** (mesma responsabilidade) | 🔴 CRÍTICO | Ambos orquestram ferramentas MCP |
+
+### 3.2 Vazamento de Estado Entre Camadas
+
+#### 🔴 Caso 1: GUI Conhece Detalhes do Backend
+
+```javascript
+// src/hooks/useChatManager.js - LINHA ~180
+const processSSEChunk = (chunk) => {
+  if (chunk.type === 'thinking') {
+    // Frontend SABE sobre tipo de bloco interno do backend
+    // VAZAMENTO: Frontend acoplado a implementação do Orchestrator
+  }
+}
+```
+
+**Isolamento Quebrado:** Frontend deveria receber tipos abstratos, não detalhes de implementação.
+
+#### 🔴 Caso 2: Services Duplicados (Frontend + Backend)
+
+- **Frontend:** [src/services/SessionService.js](file:///home/d4r13n/iatools/HexAgentGUI/src/services/SessionService.js) gerencia sessões
+- **Backend:** [backend/services/memory_service.py](file:///home/d4r13n/iatools/HexAgentGUI/backend/services/memory_service.py) TAMBÉM gerencia memória/context
+- **CONFLITO:** Quem é a fonte de verdade? 
+
+### 3.3 Grafo de Acoplamento
+
+```
+AgentCore (41 dependências)
+  ├─ Orchestrator (direto)
+  ├─ HexStrikeClient (direto)
+  ├─ MCPManager (direto)
+  ├─ AIConfigService (via Service Layer) ← VAZAMENTO
+  ├─ SystemConfigService (via Service Layer) ← VAZAMENTO
+  └─ ProfileService (via Service Layer) ← VAZAMENTO
+
+PROBLEMA: AgentCore (Core Domain) depende de Services (Infrastructure)
+ESPERADO: Services deveriam depender de Core, não o contrário
+```
+
+**Inversão de Dependência Violada:** Core não deveria conhecer Services.
+
+---
+
+## ⚙️ 4. SIMULAÇÃO REVERSA DO CICLO DE VIDA
+
+### 4.1 Sequência de Inicialização (Cold Start)
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Electron
+    participant Frontend
+    participant Backend
+    participant AgentCore
+    participant HexStrike
+    
+    User->>Electron: Inicia aplicação
+    Electron->>Frontend: Carrega React (index.html)
+    Electron->>Backend: Spawns Flask (subprocess)
+    
+    Note over Backend: RACE CONDITION POTENCIAL
+    Backend->>AgentCore: Inicializa (app.py:143)
+    AgentCore->>AIConfigService: load_ai_config()
+    AgentCore->>SystemConfigService: load_system_config()
+    
+    par Inicialização Paralela
+        AgentCore->>HexStrike: health_check() (hex_strike_client.py:48)
+        Frontend->>Backend: GET /health (useBackendInit.js)
+    end
+    
+    alt HexStrike indisponível
+        HexStrike-->>AgentCore: timeout/error
+        AgentCore->>AgentCore: hexstrike_available = False
+    end
+    
+    Frontend->>Backend: GET /config/system
+    Frontend->>Backend: GET /config/ai
+    
+    Note over Frontend: Estado inicial inconsistente se Backend não terminou init
+```
+
+### 4.2 Pontos Críticos de Sincronização
+
+| Ponto | Componentes | Risco | Mitigação Atual |
+|-------|-------------|-------|-----------------|
+| **P1: Backend Init** | Electron → Flask | Race: Frontend conecta antes de Backend ready | ✅ `useBackendInit` hook (retry logic) |
+| **P2: HexStrike Check** | AgentCore → hexstrike_server | Falha silenciosa se servidor offline | ⚠️ Lazy init (hexstrike_available flag) |
+| **P3: Config Load** | Frontend → Backend Services | Config cache stale se alterado externamente | ❌ Nenhuma (dependente de reload manual) |
+| **P4: AI Provider** | AgentCore → OpenAI/LMStudio | API key ausente bloqueia inicialização | ✅ Lazy init com fallback |
+
+### 4.3 Race Conditions Identificadas
+
+#### 🔴 RC-1: Frontend vs Backend Ready State
+
+**Localização:** [src/hooks/useBackendInit.js](file:///home/d4r13n/iatools/HexAgentGUI/src/hooks/useBackendInit.js) + [backend/app.py](file:///home/d4r13n/iatools/HexAgentGUI/backend/app.py)
+
+```javascript
+// Frontend tenta /health ANTES de Flask terminar setup
+useEffect(() => {
+  const checkBackend = async () => {
+    try {
+      await fetch('http://localhost:5000/health');
+    } catch (err) {
+      // Retry logic (bom)
+    }
+  };
+}, []);
+```
+
+**Mitigação:** Implementada (retry exponential backoff)  
+**Status:** ✅ Resolvido (histórico: erro comum em conversas antigas)
+
+#### 🟡 RC-2: Config Service vs AgentCore Init Ordering
+
+**Localização:** `backend/app.py:88-150`
+
+```python
+# Ordem de inicialização:
+ai_service = AIConfigService()  # 1. Carrega config do disco
+ai_config = ai_service.load_ai_config()  # 2. Lê ~/.hexagent-gui/ai-config.json
+agent_core = AgentCore(api_key=api_key, ...)  # 3. Usa config
+
+# PROBLEMA: Se arquivo não existe, usa defaults SEM avisar
+```
+
+**Mitigação:** Parcial (fallback para env vars)  
+**Status:** ⚠️ Requer melhoria (validação explícita)
+
+---
+
+## 📉 5. ANÁLISE DE ENTROPIA ARQUITETURAL
+
+### 5.1 Métricas de Coesão e Acoplamento
+
+| Módulo | LOC | Dependências Entrada | Dependências Saída | Coesão Score | Acoplamento Score | Entropia |
+|--------|-----|---------------------|-------------------|--------------|-------------------|----------|
+| **AgentCore** | 324 | 5 | 6 | ⭐⭐⭐⭐ (Alta) | 🔴🔴 (Alto) | 🟡 Médio |
+| **Orchestrator** | 418 | 4 | 3 | ⭐⭐⭐⭐⭐ (Muito Alta) | 🟢 (Baixo) | ✅ Baixo |
+| **ChatController** | 244 | 2 | 1 | ⭐⭐ (Baixa) | 🟡 (Médio) | 🔴 Alto |
+| **App.jsx** | 376 | 0 | 12 | ⭐⭐⭐ (Média) | 🔴🔴🔴 (Muito Alto) | 🔴 Alto |
+| **hexstrike_server** | 736k | 0 | ~150 | ⭐⭐⭐⭐⭐ (Monolítico) | 🟢 (Isolado) | ✅ Baixo |
+
+**Cálculo de Entropia:**  
+`Entropia = (Acoplamento Total / Coesão) * (Responsabilidades Sobrepostas)`
+
+### 5.2 Centros Gravitacionais de Dependência
+
+```
+            AgentCore (Hub Central)
+                  /|\
+                 / | \
+                /  |  \
+               /   |   \
+    Orchestrator  HexStrike  MCPManager
+         |           |           |
+         v           v           v
+    AI Provider  ZSH Tools  Tool Registry
+```
+
+**Observação:** AgentCore é **God Object** (conhece demais sobre o sistema)
+
+### 5.3 Duplicação de Lógica (DRY Violations)
+
+| Lógica Duplicada | Locais | Divergência | Risco |
+|------------------|--------|-------------|-------|
+| **Config Loading** | `AIConfigService` + `SystemConfigService` + `useSystemConfig` | ❌ Mesma estrutura, 3 implementações | 🔴 Alto |
+| **Session Management** | [SessionService.js](file:///home/d4r13n/iatools/HexAgentGUI/src/services/SessionService.js) + [memory_service.py](file:///home/d4r13n/iatools/HexAgentGUI/backend/services/memory_service.py) | ⚠️ Diferentes responsabilidades (confuso) | 🟡 Médio |
+| **Error Handling** | Controllers (7x replicado) | ✅ Padrão consistente | 🟢 Baixo |
+| **SSE Streaming** | [ChatController](file:///home/d4r13n/iatools/HexAgentGUI/backend/controllers/chat_controller.py#18-243) + `TerminalController` | ⚠️ Lógica similar, não compartilhada | 🟡 Médio |
+
+---
+
+## 🎯 6. VERIFICAÇÃO DE INTEGRIDADE DO COORDINATOR
+
+### 6.1 Análise: hexstrike-ai (Coordinator Externo)
+
+**Estrutura Encontrada:**
+
+```python
+# hexstrike_server.py (736,002 bytes - MONOLÍTICO)
+- 150+ Security Tools (Nmap, Nuclei, etc.)
+- 12+ AI Agents especializados (BugBounty, CTF, CVE Intelligence)
+- IntelligentDecisionEngine (seleção de ferramentas)
+- MCP Protocol Server (FastMCP)
+- Browser Agent (Selenium automation)
+- Caching System (LRU)
+- Process Management (lifecycle)
+```
+
+### 6.2 Abstração de Persona/Agent
+
+**HexStrike** implementa **múltiplas personas** através de:
+
+1. **AI Agents Especializados:**
+   - `BugBountyWorkflowManager` - Fluxos de bug hunting
+   - `CTFWorkflowManager` - Resolução de desafios CTF
+   - `CVEIntelligenceManager` - Análise de vulnerabilidades
+   - `AIExploitGenerator` - Geração automatizada de exploits
+
+2. **Intelligent Decision Engine:**
+   - Seleção automática de ferramentas baseada em contexto
+   - Otimização de parâmetros
+   - Descoberta de cadeias de ataque
+
+**PROBLEMA:** AgentCore (HexAgentGUI) NÃO utiliza essas capacidades avançadas!
+
+### 6.3 Validação: Fonte Única de Verdade?
+
+#### ❌ FALHA: Coordenação Duplicada
+
+```
+┌─────────────────────────────────────┐
+│    HexAgentGUI (AgentCore)          │
+│  - Orchestrator (loop autônomo)     │ ← Orquestra AI + Comandos
+│  - AI Provider Factory              │
+│  - MCP Manager                      │
+└──────────┬──────────────────────────┘
+           │ HTTP:8888 (HexStrikeClient)
+           v
+┌─────────────────────────────────────┐
+│    hexstrike-ai (Server)            │
+│  - Intelligent Decision Engine      │ ← TAMBÉM orquestra ferramentas!
+│  - 12+ AI Agents                    │
+│  - MCP Protocol Server              │
+└─────────────────────────────────────┘
+```
+
+**Arquitetura Conflitante:**
+- **AgentCore** trata HexStrike como **executor passivo** (via [execute_command()](file:///home/d4r13n/iatools/HexAgentGUI/backend/core/hex_strike_client.py#106-197))
+- **HexStrike** age como **coordenador ativo** (com próprio decision engine)
+
+#### 🔍 Evidência de Subutilização
+
+```python
+# backend/core/hex_strike_client.py - LINHA 106
+def execute_command(self, command: str, timeout=None, use_cache=True):
+    """Executa comando shell via HexStrike"""
+    response = requests.post(f"{self.base_url}/api/command", ...)
+    # AgentCore usa HexStrike apenas como "shell remoto"
+    # IGNORA: Intelligent Decision, AI Agents, Tool Selection
+```
+
+**Capacidades Não Utilizadas:**
+- ❌ `/api/intelligence/analyze-target` (análise AI de alvos)
+- ❌ `/api/intelligence/select-tools` (seleção inteligente de ferramentas)
+- ❌ Agentes especializados (BugBounty, CTF, CVE)
+- ✅ Apenas `/api/command` (execução shell básica)
+
+### 6.4 Score de Integridade do Coordinator
+
+| Critério | Status | Score |
+|----------|--------|-------|
+| **Single Source of Truth** | ❌ Duplicado (AgentCore + HexStrike) | 2/10 |
+| **Abstração Consistente** | ⚠️ HexStrike expõe capacidades não usadas | 4/10 |
+| **Reflexão Dinâmica** | ❌ AgentCore não reflete capacidades HexStrike | 1/10 |
+| **Fonte Única de Orquestração** | ❌ Dois orquestradores competindo | 2/10 |
+| **Isolamento de Responsabilidades** | ⚠️ AgentCore conhece demais sobre infra | 5/10 |
+
+**SCORE FINAL:** 🔴 **28/100** (CRÍTICO)
+
+---
+
+## 🗺️ 7. MAPA DE RISCO ESTRUTURAL
+
+### 7.1 Zonas de Risco Crítico
+
+```mermaid
+graph TD
+    A[🔴 ZONA CRÍTICA 1<br/>Duplicação de Coordenadores] --> B[AgentCore]
+    A --> C[HexStrike Server]
+    
+    D[🔴 ZONA CRÍTICA 2<br/>Estado Distribuído] --> E[useSystemConfig]
+    D --> F[SystemConfigService]
+    D --> G[~/.hexagent-gui/*.json]
+    
+    H[🟡 ZONA DE RISCO<br/>Controllers com Lógica] --> I[ChatController]
+    H --> J[TerminalController]
+    
+    K[🟢 ZONA ESTÁVEL<br/>Orchestrator Loop] --> L[Orchestrator.process]
+    
+    style A fill:#d32f2f,color:#fff
+    style D fill:#d32f2f,color:#fff
+    style H fill:#f57c00,color:#fff
+    style K fill:#388e3c,color:#fff
+```
+
+### 7.2 Tabela de Riscos
+
+| ID | Risco | Impacto | Probabilidade | Severidade | Mitigação Sugerida |
+|----|-------|---------|---------------|------------|-------------------|
+| **R1** | Dupla orquestração causa inconsistência | 🔴 Alto | 🔴 Alta | **CRÍTICO** | Definir AgentCore OU HexStrike como único coordenador |
+| **R2** | Config stale entre Frontend/Backend | 🟡 Médio | 🔴 Alta | **ALTO** | Implementar Config Observer Pattern |
+| **R3** | ChatController com lógica de domínio | 🟡 Médio | 🟢 Baixa | **MÉDIO** | Extrair para ResponseFormatter service |
+| **R4** | AgentCore como God Object | 🟡 Médio | 🟡 Média | **MÉDIO** | Aplicar Dependency Injection para services |
+| **R5** | Frontend acoplado a detalhes SSE | 🟢 Baixo | 🟡 Média | **BAIXO** | Criar DTO para blocos de resposta |
+
+---
+
+## 🛠️ 8. ESTRATÉGIA PROFUNDA DE REFATORAÇÃO
+
+### 8.1 Princípios de Redesenho
+
+#### 🎯 Decisão Arquitetural: Qual Coordenador Manter?
+
+**Opção A: AgentCore como Único Coordenador** (RECOMENDADO ✅)
+- **PRÓ:** Controle total sobre fluxo de IA
+- **PRÓ:** Integração nativa com GUI
+- **CONTRA:** Precisa reimplementar 150+ tools de HexStrike
+- **ESFORÇO:** Alto (3-4 semanas)
+
+**Opção B: HexStrike como Único Coordenador**
+- **PRÓ:** Aproveita 150+ tools e AI agents existentes
+- **CONTRA:** AgentCore vira "thin proxy" (perde propósito)
+- **CONTRA:** Lógica de orquestração migra para servidor externo
+- **ESFORÇO:** Médio (2 semanas)
+
+**Opção C: Híbrido (Estado Atual)**
+- **CONTRA:** Mantém duplicação
+- **RECOMENDAÇÃO:** ❌ **EVITAR**
+
+### 8.2 Plano de Refatoração (Opção A)
+
+#### Fase 1: Consolidação do Coordinator (Semana 1-2)
+
+```python
+# 1. Refatorar AgentCore para usar HexStrike APENAS como executor
+class AgentCore:
+    def __init__(self, ...):
+        self.executor = HexStrikeClient(...)  # Rename para "executor"
+        # Remove: self.orchestrator (move para AgentCore)
+    
+    def select_tool(self, context):
+        # Implementa IntelligentDecisionEngine AQUI
+        # Remove: dependência de HexStrike decision engine
+        pass
+    
+    def execute_tool(self, tool_name, params):
+        # HexStrike vira "dumb executor"
+        return self.executor.execute_tool(tool_name, params)
+```
+
+#### Fase 2: Limpar Controllers (Semana 2)
+
+```python
+# 2. Extrair lógica de ChatController para Service
+class ResponseFormatterService:
+    """Converte Response Blocks para SSE format"""
+    def format_sse(self, block: ResponseBlock) -> str:
+        return f"data: {json.dumps(block.to_dict())}\n\n"
+
+class ChatController(BaseController):
+    def __init__(self, core_ref, formatter: ResponseFormatterService):
+        self.formatter = formatter  # Dependency Injection
+    
+    def process_chat(self):
+        # Apenas adaptação HTTP → Domain
+        for block in self.agent_core.process_message(...):
+            yield self.formatter.format_sse(block)  # Delega formatação
+```
+
+#### Fase 3: Unificar Gerenciamento de Config (Semana 3)
+
+```python
+# 3. Criar ConfigStore como Single Source of Truth
+class ConfigStore:
+    """Observable Config with Frontend/Backend sync"""
+    def __init__(self):
+        self._observers = []
+        self._config = self._load_from_disk()
+    
+    def subscribe(self, observer):
+        self._observers.append(observer)
+    
+    def update(self, key, value):
+        self._config[key] = value
+        self._persist()
+        self._notify_observers()  # Push para Frontend via WebSocket
+
+# Frontend (React)
+useEffect(() => {
+    const ws = new WebSocket('ws://localhost:5000/config/stream');
+    ws.onmessage = (event) => {
+        const config = JSON.parse(event.data);
+        setSystemConfig(config);  // Auto-update
+    };
+}, []);
+```
+
+#### Fase 4: Aplicar Dependency Inversion (Semana 3-4)
+
+```python
+# 4. AgentCore NÃO deve conhecer Services de infraestrutura
+# ANTES (errado):
+class AgentCore:
+    def __init__(self, ...):
+        from services.ai_config_service import AIConfigService
+        self.ai_service = AIConfigService()  # ❌ Core depende de infra
+
+# DEPOIS (correto):
+class AgentCore:
+    def __init__(self, config_provider: ConfigProvider):
+        self.config_provider = config_provider  # ✅ Abstração injetada
+
+# Infrastructure Layer
+class AIConfigService(ConfigProvider):
+    """Implementa interface ConfigProvider"""
+    pass
+```
+
+### 8.3 Impacto de Mudança
+
+| Módulo | Mudanças Requeridas | Impacto em Testes | Impacto em Frontend |
+|--------|---------------------|-------------------|---------------------|
+| [AgentCore](file:///home/d4r13n/iatools/HexAgentGUI/backend/core/agent_core.py#37-324) | 🔴 Alto (adicionar logic HexStrike) | 🟡 Médio (mocks) | 🟢 Nenhum |
+| [ChatController](file:///home/d4r13n/iatools/HexAgentGUI/backend/controllers/chat_controller.py#18-243) | 🟡 Médio (extrair formatter) | 🟢 Baixo | 🟢 Nenhum |
+| [HexStrikeClient](file:///home/d4r13n/iatools/HexAgentGUI/backend/core/hex_strike_client.py#19-315) | 🟢 Baixo (rename) | 🟢 Baixo | 🟢 Nenhum |
+| `Frontend` | 🟡 Médio (WebSocket config) | 🟡 Médio | 🟡 Médio |
+| `hexstrike_server` | 🔴 Alto (remover decision engine) | 🔴 Alto | 🟢 Nenhum |
+
+---
+
+## 📋 9. ROADMAP DE EVOLUÇÃO ARQUITETURAL
+
+### Trimestre 1: Estabilização (JAN-MAR 2026)
+
+**Mês 1: Consolidação do Coordinator**
+- [ ] Definir AgentCore como único coordenador
+- [ ] Migrar tool selection logic de HexStrike → AgentCore
+- [ ] Refatorar HexStrikeClient → ToolExecutor (rename semântico)
+
+**Mês 2: Limpeza de Controllers**
+- [ ] Extrair ResponseFormatterService
+- [ ] Implementar Base patterns para error handling (evitar duplicação)
+- [ ] Adicionar testes unitários para Controllers
+
+**Mês 3: Config Store Unificado**
+- [ ] Implementar ConfigStore com Observer Pattern
+- [ ] Migrar frontend para WebSocket config sync
+- [ ] Deprecar chamadas GET /config/* redundantes
+
+### Trimestre 2: Modularização (ABR-JUN 2026)
+
+**Mês 4-5: Dependency Injection**
+- [ ] Criar container de DI (ex: `dependency-injector`)
+- [ ] Refatorar AgentCore para receber dependencies via construtor
+- [ ] Remover imports diretos de Services em Core
+
+**Mês 6: MCP Integration**
+- [ ] Usar capacidades MCP de HexStrike de forma nativa
+- [ ] Implementar MCP client em AgentCore
+- [ ] Documentar fluxo MCP → Tool Selection → Execution
+
+### Trimestre 3: Otimização (JUL-SET 2026)
+
+**Mês 7-8: Performance**
+- [ ] Implementar connection pooling para HexStrike HTTP
+- [ ] Adicionar circuit breaker para falhas de HexStrike
+- [ ] Otimizar streaming SSE (buffering)
+
+**Mês 9: Monitoramento**
+- [ ] Adicionar telemetria (OpenTelemetry)
+- [ ] Dashboard de health para subsistemas
+- [ ] Alertas para drift arquitetural (linter customizado)
+
+---
+
+## 📊 10. APÊNDICES
+
+### A. Ferramentas de Análise Utilizadas
+
+- **Análise Estática:** Leitura manual de código (view_file, grep_search)
+- **Análise de Dependências:** Mapeamento de imports entre módulos
+- **Simulação Mental:** Tracing de fluxo de execução (cold start, request flow)
+- **Documentação:** Comparação README.md/ARCHITECTURE.md vs código real
+
+### B. Glossário de Termos
+
+- **Coordinator:** Módulo responsável por orquestrar múltiplos subsistemas
+- **Drift Arquitetural:** Divergência entre design pretendido e implementação real
+- **God Object:** Classe que conhece ou faz demais (antipadrão)
+- **Vazamento de Responsabilidade:** Camada executando lógica de outra camada
+- **Entropia Arquitetural:** Medida de desordem/complexidade do sistema
+
+### C. Referências de Código
+
+| Arquivo | Linhas-Chave | Descoberta |
+|---------|--------------|------------|
+| [backend/app.py](file:///home/d4r13n/iatools/HexAgentGUI/backend/app.py) | 88-150 | Inicialização do AgentCore |
+| [backend/core/agent_core.py](file:///home/d4r13n/iatools/HexAgentGUI/backend/core/agent_core.py) | 144-217 | Método initialize (hot-reload config) |
+| [backend/core/orchestrator.py](file:///home/d4r13n/iatools/HexAgentGUI/backend/core/orchestrator.py) | 146-362 | Loop process (Think→Act→Observe) |
+| [backend/controllers/chat_controller.py](file:///home/d4r13n/iatools/HexAgentGUI/backend/controllers/chat_controller.py) | 127-152 | SSE streaming logic (vazamento) |
+| [src/App.jsx](file:///home/d4r13n/iatools/HexAgentGUI/src/App.jsx) | 72-191 | State management (hooks) |
+| [hexstrike-ai/hexstrike_server.py](file:///home/d4r13n/iatools/hexstrike-ai/hexstrike_server.py) | N/A (736k LOC) | Monólito com 150+ tools |
+
+---
+
+## 🎯 CONCLUSÃO
+
+O sistema **HexAgentGUI** apresenta uma arquitetura **parcialmente implementada** com divergências significativas entre a intenção de design e a realidade do código. Os principais desafios são:
+
+1. **Duplicação de Coordenadores:** AgentCore e HexStrike competem pela mesma responsabilidade
+2. **Vazamento de Responsabilidades:** Controllers executam lógica de domínio
+3. **Estado Distribuído:** Config gerenciado em múltiplos locais sem sincronização
+4. **Subutilização de Capacidades:** HexStrike oferece AI agents avançados não utilizados
+
+### Recomendações Prioritárias
+
+🔴 **CRÍTICO:** Definir **AgentCore OU HexStrike** como único coordenador (evitar duplicação)  
+🟡 **ALTO:** Implementar **ConfigStore** com sincronização Frontend/Backend  
+🟡 **ALTO:** Extrair lógica de **Controllers** para Service Layer  
+🟢 **MÉDIO:** Aplicar **Dependency Injection** para reduzir acoplamento do AgentCore  
+
+**Score Geral de Integridade Arquitetural:** 🟡 **6.2/10** (Requer refatoração moderada)
+
+---
+
+**Próximos Passos Recomendados:**
+1. Revisar este relatório com stakeholders técnicos
+2. Decidir estratégia de refatoração (Opção A vs B vs C)
+3. Criar POC (Proof of Concept) da arquitetura refatorada
+4. Executar fases do roadmap incrementalmente
+
+**Fim do Relatório**

@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-01-06T13:11:30.056866",
+  "category": "terminal",
+  "event": "command_execution",
+  "data": {
+    "command": "ls ~/iatools/",
+    "output": "Command Executed (in /home/d4r13n/.hexagent-gui):\n\u001b[0m\u001b[01;34mbkp\u001b[0m\n\u001b[01;34mHexAgent\u001b[0m\n\u001b[01;34mHexAgentGUI\u001b[0m\n\u001b[01;34mHexAgentGUI-Modular\u001b[0m\n\u001b[01;32mhexagent_wrapper.sh\u001b[0m\n\u001b[01;34mHexSecGPT-main\u001b[0m\n\u001b[01;34mhexstrike-ai\u001b[0m\nhexstrike.log\n\u001b[01;32minstall.sh\u001b[0m\nkeybindings.json\nkeyhexseck2.txt\nREADME.md\n\u001b[01;34mtest_env\u001b[0m\n\u001b[01;34mtests\u001b[0m\n\u001b[01;34mvenv\u001b[0m\n\u001b[01;34mWarp\u001b[0m\n",
+    "exit_code": 0,
+    "cwd": "/home/d4r13n/.hexagent-gui"
+  }
+}

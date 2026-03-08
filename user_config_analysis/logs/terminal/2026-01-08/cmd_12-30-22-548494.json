@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-01-08T12:30:22.548494",
+  "category": "terminal",
+  "event": "command_execution",
+  "data": {
+    "command": "cat ~/script/worcknow.sh",
+    "output": "Execution Failed:\ncat: /home/d4r13n/script/worcknow.sh: Arquivo ou diret\u00f3rio inexistente\n",
+    "exit_code": 0,
+    "cwd": "/home/d4r13n/.hexagent-gui"
+  }
+}

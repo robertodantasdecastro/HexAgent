@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-01-07T22:38:26.196105",
+  "category": "terminal",
+  "event": "command_execution",
+  "data": {
+    "command": "cat ~/script/worcknow.sh",
+    "output": "Command Executed (in /home/d4r13n/.hexagent-gui):\n#!/bin/bash\n\n# Script para gerenciar servi\u00e7os SSH e DNS\n# Uso: ./worcknow.sh <servi\u00e7o> <a\u00e7\u00e3o>\n# Exemplo: ./worcknow.sh ssh start\nSERVICO=$1\nACAO=$2\n# Verifica se os par\u00e2metros foram fornecidos\nif [ -z \"$SERVICO\" ] || [ -z \"$ACAO\" ]; then\n    echo \"Uso: $0 <ssh|dns> <start|stop|restart|status>\"\n    exit 1\nfi\n# Verifica se o servi\u00e7o \u00e9 v\u00e1lido\nif [ \"$SERVICO\" != \"ssh\" ] && [ \"$SERVICO\" != \"dns\" ]; then\n    echo \"Servi\u00e7o inv\u00e1lido. Use 'ssh' ou 'dns'.\"\n# Verifica se a a\u00e7\u00e3o \u00e9 v\u00e1lida\nif [ \"$ACAO\" != \"start\" ] && [ \"$ACAO\" != \"stop\" ] && [ \"$ACAO\" != \"restart\" ] && [ \"$ACAO\" != \"status\" ]; then\n    echo \"A\u00e7\u00e3o inv\u00e1lida. Use 'start', 'stop', 'restart' ou 'status'. \"\n# Fun\u00e7\u00e3o para gerenciar servi\u00e7os\ngerenciar_servico() {\n    local servico=$1\n    local acao=$2\n    # Converte dns para o nome correto do servi\u00e7o (normalmente bind9 ou named)\n    if [ \"$servico\" == \"dns\" ]; then\n        servico=\"bind9\"\n    fi\n    case \"$acao\" in\n        start)\n          ",
+    "exit_code": 0,
+    "cwd": "/home/d4r13n/.hexagent-gui"
+  }
+}

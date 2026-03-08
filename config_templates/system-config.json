@@ -1,0 +1,43 @@
+{
+    "system": {
+        "theme": "dark",
+        "language": "auto",
+        "auto_save_session": true,
+        "allow_infinite_mode": false,
+        "debug_mode": false
+    },
+    "services": {
+        "flask_port": 5001,
+        "hexstrike_port": 8888,
+        "backend_host": "127.0.0.1",
+        "hexstrike_host": "127.0.0.1",
+        "hexstrike_app_path": "/home/d4r13n/iatools/hexstrike-ai",
+        "hexstrike_venv_path": "/home/d4r13n/iatools/hexstrike-ai/venv",
+        "hexstrike_api": {
+            "timeout": 300,
+            "polling_interval": 1,
+            "max_retries": 1
+        }
+    },
+    "environment": {
+        "venv_path": "/home/d4r13n/iatools/HexAgentGUI/venv"
+    },
+    "ui": {
+        "custom_colors": {},
+        "animations_enabled": true,
+        "compact_mode": false,
+        "block_rules": {
+            "text": { "actions": ["copy", "save"], "syntax_highlight": false },
+            "code": { "actions": ["copy", "save", "edit"], "syntax_highlight": true },
+            "shell": { "actions": ["copy", "execute", "save"], "syntax_highlight": true, "auto_execute_hides_button": true },
+            "thinking": { "actions": [], "syntax_highlight": false, "collapsed_by_default": true, "opacity": 0.6, "font_size": "0.7rem" },
+            "log": { "actions": ["copy", "save"], "syntax_highlight": false },
+            "readme": { "actions": ["copy", "save"], "syntax_highlight": true },
+            "error": { "actions": ["copy", "save"], "syntax_highlight": false }
+        }
+    },
+    "terminal": {
+        "shell_type": "auto",
+        "history_path": ""
+    }
+}

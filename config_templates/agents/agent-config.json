@@ -1,0 +1,16 @@
+{
+  "name": "HexStrike-AI Default",
+  "version": "1.0",
+  "description": "Default configuration for HexStrike cognitive agent",
+  "cognitive_loop": {
+    "max_iterations": 10,
+    "unlimited_iterations": false,
+    "strategy": "react",
+    "allow_self_healing": true
+  },
+  "safety": {
+    "require_approval_for_destructive_commands": true,
+    "allowed_tools": ["nmap", "gobuster", "ffuf", "nuclei", "searchsploit"],
+    "blocked_commands": ["rm -rf /", "mkfs", "dd"]
+  }
+}

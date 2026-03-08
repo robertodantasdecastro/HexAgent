@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-01-05T22:56:38.931679",
+  "category": "terminal",
+  "event": "command_execution",
+  "data": {
+    "command": "local cmd=$1",
+    "output": "Execution Failed:\n/bin/sh: 1: local: not in a function\n",
+    "exit_code": 0,
+    "cwd": "/home/d4r13n/.hexagent-gui"
+  }
+}

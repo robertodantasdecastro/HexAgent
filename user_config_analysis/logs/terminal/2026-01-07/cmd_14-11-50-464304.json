@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-01-07T14:11:50.464304",
+  "category": "terminal",
+  "event": "command_execution",
+  "data": {
+    "command": "ls -la ~/script",
+    "output": "Command Executed (in /home/d4r13n/.hexagent-gui):\ntotal 8\ndrwxrwxr-x  2 d4r13n d4r13n 4096 jan  7 00:46 \u001b[0m\u001b[01;34m.\u001b[0m\ndrwx------ 31 d4r13n d4r13n 4096 jan  7 13:00 \u001b[01;34m..\u001b[0m\n-rw-rw-r--  1 d4r13n d4r13n    0 jan  7 00:46 worknow.sh\n",
+    "exit_code": 0,
+    "cwd": "/home/d4r13n/.hexagent-gui"
+  }
+}

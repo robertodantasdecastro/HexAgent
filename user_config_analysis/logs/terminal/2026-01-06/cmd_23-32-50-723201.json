@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-01-06T23:32:50.723201",
+  "category": "terminal",
+  "event": "command_execution",
+  "data": {
+    "command": "'# Verifica se a a\u00e7\u00e3o \u00e9 v\u00e1lida' \\",
+    "output": "Execution Failed:\n/bin/sh: 1: # Verifica se a a\u00e7\u00e3o \u00e9 v\u00e1lida: not found\n",
+    "exit_code": 0,
+    "cwd": "/home/d4r13n/.hexagent-gui"
+  }
+}

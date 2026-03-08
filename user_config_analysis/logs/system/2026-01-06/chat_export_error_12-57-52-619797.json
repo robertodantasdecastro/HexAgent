@@ -1,0 +1,9 @@
+{
+  "timestamp": "2026-01-06T12:57:52.619797",
+  "category": "system",
+  "event": "chat_export_error",
+  "data": {
+    "error": "name 'datetime' is not defined",
+    "traceback": "Traceback (most recent call last):\n  File \"/home/d4r13n/.hexagent-gui/app/resources/backend/server.py\", line 1377, in export_chat\n    output_lines.append(f\"**Export Date:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\\n\")\n                                            ^^^^^^^^\nNameError: name 'datetime' is not defined. Did you forget to import 'datetime'?\n"
+  }
+}

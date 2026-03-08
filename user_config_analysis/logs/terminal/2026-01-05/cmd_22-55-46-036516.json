@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-01-05T22:55:46.036516",
+  "category": "terminal",
+  "event": "command_execution",
+  "data": {
+    "command": "case $service in",
+    "output": "Execution Failed:\n/bin/sh: 1: Syntax error: end of file unexpected (expecting \")\")\n",
+    "exit_code": 1,
+    "cwd": "/home/d4r13n/.hexagent-gui"
+  }
+}

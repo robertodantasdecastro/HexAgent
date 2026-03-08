@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-01-07T00:46:54.539286",
+  "category": "terminal",
+  "event": "command_execution",
+  "data": {
+    "command": "echo \"Subcomando inv\u00e1lido. Use 'start', 'stop', 'restart' ou 'status'. \"",
+    "output": "Command Executed (in /home/d4r13n/.hexagent-gui):\nSubcomando inv\u00e1lido. Use 'start', 'stop', 'restart' ou 'status'. \n",
+    "exit_code": 0,
+    "cwd": "/home/d4r13n/.hexagent-gui"
+  }
+}

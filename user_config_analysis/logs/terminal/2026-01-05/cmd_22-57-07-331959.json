@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-01-05T22:57:07.331959",
+  "category": "terminal",
+  "event": "command_execution",
+  "data": {
+    "command": "'        echo \"Erro: N\u00famero incorreto de par\u00e2metros.\"' \\",
+    "output": "Execution Failed:\n/bin/sh: 1:         echo \"Erro: N\u00famero incorreto de par\u00e2metros.\": not found\n",
+    "exit_code": 0,
+    "cwd": "/home/d4r13n/.hexagent-gui"
+  }
+}

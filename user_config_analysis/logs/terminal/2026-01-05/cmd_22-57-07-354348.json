@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-01-05T22:57:07.354348",
+  "category": "terminal",
+  "event": "command_execution",
+  "data": {
+    "command": "'    SERVICE=$2' \\",
+    "output": "Execution Failed:\n/bin/sh: 1:     SERVICE=$2: not found\n",
+    "exit_code": 0,
+    "cwd": "/home/d4r13n/.hexagent-gui"
+  }
+}

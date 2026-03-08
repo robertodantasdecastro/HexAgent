@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-01-06T23:32:34.437482",
+  "category": "terminal",
+  "event": "command_execution",
+  "data": {
+    "command": "echo \"Falha ao parar o servi\u00e7o SSH.\"",
+    "output": "Command Executed (in /home/d4r13n/.hexagent-gui):\nFalha ao parar o servi\u00e7o SSH.\n",
+    "exit_code": 0,
+    "cwd": "/home/d4r13n/.hexagent-gui"
+  }
+}

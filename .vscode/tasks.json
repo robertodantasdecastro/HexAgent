@@ -1,0 +1,32 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "install",
+      "type": "shell",
+      "command": "./install.sh",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": false
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    },
+    {
+        "label": "HexAgent Sequence",
+        "type": "shell",
+        "command": "./install.sh; export DISPLAY=:0 && ~/.hexagent-gui/app/hexagent-gui",
+        "presentation": {
+            "reveal": "always",
+            "panel": "new"
+        }
+    }
+  ]
+}

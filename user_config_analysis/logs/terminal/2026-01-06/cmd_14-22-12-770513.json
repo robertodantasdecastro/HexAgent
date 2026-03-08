@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-01-06T14:22:12.770513",
+  "category": "terminal",
+  "event": "command_execution",
+  "data": {
+    "command": "ls -la ~/",
+    "output": "Execution Failed:\nRequest failed: HTTPConnectionPool(host='127.0.0.1', port=8888): Max retries exceeded with url: /api/command (Caused by NewConnectionError(\"HTTPConnection(host='127.0.0.1', port=8888): Failed to establish a new connection: [Errno 111] Connection refused\"))",
+    "exit_code": 1,
+    "cwd": "/home/d4r13n/.hexagent-gui"
+  }
+}

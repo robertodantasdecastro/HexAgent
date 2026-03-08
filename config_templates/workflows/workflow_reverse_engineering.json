@@ -1,0 +1,22 @@
+{
+    "id": "workflow_reverse_engineering",
+    "name": "Reverse Engineering",
+    "description": "Analyze binary files to extract strings, headers, and logic.",
+    "icon": "Cpu",
+    "type": "prompt",
+    "steps": [
+        {
+            "type": "prompt",
+            "content": "Perform Reverse Engineering Analysis on file: {target}.\n\nObjective: Understand the binary's functionality and potential secrets.\n\nSteps:\n1. File Type: Use `file` command to identify architecture.\n2. Strings: Use `strings` to extract readable text.\n3. Detailed Analysis: Suggest using `objdump`, `readelf`, or `binwalk` depending on findings.\n\nPlease start by identifying the file type and running a basic strings extraction."
+        }
+    ],
+    "variables": [
+        { 
+            "name": "target", 
+            "label": "Target File Path", 
+            "type": "text", 
+            "required": true, 
+            "placeholder": "/path/to/binary" 
+        }
+    ]
+}

@@ -1,0 +1,8 @@
+{
+  "timestamp": "2026-01-05T23:04:30.856922",
+  "category": "system",
+  "event": "chat_export_error",
+  "data": {
+    "error": "name 'datetime' is not defined"
+  }
+}

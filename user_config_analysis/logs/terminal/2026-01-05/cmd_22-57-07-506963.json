@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-01-05T22:57:07.506963",
+  "category": "terminal",
+  "event": "command_execution",
+  "data": {
+    "command": "'    esac' \\",
+    "output": "Execution Failed:\n/bin/sh: 1:     esac: not found\n",
+    "exit_code": 0,
+    "cwd": "/home/d4r13n/.hexagent-gui"
+  }
+}

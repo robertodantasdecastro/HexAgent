@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-01-06T23:32:51.043904",
+  "category": "terminal",
+  "event": "command_execution",
+  "data": {
+    "command": "'                echo \"Servi\u00e7o DNS reiniciado com sucesso!\"' \\",
+    "output": "Execution Failed:\n/bin/sh: 1:                 echo \"Servi\u00e7o DNS reiniciado com sucesso!\": not found\n",
+    "exit_code": 0,
+    "cwd": "/home/d4r13n/.hexagent-gui"
+  }
+}

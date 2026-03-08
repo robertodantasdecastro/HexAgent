@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-01-07T22:38:34.107666",
+  "category": "terminal",
+  "event": "command_execution",
+  "data": {
+    "command": "gerenciar_servico \"$SERVICO\" \"$ACAO\"",
+    "output": "Execution Failed:\n/bin/sh: 1: gerenciar_servico: not found\n",
+    "exit_code": 0,
+    "cwd": "/home/d4r13n/.hexagent-gui"
+  }
+}

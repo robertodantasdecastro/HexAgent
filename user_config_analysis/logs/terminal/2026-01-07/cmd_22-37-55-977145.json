@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-01-07T22:37:55.977145",
+  "category": "terminal",
+  "event": "command_execution",
+  "data": {
+    "command": "sudo systemctl stop $servico",
+    "output": "Execution Failed:\nsudo: um terminal \u00e9 necess\u00e1rio para ler a senha; use a op\u00e7\u00e3o -S para ler a entrada padr\u00e3o ou configure um auxiliar de askpass\nsudo: uma senha \u00e9 necess\u00e1ria\n",
+    "exit_code": 0,
+    "cwd": "/home/d4r13n/.hexagent-gui"
+  }
+}

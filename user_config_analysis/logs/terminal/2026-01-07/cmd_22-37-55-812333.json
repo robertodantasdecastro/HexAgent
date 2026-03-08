@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-01-07T22:37:55.812333",
+  "category": "terminal",
+  "event": "command_execution",
+  "data": {
+    "command": "local acao=$2",
+    "output": "Execution Failed:\n/bin/sh: 1: local: not in a function\n",
+    "exit_code": 0,
+    "cwd": "/home/d4r13n/.hexagent-gui"
+  }
+}

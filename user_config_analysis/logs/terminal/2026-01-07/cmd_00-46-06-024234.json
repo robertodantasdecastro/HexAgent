@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-01-07T00:46:06.024234",
+  "category": "terminal",
+  "event": "command_execution",
+  "data": {
+    "command": "./worknow.sh dns stop",
+    "output": "Execution Failed:\n/bin/sh: 1: ./worknow.sh: not found\n",
+    "exit_code": 0,
+    "cwd": "/home/d4r13n/.hexagent-gui"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "HexAgentGUI: Install & Run",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "runtimeExecutable": "${env:HOME}/.hexagent-gui/app/hexagent-gui",
+      "runtimeArgs": [],
+      "env": {
+        "DISPLAY": ":0"
+      },
+      "preLaunchTask": "install",
+      "console": "integratedTerminal"
+    }
+  ]
+}

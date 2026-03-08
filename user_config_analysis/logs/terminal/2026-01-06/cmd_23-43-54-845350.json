@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-01-06T23:43:54.845350",
+  "category": "terminal",
+  "event": "command_execution",
+  "data": {
+    "command": "ls",
+    "output": "Command Executed (in /home/d4r13n/.hexagent-gui):\nactive_hosts.txt\n\u001b[0m\u001b[01;34madjusts\u001b[0m\n\u001b[01;34magents\u001b[0m\n\u001b[01;32manalyze_results.sh\u001b[0m\n\u001b[01;34mapp\u001b[0m\n\u001b[01;34mbackups\u001b[0m\n\u001b[01;34mconfig\u001b[0m\n\u001b[01;34mconfig.backup.20260104_152542\u001b[0m\n\u001b[01;34mconfig.backup.20260104_160041\u001b[0m\n\u001b[01;34mconfig.backup.20260104_160053\u001b[0m\n\u001b[01;34mconfig.backup.20260104_160256\u001b[0m\n\u001b[01;34mconfig.backup.20260104_164252\u001b[0m\n\u001b[01;34mconfig.backup.20260104_164319\u001b[0m\n\u001b[01;34mconfig.backup.20260104_164546\u001b[0m\n\u001b[01;34mconfig.backup.20260104_171014\u001b[0m\n\u001b[01;34mconfig.backup.20260104_175752\u001b[0m\n\u001b[01;34mconfig.backup.20260104_185000\u001b[0m\n\u001b[01;34mconfig.backup.20260104_223903\u001b[0m\n\u001b[01;34mconfig.backup.20260104_233046\u001b[0m\n\u001b[01;34mconfig.backup.20260104_233146\u001b[0m\n\u001b[01;34mconfig.backup.20260104_234440\u001b[0m\n\u001b[01;34mconfig.backup.20260104_235125\u001b[0m\n\u001b[01;34mconfig.backup.20260105_000907\u001b[0m\n\u001b[01;34mconfig.backup.20260105_001235\u001b[0m\n\u001b[01;34mconfig.backup.20260105_011145\u001b[0m\n\u001b[01;34mconfig.backup.20260105_012134\u001b[0m\n\u001b[01;3",
+    "exit_code": 0,
+    "cwd": "/home/d4r13n/.hexagent-gui"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-01-06T23:32:51.104705",
+  "category": "terminal",
+  "event": "command_execution",
+  "data": {
+    "command": "'case $SERVICO in' \\",
+    "output": "Execution Failed:\n/bin/sh: 1: case $SERVICO in: not found\n",
+    "exit_code": 0,
+    "cwd": "/home/d4r13n/.hexagent-gui"
+  }
+}

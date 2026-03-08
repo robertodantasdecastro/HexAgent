@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-01-06T23:32:50.620032",
+  "category": "terminal",
+  "event": "command_execution",
+  "data": {
+    "command": "'# Uso: ./worknow.sh [servi\u00e7o] [a\u00e7\u00e3o]' \\",
+    "output": "Execution Failed:\n/bin/sh: 1: # Uso: ./worknow.sh [servi\u00e7o] [a\u00e7\u00e3o]: not found\n",
+    "exit_code": 0,
+    "cwd": "/home/d4r13n/.hexagent-gui"
+  }
+}

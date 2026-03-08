@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-01-06T23:31:00.255290",
+  "category": "terminal",
+  "event": "command_execution",
+  "data": {
+    "command": "ls -la ~/",
+    "output": "Command Executed (in /home/d4r13n/.hexagent-gui):\ntotal 1837476\ndrwx------ 31 d4r13n d4r13n      4096 jan  6 23:27 \u001b[0m\u001b[01;34m.\u001b[0m\ndrwxr-xr-x  3 root   root        4096 dez 20 09:40 \u001b[01;34m..\u001b[0m\ndrwxrwxr-x  5 d4r13n d4r13n      4096 jan  6 23:20 \u001b[01;34m.antigravity-server\u001b[0m\ndrwxr-xr-x  3 d4r13n d4r13n      4096 jan  6 23:25 \u001b[01;34m\u00c1rea de trabalho\u001b[0m\n-rw-r--r--  1 d4r13n d4r13n       220 dez 20 09:40 .bash_logout\n-rw-r--r--  1 d4r13n d4r13n      5551 dez 20 09:40 .bashrc\n-rw-r--r--  1 d4r13n d4r13n      3526 dez 20 09:40 .bashrc.original\ndrwxrwxr-x 18 d4r13n d4r13n      4096 jan  1 13:06 \u001b[01;34m.cache\u001b[0m\ndrwxr-xr-x 23 d4r13n d4r13n      4096 jan  5 21:22 \u001b[01;34m.config\u001b[0m\n-rw-r--r--  1 d4r13n d4r13n        35 dez 20 09:54 .dmrc\ndrwxr-xr-x  2 d4r13n d4r13n      4096 dez 20 09:54 \u001b[01;34mDocumentos\u001b[0m\ndrwxr-xr-x  3 d4r13n d4r13n      4096 jan  2 02:30 \u001b[01;34mDownloads\u001b[0m\ndrwxrwxr-x  3 d4r13n d4r13n      4096 dez 29 13:12 \u001b[01;34meng_software\u001b[0m\n-rw-r--r--  1 d4r13n d4r13",
+    "exit_code": 1,
+    "cwd": "/home/d4r13n/.hexagent-gui"
+  }
+}

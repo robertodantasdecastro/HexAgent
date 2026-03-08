@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-01-07T22:38:23.976845",
+  "category": "terminal",
+  "event": "command_execution",
+  "data": {
+    "command": "ls -la ~/script/worcknow.sh",
+    "output": "Command Executed (in /home/d4r13n/.hexagent-gui):\n-rwxrwxr-x 1 d4r13n d4r13n 1469 jan  7 22:38 \u001b[0m\u001b[01;32m/home/d4r13n/script/worcknow.sh\u001b[0m\n",
+    "exit_code": 0,
+    "cwd": "/home/d4r13n/.hexagent-gui"
+  }
+}

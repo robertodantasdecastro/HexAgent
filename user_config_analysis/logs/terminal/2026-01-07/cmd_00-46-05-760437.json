@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-01-07T00:46:05.760437",
+  "category": "terminal",
+  "event": "command_execution",
+  "data": {
+    "command": "sudo systemctl stop \"$SERVICO_SYSTEMD\"",
+    "output": "Execution Failed:\nsudo: a terminal is required to read the password; either use ssh's -t option or configure an askpass helper\nsudo: uma senha \u00e9 necess\u00e1ria\n",
+    "exit_code": 0,
+    "cwd": "/home/d4r13n/.hexagent-gui"
+  }
+}

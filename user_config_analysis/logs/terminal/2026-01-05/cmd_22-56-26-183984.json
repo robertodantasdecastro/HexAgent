@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-01-05T22:56:26.183984",
+  "category": "terminal",
+  "event": "command_execution",
+  "data": {
+    "command": "if [ $# -ne 2 ]; then",
+    "output": "Execution Failed:\n/bin/sh: 1: Syntax error: end of file unexpected (expecting \"fi\")\n",
+    "exit_code": 1,
+    "cwd": "/home/d4r13n/.hexagent-gui"
+  }
+}

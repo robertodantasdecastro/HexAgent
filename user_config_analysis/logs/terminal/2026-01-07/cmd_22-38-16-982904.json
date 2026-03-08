@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-01-07T22:38:16.982904",
+  "category": "terminal",
+  "event": "command_execution",
+  "data": {
+    "command": "echo '    echo \"A\u00e7\u00e3o inv\u00e1lida. Use '\\''start'\\'', '\\''stop'\\'', '\\''restart'\\'' ou '\\''status'\\''. \"' >> ~/script/worcknow.sh",
+    "output": "Command Executed (in /home/d4r13n/.hexagent-gui):\n",
+    "exit_code": 0,
+    "cwd": "/home/d4r13n/.hexagent-gui"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "server": {
+    "host": "127.0.0.1",
+    "port": 8888,
+    "auto_start": true,
+    "venv_path": "~/iatools/hexstrike-ai/venv"
+  },
+  "agent": {
+    "objective": "general_assistant",
+    "custom_instructions": "",
+    "safety_level": "high",
+    "allowed_tools": ["nmap", "whois", "curl"],
+    "blocked_tools": ["rm", "dd", "mkfs"]
+  },
+  "execution": {
+    "timeout": 300,
+    "max_concurrency": 1
+  }
+}

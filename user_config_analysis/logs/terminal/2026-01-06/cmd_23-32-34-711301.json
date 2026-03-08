@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-01-06T23:32:34.711301",
+  "category": "terminal",
+  "event": "command_execution",
+  "data": {
+    "command": "fi",
+    "output": "Execution Failed:\n/bin/sh: 1: Syntax error: \"fi\" unexpected\n",
+    "exit_code": 1,
+    "cwd": "/home/d4r13n/.hexagent-gui"
+  }
+}

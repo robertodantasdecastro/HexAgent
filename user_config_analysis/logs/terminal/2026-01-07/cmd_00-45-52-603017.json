@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-01-07T00:45:52.603017",
+  "category": "terminal",
+  "event": "command_execution",
+  "data": {
+    "command": "printf '#!/bin/bash\\n\\n# Script para gerenciar servi\u00e7os SSH e DNS\\n# Uso: ./worknow.sh <servi\u00e7o> <subcomando>\\n# Exemplo: ./worknow.sh ssh start\\n\\nSERVICO=\"$1\"\\nSUBCOMANDO=\"$2\"\\n\\nif [ -z \"$SERVICO\" ] || [ -z \"$SUBCOMANDO\" ]; then\\n    echo \"Uso: $0 <servi\u00e7o> <subcomando>\"\\n    echo \"Servi\u00e7os dispon\u00edveis: ssh, dns\"\\n    echo \"Subcomandos dispon\u00edveis: start, stop, restart, status\"\\n    exit 1\\nfi\\n\\nif [ \"$SERVICO\" != \"ssh\" ] && [ \"$SERVICO\" != \"dns\" ]; then\\n    echo \"Servi\u00e7o inv\u00e1lido. Use '\\''ssh'\\'' ou '\\''dns'\\''.\"\\n    exit 1\\nfi\\n\\nif [ \"$SUBCOMANDO\" != \"start\" ] && [ \"$SUBCOMANDO\" != \"stop\" ] && [ \"$SUBCOMANDO\" != \"restart\" ] && [ \"$SUBCOMANDO\" != \"status\" ]; then\\n    echo \"Subcomando inv\u00e1lido. Use '\\''start'\\'', '\\''stop'\\'', '\\''restart'\\'' ou '\\''status'\\''. \"\\n    exit 1\\nfi\\n\\ncase \"$SERVICO\" in\\n    ssh)\\n        SERVICO_SYSTEMD=\"ssh\"\\n        ;;\\n    dns)\\n        SERVICO_SYSTEMD=\"named\"\\n        ;;\\nesac\\n\\ncase \"$SUBCOMANDO\" in\\n    start)\\n        sudo systemctl start \"$SERVICO_SYSTEMD\"\\n        echo \"Servi\u00e7o $SERVICO iniciado.\"\\n        ;;\\n    stop)\\n        sudo systemctl stop \"$SERVICO_SYSTEMD\"\\n        echo \"Servi\u00e7o $SERVICO parado.\"\\n        ;;\\n    restart)\\n        sudo systemctl restart \"$SERVICO_SYSTEMD\"\\n        echo \"Servi\u00e7o $SERVICO reiniciado.\"\\n        ;;\\n    status)\\n        sudo systemctl status \"$SERVICO_SYSTEMD\"\\n        ;;\\n    *)\\n        echo \"Erro inesperado.\"\\n        exit 1\\n        ;;\\nesac\\n' > ~/script/worknow.sh",
+    "output": "Command Executed (in /home/d4r13n/.hexagent-gui):\n",
+    "exit_code": 0,
+    "cwd": "/home/d4r13n/.hexagent-gui"
+  }
+}

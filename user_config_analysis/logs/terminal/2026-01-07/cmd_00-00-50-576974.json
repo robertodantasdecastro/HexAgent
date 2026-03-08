@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-01-07T00:00:50.576974",
+  "category": "terminal",
+  "event": "command_execution",
+  "data": {
+    "command": "exit 1",
+    "output": "Execution Failed:\n",
+    "exit_code": 0,
+    "cwd": "/home/d4r13n/.hexagent-gui"
+  }
+}

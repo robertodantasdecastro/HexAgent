@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-01-07T00:00:26.092020",
+  "category": "terminal",
+  "event": "command_execution",
+  "data": {
+    "command": "EOF",
+    "output": "Execution Failed:\n/bin/sh: 1: EOF: not found\n",
+    "exit_code": 0,
+    "cwd": "/home/d4r13n/.hexagent-gui"
+  }
+}

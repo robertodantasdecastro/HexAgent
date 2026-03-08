@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-01-05T22:56:38.831282",
+  "category": "terminal",
+  "event": "command_execution",
+  "data": {
+    "command": "echo \"  ssh  - Servi\u00e7o SSH\"",
+    "output": "Command Executed (in /home/d4r13n/.hexagent-gui):\n  ssh  - Servi\u00e7o SSH\n",
+    "exit_code": 0,
+    "cwd": "/home/d4r13n/.hexagent-gui"
+  }
+}
