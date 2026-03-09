@@ -1,9 +1,9 @@
 import AnalysisBlock from '../../blocks/AnalysisBlock';
 import CommandOutputBlock from '../../blocks/CommandOutputBlock';
+import ShellBlock from '../../blocks/ShellBlock';
 import SuggestionBlock from '../../blocks/SuggestionBlock';
 import { BlockType } from '../../constants/BlockTypes';
 import { CommandProposal } from '../CommandProposal';
-import TerminalBlock from './blocks/TerminalBlock';
 import TextBlock from './blocks/TextBlock';
 
 const BlockRenderer = ({ block }) => {
@@ -26,10 +26,30 @@ const BlockRenderer = ({ block }) => {
     case BlockType.SHELL:
     case 'shell':
     case 'block_start': // Legacy support
-      if (content === 'shell' || type === BlockType.SHELL) {
-        const cmd = metadata?.command || content || '...';
-        const isExecuting = metadata?.status === 'proposal' ? false : true;
-        return <TerminalBlock command={cmd} isExecuting={isExecuting} onExecute={onExecute} />;
+      if (content === 'shell' || type === BlockType.SHELL || type === 'shell') {
+        const outputText = (content && content !== 'shell') ? content : '';
+        
+        let blockStatus = block.status;
+        if (blockStatus === 'frozen') {
+             blockStatus = metadata?.status || 'done'; 
+        }
+        
+        // Correct behavior: If it has output text, but still claims 'proposal' or 'active', and actually has an exit code, it's done.
+        if (blockStatus === 'active' && metadata?.exit_code !== undefined) {
+             blockStatus = 'done';
+        }
+        
+        if ((blockStatus === 'active' || metadata?.status === 'proposal') && !outputText) {
+            blockStatus = 'active';
+        }
+        
+        return (
+          <ShellBlock 
+            content={outputText}
+            metadata={metadata}
+            status={blockStatus}
+          />
+        );
       }
       return null;
 
@@ -84,26 +104,29 @@ const BlockRenderer = ({ block }) => {
              />
            );
        } else {
-           // Render as a completed terminal block with output
+           // Se auto_execute é true, o backend emitirá um LifecycleBlock("shell") em seguida, 
+           // tornando este bloco de proposal um 'fantasma' duplicado após ser fechado.
+           if (metadata?.auto_execute) {
+               return null;
+           }
+
+           // Render as a completed shell block with output
            return (
-             <TerminalBlock 
-                command={metadata?.command || 'unknown'} 
-                output={content} 
-                exitCode={metadata?.exit_code} 
-                isExecuting={block.status === 'active'} 
+             <ShellBlock 
+                content={content || ''}
+                metadata={metadata}
+                status={block.status}
              />
            );
        }
 
     case 'command_result':
-       // For results, we render a complete terminal block
-       // Note: ideally we would merge this with the proposal, but for now standalone is fine
+       // For results, we render a complete shell block
        return (
-         <TerminalBlock 
-            command={metadata?.command || 'unknown'} 
-            output={content} 
-            exitCode={metadata?.exit_code} 
-            isExecuting={false} 
+         <ShellBlock 
+            content={content || ''}
+            metadata={metadata}
+            status="done"
          />
        );
 

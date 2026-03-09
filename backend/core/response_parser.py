@@ -52,9 +52,9 @@ class ResponseParser:
         """
         # Regex pattern to match markdown fenced code blocks
         # Padrão regex para corresponder blocos de código markdown cercados
-        # Matches: ```bash\ncode\n``` or ```\ncode\n```
-        # Corresponde: ```bash\ncode\n``` ou ```\ncode\n```
-        pattern = r'```(?:bash)?\n(.*?)\n```'
+        # Matches: ```bash\ncode\n```
+        # Corresponde: ```bash\ncode\n```
+        pattern = r'```(?:bash|sh|zsh)\n(.*?)\n```'
         
         # Use re.DOTALL to match across multiple lines
         # Usa re.DOTALL para corresponder em múltiplas linhas

@@ -25,6 +25,7 @@ class TerminalController(BaseController):
         self.blueprint.add_url_rule('/stream', view_func=self.stream_output, methods=['GET'])
         self.blueprint.add_url_rule('/input', view_func=self.write_input, methods=['POST'])
         self.blueprint.add_url_rule('/resize', view_func=self.resize, methods=['POST'])
+        self.blueprint.add_url_rule('/lint', view_func=self.lint_command, methods=['POST'])
 
     def stream_output(self):
         """
@@ -61,6 +62,19 @@ class TerminalController(BaseController):
             input_data = data.get('data', '')
             
             if input_data:
+                # [SEC] Sudo Mode Interception
+                # If the string ends with \r (Enter stroke) AND starts with sudo 
+                # we blindly inject the password pipeline to avoid manual prompt if active
+                from services.security_service import security_service
+                if security_service.is_elevated():
+                    # Check if it is a complete command execution starting with sudo
+                    # Requires matching full strings submitted, typically copy/pasted or generated commands
+                    if input_data.strip().startswith("sudo ") and input_data.endswith("\r"):
+                        payload = security_service.get_sudo_payload()
+                        # Override "sudo command" with "echo pass | sudo -S command"
+                        cmd_part = input_data.strip()[5:] # remove 'sudo '
+                        input_data = f"{payload} {cmd_part}\r"
+
                 self.pty.write(input_data)
                 return self.success_response()
             else:
@@ -83,4 +97,25 @@ class TerminalController(BaseController):
             return self.success_response()
         except Exception as e:
             self.log_error('POST /terminal/resize', e)
+            return self.error_response(str(e), 500)
+
+    def lint_command(self):
+        """
+        Passive linting of user command.
+        """
+        try:
+            data = self.get_request_data()
+            command = data.get('command', '')
+            cwd = data.get('cwd', '/')
+            
+            if not command or len(command.strip()) < 3:
+                return self.success_response({"valid": True, "suggestion": None, "reason": None})
+                
+            if not getattr(self, 'core_ref', None) or not getattr(self.core_ref, 'linter', None):
+                return self.success_response({"valid": True, "suggestion": None, "reason": "Linter not initialized"})
+                
+            result = self.core_ref.linter.lint_command(command, cwd)
+            return self.success_response(result)
+        except Exception as e:
+            self.log_error('POST /terminal/lint', e)
             return self.error_response(str(e), 500)

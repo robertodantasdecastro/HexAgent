@@ -48,10 +48,11 @@ const useBlockManager = () => {
    * Atualiza o conteúdo do bloco ativo atual
    */
   const updateActiveBlock = useCallback((content, isAppend = true) => {
-    if (!activeBlockIdRef.current) return;
+    const targetId = activeBlockIdRef.current;
+    if (!targetId) return;
 
     setBlocks(prev => prev.map(block => {
-      if (block.id === activeBlockIdRef.current) {
+      if (block.id === targetId) {
         return {
           ...block,
           content: isAppend ? block.content + content : content
@@ -66,10 +67,11 @@ const useBlockManager = () => {
    * Marca bloco ativo como completo
    */
   const completeActiveBlock = useCallback((finalMetadata = {}) => {
-     if (!activeBlockIdRef.current) return;
+     const targetId = activeBlockIdRef.current;
+     if (!targetId) return;
 
      setBlocks(prev => prev.map(block => {
-       if (block.id === activeBlockIdRef.current) {
+       if (block.id === targetId) {
          return {
            ...block,
            status: 'done',

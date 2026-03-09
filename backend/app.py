@@ -33,6 +33,7 @@ from controllers.project_controller import ProjectController
 from controllers.workflow_controller import WorkflowController
 from controllers.profile_controller import ProfileController  # Import Profile Controller
 from controllers.mcp_controller import MCPController
+from controllers.security_controller import SecurityController
 
 from controllers.hexstrike_controller import HexStrikeController # Import HexStrike Controller
 from controllers.monitoring_controller import MonitoringController # Import Monitoring Controller
@@ -117,16 +118,22 @@ def create_app(core_ref=None, hexstrike_ref=None):
             
             # Load active configuration (flattened and ready)
             # Carregar configuração ativa (achatada e pronta)
-            # Load System Config for HexStrike URL
             from services.system_config_service import SystemConfigService
-            from services.agent_config_service import AgentConfigService  # Import Agent Config Service
-
             system_service = SystemConfigService()
             sys_conf = system_service.load_system_config()
             
             # Load Agent Configuration (Persona)
-            agent_service = AgentConfigService()
-            system_prompt = agent_service.get_system_prompt('hexstrike_persona')
+            # Lê o Profile Service para descobrir qual a Persona ativa do usuário
+            from services.profile_service import ProfileService
+            from services.persona_service import persona_service
+            
+            profile_service_inst = ProfileService()
+            user_profile = profile_service_inst.load_profile()
+            active_persona_id = user_profile.get('persona', {}).get('id', 'hexagent')
+            
+            # Use singleton persona_service to get the prompt
+            persona_obj = persona_service.load_persona(active_persona_id)
+            system_prompt = persona_obj.get("system_prompt", "") if persona_obj else ""
             
             # Default to env var if set (docker/container), else config
             hexstrike_url = os.getenv('HEXSTRIKE_URL') or sys_conf.get('services', {}).get('hexstrike_host', 'http://127.0.0.1:8888')
@@ -242,7 +249,8 @@ def create_app(core_ref=None, hexstrike_ref=None):
 
         HexStrikeController(core_ref=agent_core),   # HexStrike Integration
         MonitoringController(core_ref=agent_core),   # Shadow Mode Integration
-        TerminalController(core_ref=agent_core)     # Real-time PTY
+        TerminalController(core_ref=agent_core),     # Real-time PTY
+        SecurityController()                         # Elevated Privileges API
     ]
     
     # Register all blueprints / Registrar todos os blueprints

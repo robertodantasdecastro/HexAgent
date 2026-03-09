@@ -111,8 +111,22 @@ const App = () => {
   const hexstrikeMonitorModal = useModalState();
   const bugBountyModal = useModalState();
   const ctfModal = useModalState();
+  const sudoModal = useModalState();
+  const [sudoActive, setSudoActive] = useState(false);
 
   // 6. Effects
+  useEffect(() => {
+    // Check initial Sudo State / Backend Fetch
+    const checkSudoStatus = async () => {
+        try {
+            const api = APIClient.getInstance();
+            const res = await api.get('/security/sudo');
+            setSudoActive(res?.data?.elevated || res?.elevated || false);
+        } catch(e) { /* ignore */ }
+    }
+    checkSudoStatus();
+  }, []);
+
   useEffect(() => {
     if (systemConfig?.system?.language && systemConfig.system.language !== language) {
       setLanguage(systemConfig.system.language);
@@ -337,6 +351,8 @@ const App = () => {
           setShowTerminal={setShowTerminal}
 
           t={t}
+          sudoModal={sudoModal}
+          sudoActive={sudoActive}
           onUpdateConfig={updateAndSave} // Pass atomic update function
           onHandleContinue={handleContinue}
           onHandleFork={(blockId) => {
@@ -367,7 +383,10 @@ const App = () => {
           activeProcessesModal={activeProcessesModal}
           hexstrikeMonitorModal={hexstrikeMonitorModal}
           bugBountyModal={bugBountyModal}
-        ctfModal={ctfModal}
+          ctfModal={ctfModal}
+          sudoModal={sudoModal}
+          sudoActive={sudoActive}
+          setSudoActive={setSudoActive}
 
           systemConfig={systemConfig}
           saveSystemConfig={saveSystemConfig}

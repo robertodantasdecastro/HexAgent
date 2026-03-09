@@ -1,6 +1,29 @@
-import { MessageSquare, User, Volume2 } from 'lucide-react';
+import { MessageSquare, RefreshCw, User, Volume2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import APIClient from '../../utils/APIClient';
 
 const ProfileConfigTab = ({ config, onChange }) => {
+  const [personas, setPersonas] = useState([]);
+  const [loadingPersonas, setLoadingPersonas] = useState(false);
+
+  useEffect(() => {
+    const fetchPersonas = async () => {
+      setLoadingPersonas(true);
+      try {
+        const api = APIClient.getInstance();
+        const response = await api.get('/config/profile/personas');
+        if (response.success && response.data?.personas) {
+          setPersonas(response.data.personas);
+        }
+      } catch (error) {
+        console.error('Failed to load personas:', error);
+      } finally {
+        setLoadingPersonas(false);
+      }
+    };
+    fetchPersonas();
+  }, []);
+
   const handleChange = (section, key, value) => {
     onChange({
       ...config,
@@ -52,7 +75,30 @@ const ProfileConfigTab = ({ config, onChange }) => {
         </h3>
         
         <div>
-            <label className="block text-xs font-mono text-gray-400 mb-1">Agente / Agent Name</label>
+            <div className="flex justify-between items-center mb-1">
+                <label className="block text-xs font-mono text-gray-400">Modelo de Persona / Persona Template</label>
+                {loadingPersonas && <RefreshCw size={12} className="animate-spin text-cyan-400" />}
+            </div>
+            <select
+              value={config.persona?.id || 'hexagent'}
+              onChange={(e) => {
+                 const selected = personas.find(p => p.id === e.target.value);
+                 handleChange('persona', 'id', e.target.value);
+                 if (selected) {
+                     handleChange('persona', 'name', selected.name);
+                 }
+              }}
+              className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-cyan-400 mb-3"
+            >
+              {personas.map(p => (
+                <option key={p.id} value={p.id}>
+                  {p.name} {p.description ? `- ${p.description}` : ''}
+                </option>
+              ))}
+              {personas.length === 0 && <option value="hexagent">Padrão / Default</option>}
+            </select>
+
+            <label className="block text-xs font-mono text-gray-400 mb-1">Nome Sobrescrito / Override Name (Optional)</label>
             <input
               type="text"
               value={config.persona?.name || 'HexAgent'}

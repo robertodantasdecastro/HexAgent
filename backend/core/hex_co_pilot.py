@@ -12,16 +12,10 @@ class CommandLinter:
         self.core_ref = core_ref
         # Use own logger - AgentCore does not expose self.logger
         self.logger = getattr(core_ref, 'logger', None) or logging.getLogger(__name__)
-        self.provider = None
-        
-        # Tentaremos instanciar o provider de forma isolada
-        # caso não esteja disponível globalmente
-        try:
-            config = self.core_ref.ai_manager.get_engine_config()
-            engine_name = config.get('engine', 'openai')
-            self.provider = ProviderFactory.create(engine_name, config)
-        except Exception as e:
-            self.logger.warning(f"Failed to intialize Linter Provider: {e}")
+
+    @property
+    def provider(self):
+        return getattr(self.core_ref, 'provider', None)
 
     def lint_command(self, command: str, cwd: str) -> dict:
         """
@@ -55,7 +49,10 @@ Returns:
 }}
 """
         try:
-             response_text = self.provider.generate_completion(prompt, max_tokens=200, stop_sequences=None)
+             response_text = ""
+             for chunk in self.provider.chat_step(prompt=prompt, chat_context=[]):
+                 response_text += chunk
+                 
              # Limpeza do JSON defensiva
              response_text = response_text.replace("```json", "").replace("```", "").strip()
              return json.loads(response_text)

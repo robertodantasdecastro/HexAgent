@@ -36,6 +36,8 @@ const getInitialConfig = (cfg) => {
         port: activeProfile.port || base.port || DEFAULT_AI_CONFIG.port || 1234,
         timeout: activeProfile.timeout || base.timeout || DEFAULT_AI_CONFIG.timeout || 60,
         
+        active_persona: base.active_persona || '',
+        
         // Ensure engine is set
         engine: engine
     };
@@ -54,6 +56,7 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
   const [loading, setLoading] = useState(false);
   const [connectionTestResult, setConnectionTestResult] = useState(null);
   const [availableModels, setAvailableModels] = useState([]);
+  const [availablePersonas, setAvailablePersonas] = useState([]);
   
   const [profileConfig, setProfileConfig] = useState({});
   const [hexConfig, setHexConfig] = useState({});
@@ -254,12 +257,25 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
     } catch (error) { console.error('Model fetch error', error); setAvailableModels([]); } finally { setLoading(false); }
   }, []); 
 
+  const fetchAvailablePersonas = useCallback(async () => {
+    try {
+      const api = APIClient.getInstance();
+      const response = await api.get('/config/personas');
+      if (response && response.data && response.data.personas) {
+        setAvailablePersonas(response.data.personas);
+      }
+    } catch (error) { console.error('Persona fetch error', error); }
+  }, []);
+
   useEffect(() => {
       // Auto-fetch when engine loads/changes
-      if (isOpen && localConfig.engine) {
-          fetchAvailableModels(localConfig.engine, localConfig);
+      if (isOpen) {
+          if (localConfig.engine) {
+              fetchAvailableModels(localConfig.engine, localConfig);
+          }
+          fetchAvailablePersonas();
       }
-  }, [localConfig.engine, isOpen, fetchAvailableModels]);
+  }, [localConfig.engine, isOpen, fetchAvailableModels, fetchAvailablePersonas]);
 
   const handleSave = async () => {
     setLoading(true);
@@ -419,6 +435,29 @@ const AIConfigModal = ({ isOpen, onClose, config, onSave }) => {
                     value={localConfig.model}
                     onChange={(e) => setLocalConfig({...localConfig, model: e.target.value})}
                 />
+              </div>
+
+              {/* Persona Selector */}
+              <div className="pt-4 border-t border-[#333]">
+                <label className="block text-sm font-mono text-gray-300 mb-2">
+                  <User className="inline mr-1" size={14} />
+                  Agente Base / Base Persona
+                </label>
+                <select
+                  value={localConfig.active_persona}
+                  onChange={(e) => setLocalConfig({...localConfig, active_persona: e.target.value})}
+                  className="w-full bg-[#1a1a1a] border border-[#333] rounded px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-cyan-400"
+                >
+                  <option value="">Padrão (Nenhum) / Default</option>
+                  {availablePersonas.map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} - {p.role}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Define o comportamento e tools da IA / Set Agent behavior & tools
+                </p>
               </div>
             </div>
           )}

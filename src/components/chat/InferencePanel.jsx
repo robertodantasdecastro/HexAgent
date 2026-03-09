@@ -38,7 +38,11 @@ const InferencePanel = ({
     // Handlers
     onHandleFork,
     onHandleContinue,
-    onUpdateConfig // New Prop
+    onUpdateConfig, // New Prop
+
+    // Sudo State
+    sudoModal,
+    sudoActive
 }) => {
     // Local UI State
     const [autoScroll, setAutoScroll] = useState(true);
@@ -305,6 +309,16 @@ const InferencePanel = ({
                                <Zap size={10} className={autoExecute ? 'fill-green-500/20' : ''} /> 
                                <span className="font-bold">Auto-Exec: {autoExecute ? 'ON' : 'OFF'}</span>
                             </button>
+
+                            {/* Elevated Privileges Toggle */}
+                            <button 
+                                className={`flex items-center gap-1.5 px-2 py-0.5 rounded transition-all border ${sudoActive ? 'bg-red-900/20 border-red-500/30 text-red-400 font-bold' : 'border-transparent text-gray-500 hover:text-gray-300 hover:bg-[#1a1a1a]'}`}
+                                onClick={sudoModal.open}
+                                title="Sudo Mode (Elevate Privileges)"
+                            >
+                               {sudoActive ? <span className="animate-pulse">🛡️ Root Access: ON</span> : <span>🛡️ Aux: Root Access: OFF</span>}
+                            </button>
+
                             {appMode === 'chat' && (
                                 <span className="flex items-center gap-1">
                                    <Hash size={10} /> Max Iterations: {unlimitedIterations ? <Infinity size={10} /> : maxIterations}

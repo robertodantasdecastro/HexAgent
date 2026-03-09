@@ -94,8 +94,20 @@ class ProfileService:
         role = user.get('role', 'Analyst')
         context.append(f"User Info: You are assisting {name} ({role}).")
             
-        # Persona / Tone
-        if persona:
+        # Persona Injection (Load real Persona content if ID exists)
+        from services.persona_service import persona_service
+        persona_id = persona.get('id', 'hexagent')
+        
+        # Carrega o system prompt real da persona escolhida
+        persona_prompt = persona_service.get_persona(persona_id)
+        if persona_prompt:
+            # Puxa as intrucoes reais do arquivo JSON
+            sys_prompt = persona_service.get_system_prompt()
+            if sys_prompt:
+                context.append(f"\n--- PERSONA INSTRUCTIONS ---")
+                context.append(sys_prompt)
+        else:
+            # Fallback para o antigo modo manual
             tone = persona.get('tone', 'professional')
             verbosity = persona.get('verbosity', 'balanced')
             context.append(f"Persona: Adopt a {tone} tone. Be {verbosity}.")

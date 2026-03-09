@@ -174,6 +174,13 @@ class CommandExecutor:
             self.logger.info(f"Starting PTY streaming execution: {command[:50]}")
             pty = PTYService()
             
+            # [SEC] Sudo Mode Interception
+            from services.security_service import security_service
+            if security_service.is_elevated() and command.strip().startswith("sudo "):
+                payload = security_service.get_sudo_payload()
+                cmd_part = command.strip()[5:] # remove 'sudo '
+                command = f"{payload} {cmd_part}"
+                
             # Send command with a unique marker to detect completion
             marker = f"__HEX_DONE_{int(time.time())}__"
             # Inject command. Add echo statement to capture the final exit code seamlessly inside the PTY output

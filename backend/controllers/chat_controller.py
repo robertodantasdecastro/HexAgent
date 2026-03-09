@@ -398,7 +398,11 @@ class ChatController(BaseController):
             
             # Helper to prepend the ResultBlock to the SSE stream
             def _stream_with_result():
-                from .domain.response_block import ResultBlock
+                from .domain.response_block import ResultBlock, LifecycleBlock
+                
+                # Emit block_start so UI knows a shell block is opening
+                yield LifecycleBlock("block_start", "shell", {"command": command}).to_sse()
+
                 # Yield the result block first so the UI can close the terminal module
                 yield ResultBlock(
                     output=exec_result.get('stdout', '') + exec_result.get('stderr', ''),

@@ -1,10 +1,10 @@
 {
     "servers": {
         "hexstrike-core": {
-            "command": "/home/d4r13n/iatools/hexstrike-ai/venv/bin/python3",
-            "args": ["/home/d4r13n/iatools/hexstrike-ai/hexstrike_mcp.py"],
+            "command": "HEXSTRIKE_PYTHON",
+            "args": ["HEXSTRIKE_MCP_SCRIPT"],
             "env": {
-                "PYTHONPATH": "/home/d4r13n/iatools/hexstrike-ai"
+                "PYTHONPATH": "HEXSTRIKE_PATH"
             },
             "enabled": true
         }

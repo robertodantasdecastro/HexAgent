@@ -771,7 +771,8 @@ class AgentOrchestrator:
         """
         # Inject Dynamic Context (CWD)
         system_context = f"Current Working Directory: {self.cwd}\nSystem: Linux (HexStrike-AI)\n"
-        system_context += "ENVIRONMENT: LOCAL_DEV_MODE (AUTHORIZED)\n"
+        system_context += "ENVIRONMENT: KALI LINUX (AUTHORIZED PENTEST)\n"
+        system_context += "OS AWARENESS: You are running on Kali Linux. ALL standard security tools (nmap, gobuster, sqlmap, pre-installed tools) ARE ALREADY INSTALLED. DO NOT suggest installing them.\n"
         system_context += "PERMISSION: ADMIN/ROOT (SIMULATED)\n"
         system_context += "POLICY: EXECUTE_COMMANDS_WITHOUT_CONFIRMATION\n"
         
@@ -1050,7 +1051,7 @@ class AgentOrchestrator:
         commands = []
         
         # 1. Code blocks (bash/sh/zsh)
-        pattern_code = r'```(?:bash|sh|zsh)?\s*\n(.*?)\n\s*```'
+        pattern_code = r'```(?:bash|sh|zsh)\s*\n(.*?)\n\s*```'
         for match in re.findall(pattern_code, text, re.DOTALL | re.IGNORECASE):
             # Bug #3 fix: Treat multi-line bash blocks as a single compound command
             # Fix Bug #3: Tratar blocos bash multi-linha como um único comando composto

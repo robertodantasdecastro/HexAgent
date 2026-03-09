@@ -164,6 +164,21 @@ class ConfigController(BaseController):
                 self.log_error('POST /config/system', e)
                 return self.error_response("Failed to save system configuration", 500)
         
+        @self.blueprint.route('/personas', methods=['GET'])
+        def list_personas():
+            """
+            List available agent personas
+            Listar personas de agentes disponíveis
+            """
+            try:
+                self.log_request('GET /config/personas')
+                personas = self.ai_service.list_personas()
+                return self.success_response(data={"personas": personas})
+            except Exception as e:
+                self.log_error('GET /config/personas', e)
+                return self.error_response("Failed to list personas", 500)
+                
+        
         @self.blueprint.route('/ai', methods=['GET'])
         def get_ai_config():
             """
@@ -190,6 +205,7 @@ class ConfigController(BaseController):
                     'engine': engine,
                     'model': model,
                     'has_api_key': has_api_key,
+                    'active_persona': ai.get('active_persona', ''),
                     'max_iterations': ai.get('max_iterations', 10),
                     'unlimited_iterations': ai.get('unlimited_iterations', False)
                 })
@@ -229,6 +245,7 @@ class ConfigController(BaseController):
                             api_key=api_key,
                             engine=engine,
                             model=model,
+                            system_prompt=self.ai_service.get_system_prompt(),
                             provider_kwargs=provider_config
                         )
                         if success:

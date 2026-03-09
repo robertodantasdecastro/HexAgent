@@ -138,6 +138,19 @@ class HexStrikeClient:
         try:
             logger.info(f"Executing command: {command[:50]}...")
             
+            # [SEC] Sudo Mode Interception - inject password if elevated session is active
+            # [SEG] Interceptor do Modo Sudo - injeta senha se sessão elevada está ativa
+            try:
+                from services.security_service import security_service
+                if security_service.is_elevated() and command.strip().startswith("sudo "):
+                    payload = security_service.get_sudo_payload()
+                    if payload:
+                        cmd_part = command.strip()[5:]  # remove 'sudo '
+                        command = f"{payload} {cmd_part}"
+                        logger.info("[SEC] Sudo payload injected into HexStrike command")
+            except Exception as sec_err:
+                logger.warning(f"[SEC] Sudo interception error (non-fatal): {sec_err}")
+            
             response = self.session.post(
                 f"{self.base_url}/api/command",
                 json={
@@ -152,14 +165,24 @@ class HexStrikeClient:
             
             # Normalize response format
             # Normaliza formato de resposta
+            exit_code = data.get("exit_code")
+            if exit_code is None:
+                exit_code = data.get("exitCode")
+            if exit_code is None:
+                exit_code = data.get("return_code", 0)
+                
             result = {
                 "success": data.get("success", False),
                 "command": command,
                 "output": data.get("output", "") or data.get("stdout", ""),
                 "error": data.get("error", "") or data.get("stderr", ""),
-                "exit_code": data.get("exit_code", 0) or data.get("exitCode", 0),
+                "exit_code": exit_code,
                 "cached": data.get("cached", False)
             }
+            
+            # Auto-correction: HexStrike sometimes sets success=False but doesn't set return_code!=0, or sets return_code!=0 but doesn't manage success properly.
+            if result["exit_code"] != 0 and not data.get("success", False):
+                result["success"] = False
             
             logger.info(f"Command executed successfully (exit code: {result['exit_code']})")
             return result

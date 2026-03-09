@@ -11,8 +11,8 @@
         "hexstrike_port": 8888,
         "backend_host": "127.0.0.1",
         "hexstrike_host": "127.0.0.1",
-        "hexstrike_app_path": "/home/d4r13n/iatools/hexstrike-ai",
-        "hexstrike_venv_path": "/home/d4r13n/iatools/hexstrike-ai/venv",
+        "hexstrike_app_path": "HEXSTRIKE_APP_PATH",
+        "hexstrike_venv_path": "HEXSTRIKE_VENV_PATH",
         "hexstrike_api": {
             "timeout": 300,
             "polling_interval": 1,

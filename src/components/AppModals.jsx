@@ -16,6 +16,7 @@ import ServiceManagerModal from './ServiceManagerModal';
 import SessionModal from './SessionModal';
 import SettingsModal from './SettingsModal';
 import ShutdownModal from './ShutdownModal';
+import SudoModal from './modals/SudoModal';
 import ActiveProcessesPanel from './panels/ActiveProcessesPanel';
 import BugBountyPanel from './panels/BugBountyPanel';
 import CTFPanel from './panels/CTFPanel';
@@ -38,6 +39,10 @@ const AppModals = ({
     bugBountyModal,
     ctfModal,
 
+    sudoModal,
+    sudoActive,
+    setSudoActive,
+
     // Data & Handlers
     systemConfig,
     saveSystemConfig,
@@ -53,6 +58,13 @@ const AppModals = ({
 }) => {
     return (
         <>
+            <SudoModal
+                isOpen={sudoModal.isOpen}
+                onClose={sudoModal.close}
+                t={t}
+                sudoActive={sudoActive}
+                setSudoActive={setSudoActive}
+            />
             <SettingsModal
                 isOpen={settingsModal.isOpen}
                 onClose={settingsModal.close}

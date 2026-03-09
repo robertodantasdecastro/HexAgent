@@ -395,3 +395,77 @@ class AIConfigService:
         except Exception as e:
             self.logger.error(f"[AI-SERVICE] Error writing file: {e}")
             raise ConfigError(f"Failed to save AI configuration: {e}")
+
+    def list_personas(self) -> List[Dict[str, Any]]:
+        """
+        List available personas from config_templates/agents
+        Lista personas disponíveis na pasta de templates
+        """
+        try:
+            import os
+            
+            # Find the HexAgentGUI/config_templates/agents directory
+            current_file = Path(__file__)
+            project_root = current_file.parent.parent.parent
+            agents_dir = project_root / 'config_templates' / 'agents'
+            
+            personas = []
+            
+            if agents_dir.exists() and agents_dir.is_dir():
+                for file_path in agents_dir.glob('*.json'):
+                    try:
+                        with open(file_path, 'r', encoding='utf-8') as f:
+                            data = json.load(f)
+                            
+                            personas.append({
+                                'id': file_path.stem,
+                                'name': data.get('name', file_path.stem),
+                                'role': data.get('role', 'Agent'),
+                                'description': data.get('description', ''),
+                                'version': data.get('version', '1.0'),
+                                'file': file_path.name
+                            })
+                    except Exception as e:
+                        self.logger.warning(f"[AI-SERVICE] Failed to parse persona '{file_path}': {e}")
+            
+            # Sort alphabetically by name
+            return sorted(personas, key=lambda x: x['name'])
+            
+        except Exception as e:
+            self.logger.error(f"[AI-SERVICE] Error listing personas: {e}")
+            return []
+
+    def get_system_prompt(self, config: Dict[str, Any] = None) -> str:
+        """
+        Get system prompt from config or active persona.
+        """
+        config = config or self.load_ai_config()
+        ai = config.get('ai', {})
+        engine = ai.get('engine', 'openai')
+        
+        # Priority 1: Profile specific prompt
+        profile_prompt = ai.get('profiles', {}).get(engine, {}).get('system_prompt')
+        if profile_prompt:
+             return profile_prompt
+             
+        # Priority 2: Active Persona fallback
+        active_persona = ai.get('active_persona')
+        if active_persona:
+            try:
+                current_file = Path(__file__)
+                project_root = current_file.parent.parent.parent
+                persona_path = project_root / 'config_templates' / 'agents' / f"{active_persona}.json"
+                
+                if persona_path.exists():
+                    with open(persona_path, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                    
+                    # Mount the prompt from the persona structure
+                    instructions = "\\n".join(data.get('instructions', []))
+                    capabilities = "\\n- ".join([""] + data.get('capabilities', []))
+                    
+                    return f"You are {data.get('name', 'AI Assistant')}, {data.get('role', 'Cybersecurity Expert')}.\\n\\n{data.get('description', '')}\\n\\nCAPABILITIES:{capabilities}\\n\\nINSTRUCTIONS:\\n{instructions}"
+            except Exception as e:
+                self.logger.warning(f"[AI-SERVICE] Failed to load active persona prompt: {e}")
+                
+        return ""

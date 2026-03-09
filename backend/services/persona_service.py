@@ -49,6 +49,39 @@ class PersonaService:
         logger.error(f"Persona '{persona_name}' not found in any search path.")
         return None
 
+    def list_personas(self) -> list:
+        """
+        Lista todas as personas disponíveis nos caminhos de busca.
+        """
+        personas = []
+        seen = set()
+        
+        for path in self.search_paths:
+            if not os.path.exists(path):
+                continue
+                
+            for filename in os.listdir(path):
+                if filename.endswith('.json'):
+                    persona_id = filename[:-5]
+                    if persona_id not in seen:
+                        try:
+                            # Tentar obter o 'name' ou 'role' para exibição na UI
+                            with open(os.path.join(path, filename), 'r', encoding='utf-8') as f:
+                                data = json.load(f)
+                                name = data.get('name', persona_id)
+                                description = data.get('description', '')
+                                
+                                personas.append({
+                                    "id": persona_id,
+                                    "name": name,
+                                    "description": description
+                                })
+                                seen.add(persona_id)
+                        except Exception as e:
+                            logger.warning(f"Erro ao ler persona {filename}: {e}")
+                            
+        return sorted(personas, key=lambda x: x['name'])
+
     def get_system_prompt(self) -> str:
         """
         Generates the system prompt based on the current persona.

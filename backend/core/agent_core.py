@@ -105,10 +105,10 @@ class TransitionalCoordinator:
         """
         self.engine = engine
         
-        # Load Persona / Carregar Persona
-        self.persona = persona_service.load_persona("hexstrike_persona")
-        # System Prompt logic: Argument > Persona > Default
-        self.system_prompt = system_prompt or persona_service.get_system_prompt()
+        # System Prompt logic: Argument > AIConfigService > Default
+        from services.ai_config_service import AIConfigService
+        self.ai_service = AIConfigService()
+        self.system_prompt = system_prompt or self.ai_service.get_system_prompt()
         
         self.provider = None
         self.profile_context = None
@@ -238,6 +238,7 @@ class TransitionalCoordinator:
         api_key: str = None, 
         engine: str = None, 
         model: str = None, 
+        system_prompt: Optional[str] = None,
         provider_kwargs: Optional[Dict[str, Any]] = None
     ) -> bool:
         """
@@ -256,7 +257,12 @@ class TransitionalCoordinator:
                     except:
                         pass
                 
-                self._initialize_provider(api_key, model, None, target_engine, provider_kwargs)
+                if system_prompt:
+                    self.system_prompt = system_prompt
+                else:
+                    self.system_prompt = self.ai_service.get_system_prompt()
+                
+                self._initialize_provider(api_key, model, self.system_prompt, target_engine, provider_kwargs)
                 self.engine = target_engine
                 
                 # Update Orchestrator / Atualizar Orquestrador

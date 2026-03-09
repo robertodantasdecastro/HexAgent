@@ -125,7 +125,7 @@ cleanup_old_versions() {
 # Check dependencies / Verifica dependências
 check_deps() {
     print_info "Checking dependencies / Verificando dependências..."
-    for cmd in node npm python3; do
+    for cmd in node npm python3 git; do
         if ! command -v $cmd &> /dev/null; then
             print_error "$cmd is required / $cmd é necessário."; exit 1
         fi
@@ -136,59 +136,38 @@ check_deps() {
 # Configure theme based on OS / Configura tema baseado no SO
 
 
-# Detect HexStrike Location / Detecta localização do HexStrike
+# Detect or Clone HexStrike Location / Detecta ou Clona localização do HexStrike
 detect_hexstrike_location() {
-    print_info "Detecting HexStrike-AI location..."
+    print_info "Detecting or Provisioning HexStrike-AI location..."
+    
+    export HEXSTRIKE_PATH=""
+    export HEXSTRIKE_VENV=""
     
     # Check sibling directory
     POTENTIAL_PATH="$(dirname "$(pwd)")/hexstrike-ai"
     
     if [ -d "$POTENTIAL_PATH" ]; then
-        HEXSTRIKE_PATH="$POTENTIAL_PATH"
-        HEXSTRIKE_VENV="$HEXSTRIKE_PATH/venv"
-        print_success "Found HexStrike-AI at: $HEXSTRIKE_PATH"
-        
-        TEMPLATE_FILE="config_templates/system-config.json"
-        if [ -f "$TEMPLATE_FILE" ]; then
-             print_info "Updating config template with detected paths..."
-             # Escape paths for sed
-             ESC_PATH=$(echo "$HEXSTRIKE_PATH" | sed 's/\//\\\//g')
-             ESC_VENV=$(echo "$HEXSTRIKE_VENV" | sed 's/\//\\\//g')
-             
-             sed -i "s/\"hexstrike_app_path\": \".*\"/\"hexstrike_app_path\": \"$ESC_PATH\"/" "$TEMPLATE_FILE"
-             sed -i "s/\"hexstrike_venv_path\": \".*\"/\"hexstrike_venv_path\": \"$ESC_VENV\"/" "$TEMPLATE_FILE"
-        fi
-        
-        # Configure MCP Template
-        MCP_TEMPLATE="config_templates/mcp-config.json"
-        if [ -f "$MCP_TEMPLATE" ]; then
-             print_info "Updating MCP config template with HexStrike paths..."
-             
-             # Paths
-             HEX_PYTHON="$HEXSTRIKE_VENV/bin/python3"
-             HEX_MCP_SCRIPT="$HEXSTRIKE_PATH/hexstrike_mcp.py"
-             
-             # Escaping
-             ESC_PYTHON=$(echo "$HEX_PYTHON" | sed 's/\//\\\//g')
-             ESC_MCP=$(echo "$HEX_MCP_SCRIPT" | sed 's/\//\\\//g')
-             ESC_PATH=$(echo "$HEXSTRIKE_PATH" | sed 's/\//\\\//g')
-             
-             # Replace Placeholders
-             sed -i "s/HEXSTRIKE_PYTHON/$ESC_PYTHON/" "$MCP_TEMPLATE"
-             sed -i "s/HEXSTRIKE_MCP_SCRIPT/$ESC_MCP/" "$MCP_TEMPLATE"
-             sed -i "s/HEXSTRIKE_PATH/$ESC_PATH/" "$MCP_TEMPLATE"
-             
-             print_success "MCP template configured to use HexStrike-AI"
-        fi
+        export HEXSTRIKE_PATH="$POTENTIAL_PATH"
+        export HEXSTRIKE_VENV="$HEXSTRIKE_PATH/venv"
+        print_success "Found existing HexStrike-AI at: $HEXSTRIKE_PATH"
     else
-
-        print_warning "HexStrike-AI not found automatically."
-        # Auto-skipping interactive prompt for headless/background execution
-        echo -e "${YELLOW}Auto-skipping manual path entry (non-interactive mode).${NC}"
-        USER_PATH=""
-        if [ ! -z "$USER_PATH" ]; then
-             ESC_PATH=$(echo "$USER_PATH" | sed 's/\//\\\//g')
-             sed -i "s/\"hexstrike_app_path\": \".*\"/\"hexstrike_app_path\": \"$ESC_PATH\"/" "$TEMPLATE_FILE"
+        print_warning "HexStrike-AI not found in sibling directory."
+        print_info "Starting automatic Git deployment... / Iniciando clone automático..."
+        
+        # Pulling directly from the parent directory
+        PARENT_DIR="$(dirname "$(pwd)")"
+        
+        if git clone "https://github.com/robertodantasdecastro/hexstrike-ai.git" "$POTENTIAL_PATH" 2>/dev/null; then
+             export HEXSTRIKE_PATH="$POTENTIAL_PATH"
+             export HEXSTRIKE_VENV="$HEXSTRIKE_PATH/venv"
+             print_success "HexStrike-AI successfully cloned to: $HEXSTRIKE_PATH"
+             
+             # Ensuring standard skeleton exists after clone
+             mkdir -p "$HEXSTRIKE_PATH/logs"
+        else
+             print_error "Failed to clone HexStrike-AI from Github. Network issue?"
+             echo -e "${YELLOW}Continuing without HexStrike backend bridge.${NC}"
+             return
         fi
     fi
 
@@ -262,6 +241,28 @@ setup_user_config() {
     if [ -f "config_templates/mcp-config.json" ]; then
         print_info "Verifying mcp-config.json..."
         python3 scripts/verify_config.py "$USER_CONFIG_DIR/mcp-config.json" "config_templates/mcp-config.json"
+    fi
+
+    # Apply detected paths to the copies in user dir (Not modifying templates in Git!)
+    if [ -n "$HEXSTRIKE_PATH" ]; then
+        print_info "Applying detected HexStrike-AI paths to user configuration..."
+        ESC_PATH=$(echo "$HEXSTRIKE_PATH" | sed 's/\//\\\//g')
+        ESC_VENV=$(echo "$HEXSTRIKE_VENV" | sed 's/\//\\\//g')
+        
+        HEX_PYTHON="$HEXSTRIKE_VENV/bin/python3"
+        HEX_MCP_SCRIPT="$HEXSTRIKE_PATH/hexstrike_mcp.py"
+        ESC_PYTHON=$(echo "$HEX_PYTHON" | sed 's/\//\\\//g')
+        ESC_MCP=$(echo "$HEX_MCP_SCRIPT" | sed 's/\//\\\//g')
+        
+        # We replace the placeholders in system-config.json
+        sed -i "s/HEXSTRIKE_APP_PATH/$ESC_PATH/" "$USER_CONFIG_DIR/system-config.json"
+        sed -i "s/HEXSTRIKE_VENV_PATH/$ESC_VENV/" "$USER_CONFIG_DIR/system-config.json"
+        
+        # We replace the placeholders in mcp-config.json
+        sed -i "s/HEXSTRIKE_PYTHON/$ESC_PYTHON/" "$USER_CONFIG_DIR/mcp-config.json"
+        sed -i "s/HEXSTRIKE_MCP_SCRIPT/$ESC_MCP/" "$USER_CONFIG_DIR/mcp-config.json"
+        sed -i "s/HEXSTRIKE_PATH/$ESC_PATH/" "$USER_CONFIG_DIR/mcp-config.json"
+        print_success "Paths injected properly into ~/.hexagent-gui configs."
     fi
 
     # 7. Sync agents/ directory (personas, agent configs)
@@ -398,13 +399,52 @@ create_links() {
     
     # Always install to ~/.local/bin / Sempre instala em ~/.local/bin
     mkdir -p "$LOCAL_BIN"
-    ln -sf "$BINARY" "$LOCAL_BIN/hexagent-gui"
-    print_success "Linked / Linkado: $LOCAL_BIN/hexagent-gui"
+    
+    cat > "$LOCAL_BIN/hexagent-gui" <<EOF
+#!/bin/bash
+USER_PATH=""
+ARGS=()
+while [[ \$# -gt 0 ]]; do
+  case \$1 in
+    --user-path|-up)
+      USER_PATH="\$2"
+      shift 2
+      ;;
+    --user-path=*|-up=*)
+      USER_PATH="\${1#*=}"
+      shift
+      ;;
+    *)
+      ARGS+=("\$1")
+      shift
+      ;;
+  esac
+done
+
+if [ "\$EUID" -eq 0 ]; then
+    # When running as root via sudo, XAUTHORITY is often lost, causing 'Missing X server' errors
+    AUTH_VAR=""
+    if [ ! -z "\$USER_PATH" ]; then
+        AUTH_VAR="XAUTHORITY=\${USER_PATH}/.Xauthority HOME=\${USER_PATH}"
+    elif [ ! -z "\$SUDO_USER" ]; then
+        AUTH_VAR="XAUTHORITY=/home/\$SUDO_USER/.Xauthority HOME=/home/\$SUDO_USER"
+    fi
+    exec env \$AUTH_VAR "$BINARY" --no-sandbox "\${ARGS[@]}"
+else
+    if [ ! -z "\$USER_PATH" ]; then
+        export HOME="\${USER_PATH}"
+    fi
+    exec "$BINARY" "\${ARGS[@]}"
+fi
+EOF
+    chmod +x "$LOCAL_BIN/hexagent-gui"
+    print_success "Created wrapper / Wrapper criado: $LOCAL_BIN/hexagent-gui"
     
     # Optional /usr/bin if sudo cached / Opcional /usr/bin se sudo disponível
     if sudo -n true 2>/dev/null; then
-        sudo ln -sf "$BINARY" /usr/bin/hexagent-gui
-        print_success "Linked / Linkado: /usr/bin/hexagent-gui"
+        sudo cp "$LOCAL_BIN/hexagent-gui" /usr/bin/hexagent-gui
+        sudo chmod +x /usr/bin/hexagent-gui
+        print_success "Created system wrapper / Wrapper do sistema: /usr/bin/hexagent-gui"
     fi
 }
 

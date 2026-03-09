@@ -278,6 +278,7 @@ const useChatManager = (api, aiConfig) => {
       };
 
       if (chunk.type === 'block_start') {
+          completeActiveBlock(); // Safety cleanup da arquitetura de blocos
           const typeName = chunk.content; // 'thinking', 'narrative', 'shell'
           const blockType = blockTypeMap[typeName] || BlockType.NARRATIVE;
           
@@ -296,16 +297,20 @@ const useChatManager = (api, aiConfig) => {
            completeActiveBlock(chunk.metadata);
 
       } else if (chunk.type === 'shell_start') { // Legacy fallback
+          completeActiveBlock(); // Fechamento forçado de vazamentos passados
           addBlock(BlockType.SHELL, { command: chunk.metadata?.command });
 
       } else if (chunk.type === 'shell_end') { // Legacy fallback
           completeActiveBlock(chunk.metadata);
 
       } else if (chunk.type === 'command_proposal') { // Legacy fallback or specific event
-           addBlock(BlockType.SHELL, { command: chunk.content, status: 'proposal', ...chunk.metadata });
+           completeActiveBlock(); // Encerra possíveis escapes de texto cru
+           // Usamos exatamente 'command_proposal' para parear com renderização na UI
+           addBlock('command_proposal', { command: chunk.content, status: 'proposal', ...chunk.metadata });
 
       } else if (chunk.type === 'command_result') { // Legacy fallback
-           updateActiveBlock(chunk.content);
+           // Sobrescreve em vez de append para evitar bug de array mal formado com "undefined"
+           updateActiveBlock(chunk.content, false);
            completeActiveBlock({ ...chunk.metadata, status: chunk.metadata.success ? 'done' : 'error' });
 
       } else if (chunk.type === 'command_output') {

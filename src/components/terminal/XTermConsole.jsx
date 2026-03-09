@@ -1,5 +1,5 @@
 import { EventSourcePolyfill } from 'event-source-polyfill';
-import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import { WebLinksAddon } from 'xterm-addon-web-links';
@@ -11,6 +11,11 @@ const XTermConsole = forwardRef(({ onData, onResize, onCommand }, ref) => {
   const xtermRef = useRef(null);
   const fitAddonRef = useRef(null);
   const eventSourceRef = useRef(null);
+  
+  // Phase 5: Híbrido Co-Pilot Linter State
+  const cmdBufferRef = useRef('');
+  const lintTimeoutRef = useRef(null);
+  const [suggestion, setSuggestion] = useState(null);
 
   useEffect(() => {
     if (!terminalRef.current) return;
@@ -71,6 +76,38 @@ const XTermConsole = forwardRef(({ onData, onResize, onCommand }, ref) => {
        api.post('/terminal/input', { data: data }).catch(err => {
            console.error("PTY Input Failed:", err);
        });
+       
+       // --- INÍCIO INTERCEPTAÇÃO LINTER (CO-PILOT) ---
+       if (data === '\r' || data === '\n' || data === '\x03') { // Enter ou Ctrl+C
+           cmdBufferRef.current = '';
+           if (suggestion) setSuggestion(null);
+           clearTimeout(lintTimeoutRef.current);
+       } else if (data === '\x7F') { // Backspace
+           cmdBufferRef.current = cmdBufferRef.current.slice(0, -1);
+       } else if (data >= String.fromCharCode(0x20) && data <= String.fromCharCode(0x7E)) {
+           // ASCII Imprimível
+           cmdBufferRef.current += data;
+       }
+
+       // Debounce da Validação Assistiva
+       clearTimeout(lintTimeoutRef.current);
+       // Somente lints commandos sendo digitados com mais de 3 caracteres
+       if (cmdBufferRef.current.trim().length >= 3) {
+           lintTimeoutRef.current = setTimeout(() => {
+               api.post('/terminal/lint', { command: cmdBufferRef.current.trim(), cwd: '/' })
+                  .then(res => {
+                      if (res.data?.success && res.data.data?.suggestion) {
+                          setSuggestion(res.data.data.suggestion);
+                      } else {
+                          setSuggestion(null);
+                      }
+                  })
+                  .catch(() => setSuggestion(null));
+           }, 800); // 800ms debounce
+       } else {
+           setSuggestion(null);
+       }
+       // --- FIM INTERCEPTAÇÃO LINTER ---
        
        // Optional: Pass to parent if needed for specialized handling
        if (onData) onData(data);
@@ -164,8 +201,19 @@ const XTermConsole = forwardRef(({ onData, onResize, onCommand }, ref) => {
   }));
 
   return (
-    <div className="w-full h-64 bg-[#0d1117] rounded-lg overflow-hidden border border-gray-700 p-2 shadow-inner">
+    <div className="relative w-full h-64 bg-[#0d1117] rounded-lg overflow-hidden border border-gray-700 p-2 shadow-inner">
       <div ref={terminalRef} className="w-full h-full" />
+      
+      {/* Voo Passivo Co-Pilot Suggestion Pill */}
+      {suggestion && (
+        <div className="absolute bottom-4 right-4 bg-cyan-950/90 border border-cyan-500/50 p-2.5 rounded shadow-[0_0_15px_rgba(6,182,212,0.3)] flex items-center gap-3 backdrop-blur-sm z-10 animate-fade-in">
+           <span className="text-cyan-400 font-bold text-xs uppercase tracking-widest flex items-center gap-1">
+               <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+               Linter
+           </span>
+           <span className="text-gray-200 font-mono text-sm">{suggestion}</span>
+        </div>
+      )}
     </div>
   );
 });

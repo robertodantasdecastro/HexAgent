@@ -330,7 +330,7 @@ class ChatService extends BaseService {
         // Lifecycle Event: Start Block / Evento Ciclo de Vida: Iniciar Bloco
         this._notifyMessage({
           type: 'block_start',
-          content: metadata.block_name || 'unknown',
+          content: content || metadata?.block_name || 'unknown',
           metadata
         });
         break;
@@ -339,7 +339,7 @@ class ChatService extends BaseService {
         // Lifecycle Event: End Block / Evento Ciclo de Vida: Terminar Bloco
         this._notifyMessage({
           type: 'block_end',
-          content: metadata.block_name || 'unknown',
+          content: content || metadata?.block_name || 'unknown',
           metadata
         });
         break;

@@ -60,3 +60,15 @@ class ProfileController(BaseController):
             except Exception as e:
                 self.log_error('POST /config/profile', e)
                 return self.error_response("Failed to save profile", 500)
+                
+        @self.blueprint.route('/personas', methods=['GET'])
+        def list_personas():
+            """Get available personas / Obter personas disponíveis"""
+            try:
+                self.log_request('GET /config/profile/personas')
+                from services.persona_service import persona_service
+                personas = persona_service.list_personas()
+                return self.success_response(data={"personas": personas})
+            except Exception as e:
+                self.log_error('GET /config/profile/personas', e)
+                return self.error_response("Failed to list personas", 500)
