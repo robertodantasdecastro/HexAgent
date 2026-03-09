@@ -30,6 +30,7 @@ const useBackendInit = () => {
     backend: { status: 'pending', message: 'Starting...' },
     brain: { status: 'pending', message: 'Starting...' },
     hexstrike: { status: 'pending', message: 'Starting...' },
+    rag: { status: 'pending', message: 'Starting...' },
     config: { status: 'pending', message: 'Starting...' }
   });
 
@@ -254,6 +255,24 @@ const useBackendInit = () => {
         };
 
         await startHexStrike(3);
+
+        // Step 5: RAG Base Check
+        // Passo 5: Verificação Base RAG
+        setInitStatus(prev => ({ ...prev, rag: { status: 'loading', message: 'Loading RAG Service...' } }));
+        setInitProgress(95);
+
+        try {
+            logger.debug('Checking RAG Service backend');
+            const ragRes = await api.get('/rag/stats');
+            if (ragRes && (ragRes.success !== false)) {
+                setInitStatus(prev => ({ ...prev, rag: { status: 'success', message: 'RAG Service Ready' } }));
+            } else {
+                setInitStatus(prev => ({ ...prev, rag: { status: 'warning', message: 'RAG Unavailable' } }));
+            }
+        } catch (e) {
+            logger.warn('RAG init failed - might be unconfigured', e);
+            setInitStatus(prev => ({ ...prev, rag: { status: 'warning', message: 'Offline' } }));
+        }
 
         // Final Status Check
         await checkStatus();

@@ -34,6 +34,7 @@ from controllers.workflow_controller import WorkflowController
 from controllers.profile_controller import ProfileController  # Import Profile Controller
 from controllers.mcp_controller import MCPController
 from controllers.security_controller import SecurityController
+from controllers.rag_controller import RAGController
 
 from controllers.hexstrike_controller import HexStrikeController # Import HexStrike Controller
 from controllers.monitoring_controller import MonitoringController # Import Monitoring Controller
@@ -250,7 +251,8 @@ def create_app(core_ref=None, hexstrike_ref=None):
         HexStrikeController(core_ref=agent_core),   # HexStrike Integration
         MonitoringController(core_ref=agent_core),   # Shadow Mode Integration
         TerminalController(core_ref=agent_core),     # Real-time PTY
-        SecurityController()                         # Elevated Privileges API
+        SecurityController(),                        # Elevated Privileges API
+        RAGController(),                             # RAG Security Intelligence API
     ]
     
     # Register all blueprints / Registrar todos os blueprints

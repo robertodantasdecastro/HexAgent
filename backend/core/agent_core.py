@@ -297,8 +297,19 @@ class TransitionalCoordinator:
              }
              return
 
-        # Retrieve relevant memory / Recuperar memória relevante
+        # Retrieve relevant memory / Recuperar memória de curto/longo prazo JSON
         memory_context = self.memory.retrieve_context(user_input)
+        
+        # RAG Knowledge Base Retrieval (ChromaDB)
+        try:
+            from services.rag_service.rag_retriever import rag_retriever
+            rag_context = rag_retriever.get_context(user_input, top_k=5)
+            if rag_context:
+                prefix = "\n\n--- KNOWLEDGE BASE (RAG) ---\n"
+                memory_context = (memory_context + prefix + rag_context) if memory_context else rag_context
+                logger.info("AgentCore: RAG Context injected successfully.")
+        except Exception as e:
+            logger.warning(f"AgentCore: Failed to augment RAG context: {e}")
 
         # HexStrike Intelligence Planning
         # Planejamento de Inteligência HexStrike

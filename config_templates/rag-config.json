@@ -1,0 +1,225 @@
+{
+  "rag": {
+    "enabled": false,
+    "version": "1.0",
+    "storage": {
+      "type": "local",
+      "local_path": "~/.hexagent-gui/rag_data",
+      "external_path": "",
+      "cloud": {
+        "provider": "none",
+        "bucket": "",
+        "prefix": "hexagent-rag/",
+        "region": ""
+      }
+    },
+    "embedding": {
+      "model": "sentence-transformers/all-MiniLM-L6-v2",
+      "device": "cpu",
+      "batch_size": 32
+    },
+    "collections": {
+      "cves":       { "enabled": true, "max_docs": 50000, "ttl_days": 1  },
+      "exploits":   { "enabled": true, "max_docs": 10000, "ttl_days": 7  },
+      "techniques": { "enabled": true, "max_docs": 5000,  "ttl_days": 30 },
+      "payloads":   { "enabled": true, "max_docs": 20000, "ttl_days": 30 },
+      "news":       { "enabled": true, "max_docs": 1000,  "ttl_days": 7  },
+      "memory":     { "enabled": true, "max_docs": 5000,  "ttl_days": -1 }
+    },
+    "sources": [
+      {
+        "id": "nvd_cve", "name": "NVD - National Vulnerability Database",
+        "description": "NIST National Vulnerability Database - CVEs oficiais com CVSS scores",
+        "url": "https://services.nvd.nist.gov/rest/json/cves/2.0",
+        "category": "cve", "format": "api_json",
+        "enabled": true, "interval": "daily",
+        "last_sync": null, "doc_count": 0, "api_key_ref": ""
+      },
+      {
+        "id": "cisa_kev", "name": "CISA Known Exploited Vulnerabilities",
+        "description": "Lista oficial da CISA de vulnerabilidades ativamente exploradas",
+        "url": "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
+        "category": "cve", "format": "json",
+        "enabled": true, "interval": "daily",
+        "last_sync": null, "doc_count": 0, "api_key_ref": ""
+      },
+      {
+        "id": "mitre_cve", "name": "MITRE CVE List (Recent)",
+        "description": "Lista de CVEs da MITRE com descrições detalhadas",
+        "url": "https://cve.mitre.org/data/downloads/allitems-cvrf-year-2024.xml",
+        "category": "cve", "format": "xml",
+        "enabled": false, "interval": "weekly",
+        "last_sync": null, "doc_count": 0, "api_key_ref": ""
+      },
+      {
+        "id": "exploit_db", "name": "Exploit-DB (Exploits CSV)",
+        "description": "Base de dados de exploits públicos categorizados",
+        "url": "https://www.exploit-db.com/files_exploits.csv",
+        "category": "exploit", "format": "csv",
+        "enabled": true, "interval": "weekly",
+        "last_sync": null, "doc_count": 0, "api_key_ref": ""
+      },
+      {
+        "id": "exploit_db_shellcodes", "name": "Exploit-DB (Shellcodes)",
+        "description": "Shellcodes catalogados por plataforma e tipo",
+        "url": "https://www.exploit-db.com/files_shellcodes.csv",
+        "category": "exploit", "format": "csv",
+        "enabled": true, "interval": "weekly",
+        "last_sync": null, "doc_count": 0, "api_key_ref": ""
+      },
+      {
+        "id": "metasploit_modules", "name": "Metasploit Modules (Rapid7)",
+        "description": "Metadados de todos os módulos do Metasploit Framework",
+        "url": "https://raw.githubusercontent.com/rapid7/metasploit-framework/master/data/modules_metadata_base.json",
+        "category": "exploit", "format": "json",
+        "enabled": true, "interval": "weekly",
+        "last_sync": null, "doc_count": 0, "api_key_ref": ""
+      },
+      {
+        "id": "mitre_attack", "name": "MITRE ATT&CK Enterprise",
+        "description": "Base de conhecimento de TTPs de adversários (Tactics, Techniques, Procedures)",
+        "url": "https://raw.githubusercontent.com/mitre/cti/master/enterprise-attack/enterprise-attack.json",
+        "category": "technique", "format": "stix_json",
+        "enabled": true, "interval": "monthly",
+        "last_sync": null, "doc_count": 0, "api_key_ref": ""
+      },
+      {
+        "id": "mitre_attack_mobile", "name": "MITRE ATT&CK Mobile",
+        "description": "TTPs específicos para dispositivos móveis (Android/iOS)",
+        "url": "https://raw.githubusercontent.com/mitre/cti/master/mobile-attack/mobile-attack.json",
+        "category": "technique", "format": "stix_json",
+        "enabled": false, "interval": "monthly",
+        "last_sync": null, "doc_count": 0, "api_key_ref": ""
+      },
+      {
+        "id": "payloads_all_things", "name": "PayloadsAllTheThings",
+        "description": "Coleção de payloads e bypass para pentest e CTF",
+        "url": "https://api.github.com/repos/swisskyrepo/PayloadsAllTheThings/contents",
+        "category": "payload", "format": "github_api",
+        "enabled": true, "interval": "monthly",
+        "last_sync": null, "doc_count": 0, "api_key_ref": ""
+      },
+      {
+        "id": "gtfobins", "name": "GTFOBins",
+        "description": "Binários Unix que podem ser usados para bypass de restrições",
+        "url": "https://raw.githubusercontent.com/GTFOBins/GTFOBins.github.io/master/_data/gtfobins.json",
+        "category": "payload", "format": "json",
+        "enabled": true, "interval": "monthly",
+        "last_sync": null, "doc_count": 0, "api_key_ref": ""
+      },
+      {
+        "id": "lolbas", "name": "LOLBAS - Living Off The Land",
+        "description": "Binários Windows nativos usados para ataques (LOLBAS)",
+        "url": "https://lolbas-project.github.io/api/lolbas.json",
+        "category": "payload", "format": "json",
+        "enabled": true, "interval": "monthly",
+        "last_sync": null, "doc_count": 0, "api_key_ref": ""
+      },
+      {
+        "id": "seclists_index", "name": "SecLists (GitHub Index)",
+        "description": "Índice das listas SecLists: senhas, usernames, fuzzing, web-paths",
+        "url": "https://api.github.com/repos/danielmiessler/SecLists/contents",
+        "category": "payload", "format": "github_api",
+        "enabled": false, "interval": "monthly",
+        "last_sync": null, "doc_count": 0, "api_key_ref": ""
+      },
+      {
+        "id": "owasp_top10", "name": "OWASP Top 10 (JSON)",
+        "description": "Top 10 vulnerabilidades web OWASP com descrições e mitigações",
+        "url": "https://raw.githubusercontent.com/OWASP/Top10/master/OWASP%20Top%2010%202021%20-%20Russian.md",
+        "category": "technique", "format": "markdown",
+        "enabled": true, "interval": "monthly",
+        "last_sync": null, "doc_count": 0, "api_key_ref": ""
+      },
+      {
+        "id": "alienvault_otx", "name": "AlienVault OTX Threat Intel",
+        "description": "Pulsos de inteligência de ameaças em tempo real",
+        "url": "https://otx.alienvault.com/api/v1/pulses/subscribed",
+        "category": "threat_intel", "format": "api_json",
+        "enabled": false, "interval": "daily",
+        "last_sync": null, "doc_count": 0, "api_key_ref": "otx_api_key"
+      },
+      {
+        "id": "virustotal", "name": "VirusTotal (On-demand)",
+        "description": "Análise de arquivos e URLs para detecção de malware",
+        "url": "https://www.virustotal.com/api/v3",
+        "category": "threat_intel", "format": "api_json",
+        "enabled": false, "interval": "on_demand",
+        "last_sync": null, "doc_count": 0, "api_key_ref": "virustotal_key"
+      },
+      {
+        "id": "shodan", "name": "Shodan (On-demand)",
+        "description": "Inteligência de hosts expostos na internet",
+        "url": "https://api.shodan.io",
+        "category": "threat_intel", "format": "api_json",
+        "enabled": false, "interval": "on_demand",
+        "last_sync": null, "doc_count": 0, "api_key_ref": "shodan_key"
+      },
+      {
+        "id": "hacker_news_rss", "name": "The Hacker News",
+        "description": "Notícias de segurança cibernética em tempo real",
+        "url": "https://feeds.feedburner.com/TheHackersNews",
+        "category": "news", "format": "rss",
+        "enabled": true, "interval": "daily",
+        "last_sync": null, "doc_count": 0, "api_key_ref": ""
+      },
+      {
+        "id": "krebs_rss", "name": "Krebs on Security",
+        "description": "Análises aprofundadas de incidentes e ameaças de segurança",
+        "url": "https://krebsonsecurity.com/feed/",
+        "category": "news", "format": "rss",
+        "enabled": true, "interval": "daily",
+        "last_sync": null, "doc_count": 0, "api_key_ref": ""
+      },
+      {
+        "id": "packetstorm_rss", "name": "Packet Storm Security",
+        "description": "Exploits, advisory e ferramentas de segurança em tempo real",
+        "url": "https://rss.packetstormsecurity.com/",
+        "category": "news", "format": "rss",
+        "enabled": true, "interval": "daily",
+        "last_sync": null, "doc_count": 0, "api_key_ref": ""
+      }
+    ],
+    "api_keys": {
+      "brave_search":   "",
+      "otx_api_key":    "",
+      "virustotal_key": "",
+      "shodan_key":     ""
+    },
+    "web_search": {
+      "enabled": true,
+      "engine": "duckduckgo",
+      "fallback_engine": "brave",
+      "rate_limit_rps": 2,
+      "cache_ttl_hours": 24,
+      "max_results": 10,
+      "domain_whitelist": []
+    },
+    "schedule": {
+      "enabled": false,
+      "daily_sync_time": "03:00",
+      "sync_on_startup": false,
+      "notify_on_completion": true,
+      "notify_on_error": true,
+      "notify_critical_cve_threshold": 9.0
+    },
+    "notifications": {
+      "enabled": true,
+      "types": ["sync_complete", "sync_error", "new_critical_cve", "export_ready"],
+      "history": []
+    },
+    "export": {
+      "output_path": "~/.hexagent-gui/rag_data/exports",
+      "format": "jsonl",
+      "include_failed": false,
+      "min_quality_score": 0.7,
+      "auto_export_on_session_end": false
+    },
+    "augmentation": {
+      "enabled": true,
+      "max_context_tokens": 2000,
+      "top_k": 5,
+      "collections_priority": ["cves", "techniques", "exploits", "news"]
+    }
+  }
+}

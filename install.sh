@@ -243,6 +243,37 @@ setup_user_config() {
         python3 scripts/verify_config.py "$USER_CONFIG_DIR/mcp-config.json" "config_templates/mcp-config.json"
     fi
 
+    # 7. [RAG] Deploy rag-config.json (Security Intelligence — merge inteligente)
+    # Não sobrescreve valores do usuário, apenas adiciona novas chaves
+    if [ -f "config_templates/rag-config.json" ]; then
+        print_info "Verifying rag-config.json (RAG Security Intelligence)..."
+        python3 scripts/verify_config.py "$USER_CONFIG_DIR/rag-config.json" "config_templates/rag-config.json"
+        # Create RAG data directories if not exist
+        mkdir -p "$USER_CONFIG_DIR/rag_data/exports"
+        mkdir -p "$USER_CONFIG_DIR/rag_data/cache"
+        print_success "RAG data directories ready: $USER_CONFIG_DIR/rag_data/"
+    fi
+
+    # 8. [RAG] Install optional RAG Python dependencies (somente se chromadb ausente)
+    if [ -f "venv/bin/pip" ]; then
+        if ! venv/bin/python3 -c "import chromadb" 2>/dev/null; then
+            print_info "Installing optional RAG dependencies (chromadb, sentence-transformers, duckduckgo-search)..."
+            venv/bin/pip install --quiet \
+                "chromadb>=0.5.0,<1.0.0" \
+                "sentence-transformers>=2.0.0,<4.0.0" \
+                "duckduckgo-search>=6.0.0,<7.0.0" \
+                "feedparser>=6.0.0,<7.0.0" \
+                "schedule>=1.2.0,<2.0.0" 2>&1 | tail -3
+            if [ $? -eq 0 ]; then
+                print_success "RAG dependencies installed (chromadb, sentence-transformers)"
+            else
+                print_warning "RAG dependencies install had warnings (non-critical — RAG will work when deps are available)"
+            fi
+        else
+            print_info "RAG dependencies already present (chromadb found)"
+        fi
+    fi
+
     # Apply detected paths to the copies in user dir (Not modifying templates in Git!)
     if [ -n "$HEXSTRIKE_PATH" ]; then
         print_info "Applying detected HexStrike-AI paths to user configuration..."

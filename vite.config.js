@@ -5,6 +5,12 @@ export default defineConfig({
   plugins: [react()],
   base: './', // CRITICAL: Use relative paths for Electron
   
+  server: {
+    watch: {
+      ignored: ['**/venv/**', '**/node_modules/**', '**/.git/**']
+    }
+  },
+
   // Optimize dependencies for faster dev startup
   optimizeDeps: {
     include: [

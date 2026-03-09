@@ -10,6 +10,7 @@ const LoadingScreen = ({ initStatus, progress, error, onRetry, onContinue }) => 
     { id: 'backend', label: t('loading.components.backend', 'Servidor Backend'), status: initStatus.backend.status, message: initStatus.backend.message },
     { id: 'brain', label: t('loading.components.brain', 'Núcleo IA'), status: initStatus.brain.status, message: initStatus.brain.message },
     { id: 'hexstrike', label: t('loading.components.hexstrike', 'Cliente HexStrike'), status: initStatus.hexstrike.status, message: initStatus.hexstrike.message },
+    { id: 'rag', label: t('loading.components.rag', 'Base de Conhecimento RAG'), status: initStatus.rag?.status || 'loading', message: initStatus.rag?.message || 'Aguardando...' },
     { id: 'config', label: t('loading.components.config', 'Configuração'), status: initStatus.config.status, message: initStatus.config.message }
   ];
 
